@@ -1,0 +1,42 @@
+{
+    "name": "ChaiLab",
+    "build": {
+        "context": "..",
+        "dockerfile": "../Dockerfile.chailab",
+        "target": "chailab-baseimage"
+    },
+    "runArgs": [
+        // by default use all GPUs, can be overriden by envvar
+        "--gpus=${localEnv:DEVBOX_GPU_SPEC:all}",
+        "--ipc=host",
+        "-v=/data/instance:/data/instance",
+        // default container name is chai-lab-container
+        "--name=chai-lab-${localEnv:DEVBOX_USER:container}",
+        // set restrictions on CPU and RAM memory usage
+        "--cpus=60.0",
+        "--memory=1000g"
+    ],
+    "shutdownAction": "none",
+    "postCreateCommand": "uv pip install -e . && pre-commit install -f",
+    "customizations": {
+        "vscode": {
+            "settings": {
+                "python.defaultInterpreterPath": "/opt/venv/bin/python"
+            },
+            "extensions": [
+                "ms-azuretools.vscode-docker",
+                "ms-python.python",
+                "ms-python.vscode-pylance",
+                "ms-python.mypy-type-checker",
+                "charliermarsh.ruff",
+                "ms-toolsai.jupyter",
+                "arianjamasb.protein-viewer",
+                "redhat.vscode-yaml",
+                // very optional git-specific stuff
+                "arturock.gitstash",
+                "mhutchie.git-graph",
+                "GitHub.vscode-pull-request-github"
+            ]
+        }
+    }
+}

@@ -1,0 +1,15 @@
+// We use Dev Containers to run the code in a container. As a result,
+// VS Code runs extensions in one of two places: locally on the UI /
+// client side, or in the container. When adding extensions, take care
+// to ensure you add them to the right list: container extensions should
+// be added to the list in ../.devcontainer/devcontainer.json, and UI
+// extensions should be added to the list below. See
+// https://code.visualstudio.com/docs/devcontainers/containers#_managing-extensions
+{
+    "recommendations": [
+        "ms-vscode-remote.remote-containers",
+        "ms-vscode-remote.remote-ssh",
+        "ms-vscode-remote.remote-ssh-edit",
+        "ms-vscode.remote-explorer"
+    ]
+}

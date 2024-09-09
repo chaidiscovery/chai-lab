@@ -1,0 +1,27 @@
+name: Prettier
+
+on:
+  # Triggered whenever a commit is added to the main branch
+  push:
+    branches:
+      - main
+  # Triggered whenever a PR is opened or updated
+  pull_request:
+jobs:
+  yaml:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
+        run: npm install --save-dev --save-exact prettier
+
+      - name: Run Prettier to check YAML format
+        run: npx prettier --check "**/*.yml" "**/*.yaml"

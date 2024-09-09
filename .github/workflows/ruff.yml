@@ -1,0 +1,27 @@
+name: Ruff
+on:
+  # Triggered whenever a commit is added to the main branch
+  push:
+    branches:
+      - main
+  # Triggered whenever a PR is opened or updated
+  pull_request:
+jobs:
+  ruff:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: "pip"
+      - name: Install
+        run: pip install pre-commit
+      - name: Run pre-commit checks on all files
+        # run specific ruff pre-commit hooks on all files
+        run: >
+          pip install pre-commit
+          && pre-commit install -f
+          && pre-commit run ruff --all-files
+          && pre-commit run ruff-format --all-files

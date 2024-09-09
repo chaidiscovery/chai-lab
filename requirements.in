@@ -1,0 +1,46 @@
+# dev-deps, still placed in the same requirements file
+ruff==0.6.3 # in sync with pre-commit-hook
+mypy
+pytest
+pre-commit
+
+# types/stubs are required by mypy
+pandas-stubs
+types-pyyaml
+types-tqdm
+typing-extensions
+types-requests
+
+# CLI, administrator tools
+typer~=0.12        # CLI generator
+# pydantic~=2.5      # serialization/deserialization of configs
+
+# notebooks, plotting
+ipykernel~=6.27    # needed by vs code to run notebooks in devcontainer
+# seaborn
+# matplotlib
+
+# misc
+tqdm~=4.66
+
+# data import/export, application-specific
+gemmi~=0.6.3       # pdb/mmcif parsing
+rdkit==2023.9.5    # parsing of ligands. 2023.9.6 has broken type stubs
+biopython==1.83    # parsing, data access
+antipickle==0.2.0  # save/load heterogeneous python structures
+tmtools>=0.0.3     # Python bindings for the TM-align algorithm
+# dockq metric for comparing predicted pdbs and ground truth pdbs
+dockq @ git+https://github.com/bjornwallner/DockQ.git@v2.1.1
+# pip-compatible minimized version of anarci
+anarci @ git+https://github.com/arogozhnikov/microANARCI@d81823395d0c3532d6e033d80b036b4aa4a4565e
+
+# computing, dl
+numpy~=1.21
+pandas[parquet,gcp,aws]~=2.1 
+# polars              
+einops~=0.8
+jaxtyping>=0.2.25   # versions <0.2.25 do not easily support runtime typechecking
+beartype>=0.18      # compatible typechecker to use with jaxtyping
+# do not use 2.2 because https://github.com/pytorch/pytorch/issues/122385
+torch~=2.3.1
+transformers~=4.44  # for esm inference

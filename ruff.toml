@@ -1,0 +1,12 @@
+# move ruff cache outside of worktree
+cache-dir = "/tmp/.ruff_chai_cache"
+
+
+[lint]
+extend-select = ["I"]
+# jaxtyping requires disabling two following errors
+# https://docs.kidger.site/jaxtyping/faq/#flake8-or-ruff-are-throwing-an-error
+ignore = ["F821", "F722"]
+
+[lint.isort]
+known-first-party = ["chai", "chai_lab"]

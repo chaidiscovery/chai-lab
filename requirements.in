@@ -29,10 +29,12 @@ rdkit==2023.9.5    # parsing of ligands. 2023.9.6 has broken type stubs
 biopython==1.83    # parsing, data access
 antipickle==0.2.0  # save/load heterogeneous python structures
 tmtools>=0.0.3     # Python bindings for the TM-align algorithm
+
+# commented out following optional dependencies for release on pypi
 # dockq metric for comparing predicted pdbs and ground truth pdbs
-dockq @ git+https://github.com/bjornwallner/DockQ.git@v2.1.1
+# dockq @ git+https://github.com/bjornwallner/DockQ.git@v2.1.1
 # pip-compatible minimized version of anarci
-anarci @ git+https://github.com/arogozhnikov/microANARCI@d81823395d0c3532d6e033d80b036b4aa4a4565e
+# anarci @ git+https://github.com/arogozhnikov/microANARCI@d81823395d0c3532d6e033d80b036b4aa4a4565e
 
 # computing, dl
 numpy~=1.21

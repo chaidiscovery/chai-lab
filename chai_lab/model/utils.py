@@ -34,7 +34,7 @@ def get_qkv_indices_for_blocks(
         kv_block_size, device=kv_indices.device
     )  # bl bl_kv -> kv
     # mask out positions where kv_indices gets wrapped
-    # Rationale: the local attention block should allways process
+    # Rationale: the local attention block should always process
     # local blocks (i.e. same rel-positional encodings for each block.)
     kv_mask = (kv_indices < sequence_length) & (kv_indices >= 0)
     # Use of % not .clamp is important for short sequences

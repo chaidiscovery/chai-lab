@@ -50,14 +50,23 @@ def parse_modified_fasta_sequence(sequence: str, entity_type: EntityType) -> lis
     """
     Parses a fasta-like string containing modified residues in
     brackets, returns a list of residue codes
+
+    >>> parse_modified_fasta_sequence("(ACE)AFD(MSE)(NH2)", EntityType.PROTEIN)
+    ['ACE', 'ALA', 'PHE', 'ASP', 'MSE', 'NH2']
     """
-    pattern = r"[A-Z]|\[[A-Z0-9]+\]"
+    pattern = r"[A-Z]|\([A-Z0-9]+\)"
     residues = re.findall(pattern, sequence)
 
     # get full residue name if regular fasta code (not in brackets),
     # otherwise return what user passed in brackets
     parsed_residues = [
-        get_residue_name(x, entity_type) if not x.startswith("[") else x.strip("[]")
+        get_residue_name(x, entity_type) if not x.startswith("(") else x.strip("()")
         for x in residues
     ]
     return parsed_residues
+
+
+if __name__ == "__main__":
+    import doctest
+
+    doctest.testmod()

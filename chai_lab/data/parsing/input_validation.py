@@ -10,7 +10,7 @@ from chai_lab.data.parsing.structure.entity_type import EntityType
 
 def constituents_of_modified_fasta(x: str) -> list[str] | None:
     """
-    Accepts RNA/DNA inputs: 'agtc', 'AGT[ASP]TG', etc
+    Accepts RNA/DNA inputs: 'agtc', 'AGT[ASP]TG', etc. Does not accept SMILES strings.
     Returns constituents, e.g, [A, G, T, ASP, T, G] or None if string is incorrect
     """
     x = x.strip().upper()
@@ -67,7 +67,7 @@ def identify_potential_entity_types(sequence: str) -> list[EntityType]:
         if "U" not in one_letter_constituents:
             possible_entity_types.append(EntityType.PROTEIN)
 
-    ascii_symbols = string.ascii_letters + string.digits + ".-+=#$%:/\\[]()@"
+    ascii_symbols = string.ascii_letters + string.digits + ".-+=#$%:/\\[]()<>@"
     if set.issubset(set(sequence.upper()), set(ascii_symbols)):
         possible_entity_types.append(EntityType.LIGAND)
     return possible_entity_types

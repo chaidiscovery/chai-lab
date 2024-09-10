@@ -51,7 +51,7 @@ def get_lig_residues(
 def get_polymer_residues(
     residue_names: list[str],
     entity_type: EntityType,
-):
+) -> list[Residue]:
     residues = []
     for i, residue_name in enumerate(residue_names):
         residues.append(
@@ -95,7 +95,7 @@ def raw_inputs_to_entitites_data(
                 residues = get_lig_residues(smiles=input.sequence)
 
             case EntityType.PROTEIN | EntityType.RNA | EntityType.DNA:
-                parsed_sequence: list = parse_modified_fasta_sequence(
+                parsed_sequence: list[str] = parse_modified_fasta_sequence(
                     input.sequence, entity_type
                 )
                 residues = get_polymer_residues(parsed_sequence, entity_type)

@@ -557,27 +557,6 @@ def run_folding_on_context(
     assert atom_pos.shape[0] == num_diffn_samples
     assert pae_logits.shape[0] == num_diffn_samples
 
-    ##
-    ## Write the outputs
-    ##
-
-    output_paths: list[Path] = []
-    for idx in range(num_diffn_samples):
-        sample_atom_pos = atom_pos[idx : idx + 1]
-        # sample_confidence = confidences["plddt_values"][idx : idx + 1]
-        # trunk_sample_idx = preds["trunk_sample_index"][idx].item()
-        trunk_sample_idx = 0
-        out_basename = f"pred.model_trunk_{trunk_sample_idx}_idx_{idx}.pdb"
-        pdb_out_path = output_dir / out_basename
-        print(f"Writing output to {pdb_out_path}")
-        write_pdbs_from_outputs(
-            coords=sample_atom_pos,
-            # bfactors=sample_confidence,
-            output_batch=move_data_to_device(inputs, torch.device("cpu")),
-            write_path=pdb_out_path,
-        )
-        output_paths.append(pdb_out_path)
-
     def softmax_einsum_and_cpu(
         logits: Tensor, bin_mean: Tensor, pattern: str
     ) -> Tensor:
@@ -624,11 +603,34 @@ def run_folding_on_context(
         plddt=plddt_scores,
     )
 
+    ##
+    ## Write the outputs
+    ##
+
+    output_paths: list[Path] = []
     ranking_data: list[SampleRanking] = []
 
-    for s in range(atom_pos.shape[0]):
+    for idx in range(num_diffn_samples):
+        # trunk_sample_idx = preds["trunk_sample_index"][idx].item()
+        trunk_sample_idx = 0
+        out_basename = f"pred.model_trunk_{trunk_sample_idx}_idx_{idx}.pdb"
+        pdb_out_path = output_dir / out_basename
+
+        print(f"Writing output to {pdb_out_path}")
+
+        # use 0-100 scale for pLDDT in pdb outputs
+        scaled_plddt_scores_per_atom = 100 * plddt_scores_atom[idx : idx + 1]
+
+        write_pdbs_from_outputs(
+            coords=atom_pos[idx : idx + 1],
+            bfactors=scaled_plddt_scores_per_atom,
+            output_batch=move_data_to_device(inputs, torch.device("cpu")),
+            write_path=pdb_out_path,
+        )
+        output_paths.append(pdb_out_path)
+
         _, valid_frames_mask = get_frames_and_mask(
-            atom_pos[s : s + 1],
+            atom_pos[idx : idx + 1],
             inputs["token_asym_id"],
             inputs["token_residue_index"],
             inputs["token_backbone_frame_mask"],
@@ -641,18 +643,18 @@ def run_folding_on_context(
 
         ranking_data.append(
             rank(
-                atom_pos[s : s + 1],
+                atom_pos[idx : idx + 1],
                 atom_mask=inputs["atom_exists_mask"],
                 atom_token_index=inputs["atom_token_index"],
                 token_exists_mask=inputs["token_exists_mask"],
                 token_asym_id=inputs["token_asym_id"],
                 token_entity_type=inputs["token_entity_type"],
                 token_valid_frames_mask=valid_frames_mask,
-                lddt_logits=plddt_logits[s : s + 1],
+                lddt_logits=plddt_logits[idx : idx + 1],
                 lddt_bin_centers=_bin_centers(0, 1, plddt_logits.shape[-1]).to(
                     plddt_logits.device
                 ),
-                pae_logits=pae_logits[s : s + 1],
+                pae_logits=pae_logits[idx : idx + 1],
                 pae_bin_centers=_bin_centers(0.0, 32.0, 64).to(pae_logits.device),
             )
         )

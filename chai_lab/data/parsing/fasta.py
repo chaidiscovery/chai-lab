@@ -3,8 +3,6 @@ import re
 from pathlib import Path
 from typing import Iterable
 
-import fsspec
-
 from chai_lab.data.parsing.structure.entity_type import EntityType
 from chai_lab.data.residue_constants import restype_1to3_with_x
 
@@ -24,21 +22,6 @@ nucleic_acid_1_to_name: dict[tuple[str, EntityType], str] = {
     ("G", EntityType.DNA): "DG",
     ("C", EntityType.DNA): "DC",
 }
-
-
-def _fasta_to_str(fasta: Fasta) -> str:
-    header, sequence = fasta
-    return f">{header}\n{sequence}\n"
-
-
-def fastas_to_str(fastas: Fastas) -> str:
-    return "".join(_fasta_to_str(fasta) for fasta in fastas)
-
-
-def write_fastas(fastas: Fastas, output_path: str):
-    logger.debug(f"Writing {len(fastas)} sequences to {output_path}")
-    with fsspec.open(output_path, "w") as fp:
-        fp.write(fastas_to_str(fastas))
 
 
 def read_fasta(file_path: str | Path) -> Iterable[Fasta]:

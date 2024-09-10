@@ -1,4 +1,4 @@
-example_ligangs = [
+example_ligands = [
     "C",
     "O",
     "C(C1C(C(C(C(O1)O)O)O)O)O",

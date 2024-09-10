@@ -4,7 +4,7 @@ from chai_lab.data.parsing.input_validation import (
 )
 from chai_lab.data.parsing.structure.entity_type import EntityType
 
-from .example_inputs import example_dna, example_ligangs, example_proteins, example_rna
+from .example_inputs import example_dna, example_ligands, example_proteins, example_rna
 
 
 def test_simple_fasta():
@@ -21,7 +21,7 @@ def test_modified_fasta():
 
 
 def test_parsing():
-    for ligand in example_ligangs:
+    for ligand in example_ligands:
         assert EntityType.LIGAND in identify_potential_entity_types(ligand)
 
     for protein in example_proteins:

@@ -12,6 +12,7 @@ from chai_lab.data.dataset.structure.all_atom_residue_tokenizer import (
 )
 from chai_lab.data.dataset.structure.chain import Chain
 from chai_lab.data.parsing.fasta import parse_modified_fasta_sequence, read_fasta
+from chai_lab.data.parsing.input_validation import identify_potential_entity_types
 from chai_lab.data.parsing.structure.all_atom_entity_data import AllAtomEntityData
 from chai_lab.data.parsing.structure.entity_type import EntityType
 from chai_lab.data.parsing.structure.residue import Residue, get_restype
@@ -204,6 +205,16 @@ def read_inputs(fasta_file: str | Path, length_limit: int | None = None) -> list
                 entity_type = EntityType.DNA
             case _:
                 raise ValueError(f"{entity_str} is not a valid entity type")
+
+        possible_types = identify_potential_entity_types(sequence)
+        if len(possible_types) == 0:
+            logger.error(f"Provided {sequence=} is invalid")
+        elif entity_type not in possible_types:
+            types_fmt = "/".join(str(et.name) for et in possible_types)
+            logger.warning(
+                f"Provided {sequence=} is likely {types_fmt}, not {entity_type.name}"
+            )
+
         retval.append(Input(sequence, entity_type.value))
         total_length += len(sequence)
 

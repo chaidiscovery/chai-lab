@@ -31,8 +31,8 @@ def constituents_of_modified_fasta(x: str) -> list[str] | None:
         elif letter == ")":
             if current_modified is None:
                 return None  # closed without opening
-            if len(current_modified) == 0:
-                return None  # empty modification: ()
+            if len(current_modified) <= 1:
+                return None  # empty modification: () or single (K)
             constituents.append(current_modified)
             current_modified = None
         else:

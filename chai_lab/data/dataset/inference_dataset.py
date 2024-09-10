@@ -192,7 +192,7 @@ def read_inputs(fasta_file: str | Path, length_limit: int | None = None) -> list
     for desc, sequence in sequences:
         logger.info(f"[fasta] [{fasta_file}] {desc} {len(sequence)}")
         # get the type of the sequence
-        entity_str = desc.split("|")[0].strip()
+        entity_str = desc.split("|")[0].strip().lower()
         match entity_str:
             case "protein":
                 entity_type = EntityType.PROTEIN

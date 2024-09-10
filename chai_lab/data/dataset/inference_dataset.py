@@ -11,8 +11,11 @@ from chai_lab.data.dataset.structure.all_atom_residue_tokenizer import (
     _make_sym_ids,
 )
 from chai_lab.data.dataset.structure.chain import Chain
-from chai_lab.data.parsing.fasta import parse_modified_fasta_sequence, read_fasta
-from chai_lab.data.parsing.input_validation import identify_potential_entity_types
+from chai_lab.data.parsing.fasta import get_residue_name, read_fasta
+from chai_lab.data.parsing.input_validation import (
+    constituents_of_modified_fasta,
+    identify_potential_entity_types,
+)
 from chai_lab.data.parsing.structure.all_atom_entity_data import AllAtomEntityData
 from chai_lab.data.parsing.structure.entity_type import EntityType
 from chai_lab.data.parsing.structure.residue import Residue, get_restype
@@ -95,10 +98,15 @@ def raw_inputs_to_entitites_data(
                 residues = get_lig_residues(smiles=input.sequence)
 
             case EntityType.PROTEIN | EntityType.RNA | EntityType.DNA:
-                parsed_sequence: list[str] = parse_modified_fasta_sequence(
-                    input.sequence, entity_type
+                parsed_sequence: list | None = constituents_of_modified_fasta(
+                    input.sequence
                 )
-                residues = get_polymer_residues(parsed_sequence, entity_type)
+                assert parsed_sequence is not None
+                expanded_sequence = [
+                    get_residue_name(r, entity_type=entity_type) if len(r) == 1 else r
+                    for r in parsed_sequence
+                ]
+                residues = get_polymer_residues(expanded_sequence, entity_type)
             case _:
                 raise NotImplementedError
         assert residues is not None

@@ -10,8 +10,9 @@ from chai_lab.data.parsing.structure.entity_type import EntityType
 
 def constituents_of_modified_fasta(x: str) -> list[str] | None:
     """
-    Accepts RNA/DNA inputs: 'agtc', 'AGT[ASP]TG', etc. Does not accept SMILES strings.
-    Returns constituents, e.g, [A, G, T, ASP, T, G] or None if string is incorrect
+    Accepts RNA/DNA inputs: 'agtc', 'AGT(ASP)TG', etc. Does not accept SMILES strings.
+    Returns constituents, e.g, [A, G, T, ASP, T, G] or None if string is incorrect.
+    Everything in returned list is single character, except for blocks specified in brackets.
     """
     x = x.strip().upper()
     # it is a bit strange that digits are here, but [NH2] was in one protein

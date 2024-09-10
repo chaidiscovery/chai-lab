@@ -35,6 +35,8 @@ def get_residue_name(
     fasta_code: str,
     entity_type: EntityType,
 ) -> str:
+    if len(fasta_code) != 1:
+        raise ValueError("Cannot handle non-single chars: {}".format(fasta_code))
     match entity_type:
         case EntityType.PROTEIN:
             return restype_1to3_with_x.get(fasta_code, "UNK")
@@ -48,8 +50,8 @@ def get_residue_name(
 
 def parse_modified_fasta_sequence(sequence: str, entity_type: EntityType) -> list[str]:
     """
-    Parses a fasta-like string containing modified residues
-     in brackets, returns a list of residue codes.
+    Parses a fasta-like string containing modified residues in brackets.
+    Returns a list of residue codes expanded to their full names (e.g., K > LYS)
     """
     pattern = r"[A-Z]|\[[A-Z0-9]+\]"
     residues = re.findall(pattern, sequence)

@@ -13,7 +13,7 @@ example_ligangs = [
 
 example_proteins = [
     "AGSHSMRYFSTSVSRPGRGEPRFIAVGYVDDTQFVR",
-    "[KCJ][SEP][PPN][B3S][BAL][PPN]K[NH2]",
+    "(KCJ)(SEP)(PPN)(B3S)(BAL)(PPN)K(NH2)",
     "XDHPX",
 ]
 

@@ -7,8 +7,17 @@ from chai_lab.data.parsing.structure.entity_type import EntityType
 from .example_inputs import example_dna, example_ligangs, example_proteins, example_rna
 
 
-def test_debug():
-    constituents_of_modified_fasta("[KCJ][SEP][PPN][B3S][BAL][PPN]K[NH2]")
+def test_simple_fasta():
+    parts = constituents_of_modified_fasta("RKDES")
+    assert parts is not None
+    assert all(x == y for x, y in zip(parts, ["R", "K", "D", "E", "S"]))
+
+
+def test_modified_fasta():
+    parts = constituents_of_modified_fasta("(KCJ)(SEP)(PPN)(B3S)(BAL)(PPN)K(NH2)")
+    assert parts is not None
+    expected = ["KCJ", "SEP", "PPN", "B3S", "BAL", "PPN", "K", "NH2"]
+    assert all([x == y for x, y in zip(parts, expected)])
 
 
 def test_parsing():

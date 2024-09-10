@@ -48,8 +48,8 @@ def get_residue_name(
 
 def parse_modified_fasta_sequence(sequence: str, entity_type: EntityType) -> list[str]:
     """
-    Parses a fasta-like string containing modified residues in
-    brackets, returns a list of residue codes
+    Parses a fasta-like string containing modified residues
+     in brackets, returns a list of residue codes.
     """
     pattern = r"[A-Z]|\[[A-Z0-9]+\]"
     residues = re.findall(pattern, sequence)

@@ -14,9 +14,9 @@ def test_simple_fasta():
 
 
 def test_modified_fasta():
-    parts = constituents_of_modified_fasta("(KCJ)(SEP)(PPN)(B3S)(BAL)(PPN)K(NH2)")
+    parts = constituents_of_modified_fasta("(KCJ)(SEP)(PPN)(B3S)(BAL)(PPN)KX(NH2)")
     assert parts is not None
-    expected = ["KCJ", "SEP", "PPN", "B3S", "BAL", "PPN", "K", "NH2"]
+    expected = ["KCJ", "SEP", "PPN", "B3S", "BAL", "PPN", "K", "X", "NH2"]
     assert all([x == y for x, y in zip(parts, expected)])
 
 

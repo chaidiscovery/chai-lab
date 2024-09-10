@@ -22,13 +22,17 @@ CCCCCCCCCCCCCC(=O)O
 fasta_path = Path("/tmp/example.fasta")
 fasta_path.write_text(example_fasta)
 
-output_paths = run_inference(
+output_dir = Path("/tmp/outputs")
+output_pdb_paths = run_inference(
     fasta_file=fasta_path,
-    output_dir=Path("/tmp/outputs"),
+    output_dir=output_dir,
     # 'default' setup
     num_trunk_recycles=3,
-    num_diffn_timesteps=200,
+    num_diffn_timesteps=100,
     seed=42,
     device=torch.device("cuda:0"),
     use_esm_embeddings=True,
 )
+
+# Load pTM, ipTM, pLDDTs and clash scores for each sample
+confidence_scores_per_sample: list = torch.load(output_dir.joinpath("scores.pt"))

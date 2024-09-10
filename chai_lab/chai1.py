@@ -1,6 +1,6 @@
 # %%
 import math
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from pathlib import Path
 
 import torch
@@ -269,7 +269,7 @@ def run_inference(
         constraint_context=constraint_context,
     )
 
-    output_paths, scores, ranking_data = run_folding_on_context(
+    output_paths, _, ranking_data = run_folding_on_context(
         feature_context,
         output_dir=output_dir,
         num_trunk_recycles=num_trunk_recycles,
@@ -277,6 +277,15 @@ def run_inference(
         seed=seed,
         device=device,
     )
+
+    scores_output_path = Path(output_dir).joinpath("scores.pt")
+    torch.save(
+        move_data_to_device(
+            [asdict(data) for data in ranking_data], torch.device("cpu")
+        ),
+        scores_output_path,
+    )
+
     return output_paths
 
 

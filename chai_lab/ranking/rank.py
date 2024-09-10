@@ -14,14 +14,8 @@ from chai_lab.utils.typing import Bool, Float, Int, typecheck
 @dataclass
 class SampleRanking:
     """Sample Ranking Data
-
-    token_chain_masks: a tensor of shape (..., c, n) containing a boolean mask
-        for each chain in the input
-    token_asyms: a tensor of shape (c,) containing the unique asym ids for
-        each chain in the sample. The token asyms are sorted numerically.
-    token_chain_masks: a tensor of shape (..., c, n) containing a mask
-        for each chain in the sample. The order of the chains is the same
-        as token_asyms.
+    asym ids: a tensor of shape (c,) containing the unique asym ids for
+        each chain in the sample. The asym ids are sorted numerically.
     aggregate_score: a tensor of shape (...) containing the aggregate ranking
         score for the sample
     ptm_scores: see ptm.get_scores for a description of the ptm scores
@@ -29,8 +23,7 @@ class SampleRanking:
     plddt_scores: see plddt.PLDDTScores for a description of the plddt scores
     """
 
-    token_chain_masks: Bool[Tensor, "... c n"]
-    token_asyms: Int[Tensor, "c"]
+    asym_ids: Int[Tensor, "c"]
     aggregate_score: Float[Tensor, "..."]
     ptm_scores: ptm.PTMScores
     clash_scores: clashes.ClashScores
@@ -107,14 +100,13 @@ def rank(
         - 100 * clash_scores.has_clashes.float()
     )
 
-    chain_masks, asyms = rutils.get_chain_masks_and_asyms(
+    _, asyms = rutils.get_chain_masks_and_asyms(
         asym_id=token_asym_id,
         mask=token_exists_mask,
     )
 
     return SampleRanking(
-        token_chain_masks=chain_masks,
-        token_asyms=asyms,
+        asym_ids=asyms,
         aggregate_score=aggregate_score,
         ptm_scores=ptm_scores,
         clash_scores=clash_scores,

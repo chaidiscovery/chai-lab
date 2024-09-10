@@ -618,9 +618,12 @@ def run_folding_on_context(
 
         print(f"Writing output to {pdb_out_path}")
 
+        # use 0-100 scale for pLDDT in pdb outputs
+        scaled_plddt_scores_per_atom = 100 * plddt_scores_atom[idx : idx + 1]
+
         write_pdbs_from_outputs(
             coords=atom_pos[idx : idx + 1],
-            bfactors=plddt_scores_atom[idx : idx + 1],
+            bfactors=scaled_plddt_scores_per_atom,
             output_batch=move_data_to_device(inputs, torch.device("cpu")),
             write_path=pdb_out_path,
         )

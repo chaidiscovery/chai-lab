@@ -28,7 +28,7 @@ output_pdb_paths = run_inference(
     output_dir=output_dir,
     # 'default' setup
     num_trunk_recycles=3,
-    num_diffn_timesteps=100,
+    num_diffn_timesteps=200,
     seed=42,
     device=torch.device("cuda:0"),
     use_esm_embeddings=True,

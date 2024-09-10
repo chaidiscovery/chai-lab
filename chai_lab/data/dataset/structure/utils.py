@@ -23,6 +23,7 @@ def get_centre_atom_name(residue_name: str) -> str:
     }:
         return "C1'"
     else:
+        assert len(residue_name) == 3, "residue expected"
         return "CA"
 
 

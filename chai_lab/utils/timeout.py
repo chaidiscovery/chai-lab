@@ -10,7 +10,9 @@ import queue as _queue
 from enum import Enum
 from functools import wraps
 from multiprocessing import Process, Queue
-from typing import Any, assert_never
+from typing import Any
+
+from typing_extensions import assert_never
 
 
 # TODO: This is dangerous: revert once the underlying problem in rdkit is fixed

@@ -10,7 +10,7 @@ build-backend = "hatchling.build"
 [project]
 name = "chai_lab"
 description = "Chai Discovery tools for AI + protein research."
-requires-python = ">=3.11"
+requires-python = ">=3.10"
 authors = [{ name = "Chai Discovery" }]
 # see both defined below
 dynamic = ["version", "dependencies"]

@@ -2,39 +2,26 @@
 
 import logging
 from pathlib import Path
-from typing import Any
 
 import torch
 from matplotlib import pyplot as plt
 from torch import Tensor
 
 from chai_lab.data import residue_constants as rc
+from chai_lab.utils.typing import Int, UInt8, typecheck
 
 
+@typecheck
 def plot_msa(
-    batch: dict[str, Any],
+    input_tokens: Int[Tensor, "n_tokens"],
+    msa_tokens: UInt8[Tensor, "msa_depth n_tokens"],
     out_fname: Path,
     gap: str = "-",
     mask: str = ":",
     sort_by_identity: bool = True,
 ) -> Path | None:
-    if "token_residue_type" not in batch or "msa_tokens" not in batch:
-        logging.warning("No keys for MSA plotting; skipping...")
-        return None
-
     gap_idx = rc.residue_types_with_nucleotides.index(gap)
     mask_idx = rc.residue_types_with_nucleotides.index(mask)
-
-    input_tokens = batch["token_residue_type"]  # Shape of (n_tokens,)
-    assert isinstance(input_tokens, Tensor)
-    assert input_tokens.ndim == 1
-    n_tokens = input_tokens.numel()
-
-    msa_tokens = batch["msa_tokens"]  # MSA depth, sequence length
-    assert isinstance(msa_tokens, Tensor)
-    assert (
-        msa_tokens.ndim == 2 and msa_tokens.shape[-1] == n_tokens
-    ), f"Bad shape: {msa_tokens.shape}"
 
     # Trim tokens that are all pad
     token_is_pad = torch.all(msa_tokens == mask_idx, dim=0)

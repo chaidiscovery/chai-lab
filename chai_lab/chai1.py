@@ -619,11 +619,9 @@ def run_folding_on_context(
     # Write a MSA plot
     output_dir.mkdir(parents=True, exist_ok=True)
     msa_plot_path = plot_msa(
-        {
-            "token_residue_type": feature_context.structure_context.token_residue_type,
-            "msa_tokens": feature_context.msa_context.tokens,
-        },
-        output_dir / "msa_depth.pdf",
+        input_tokens=feature_context.structure_context.token_residue_type,
+        msa_tokens=feature_context.msa_context.tokens,
+        out_fname=output_dir / "msa_depth.pdf",
     )
     assert msa_plot_path is not None
 

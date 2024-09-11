@@ -3,6 +3,7 @@ import math
 from dataclasses import dataclass
 from pathlib import Path
 
+import numpy as np
 import torch
 import torch.export
 from einops import einsum, rearrange, repeat
@@ -75,7 +76,7 @@ from chai_lab.data.io.pdb_utils import write_pdbs_from_outputs
 from chai_lab.model.diffusion_schedules import InferenceNoiseSchedule
 from chai_lab.model.utils import center_random_augmentation
 from chai_lab.ranking.frames import get_frames_and_mask
-from chai_lab.ranking.rank import SampleRanking, rank
+from chai_lab.ranking.rank import SampleRanking, get_scores, rank
 from chai_lab.utils.paths import chai1_component
 from chai_lab.utils.tensor_utils import move_data_to_device, set_seed, und_self
 from chai_lab.utils.typing import Float, typecheck
@@ -269,7 +270,7 @@ def run_inference(
         constraint_context=constraint_context,
     )
 
-    output_paths, scores, ranking_data = run_folding_on_context(
+    output_pdb_paths, _, _ = run_folding_on_context(
         feature_context,
         output_dir=output_dir,
         num_trunk_recycles=num_trunk_recycles,
@@ -277,7 +278,8 @@ def run_inference(
         seed=seed,
         device=device,
     )
-    return output_paths
+
+    return output_pdb_paths
 
 
 def _bin_centers(min_bin: float, max_bin: float, no_bins: int) -> Tensor:
@@ -611,9 +613,45 @@ def run_folding_on_context(
     ranking_data: list[SampleRanking] = []
 
     for idx in range(num_diffn_samples):
-        # trunk_sample_idx = preds["trunk_sample_index"][idx].item()
-        trunk_sample_idx = 0
-        out_basename = f"pred.model_trunk_{trunk_sample_idx}_idx_{idx}.pdb"
+        ##
+        ## Compute ranking scores
+        ##
+
+        _, valid_frames_mask = get_frames_and_mask(
+            atom_pos[idx : idx + 1],
+            inputs["token_asym_id"],
+            inputs["token_residue_index"],
+            inputs["token_backbone_frame_mask"],
+            inputs["token_centre_atom_index"],
+            inputs["token_exists_mask"],
+            inputs["atom_exists_mask"],
+            inputs["token_backbone_frame_index"],
+            inputs["atom_token_index"],
+        )
+
+        ranking_outputs = rank(
+            atom_pos[idx : idx + 1],
+            atom_mask=inputs["atom_exists_mask"],
+            atom_token_index=inputs["atom_token_index"],
+            token_exists_mask=inputs["token_exists_mask"],
+            token_asym_id=inputs["token_asym_id"],
+            token_entity_type=inputs["token_entity_type"],
+            token_valid_frames_mask=valid_frames_mask,
+            lddt_logits=plddt_logits[idx : idx + 1],
+            lddt_bin_centers=_bin_centers(0, 1, plddt_logits.shape[-1]).to(
+                plddt_logits.device
+            ),
+            pae_logits=pae_logits[idx : idx + 1],
+            pae_bin_centers=_bin_centers(0.0, 32.0, 64).to(pae_logits.device),
+        )
+
+        ranking_data.append(ranking_outputs)
+
+        ##
+        ## Write output files
+        ##
+
+        out_basename = f"pred.model_idx_{idx}.pdb"
         pdb_out_path = output_dir / out_basename
 
         print(f"Writing output to {pdb_out_path}")
@@ -629,34 +667,13 @@ def run_folding_on_context(
         )
         output_paths.append(pdb_out_path)
 
-        _, valid_frames_mask = get_frames_and_mask(
-            atom_pos[idx : idx + 1],
-            inputs["token_asym_id"],
-            inputs["token_residue_index"],
-            inputs["token_backbone_frame_mask"],
-            inputs["token_centre_atom_index"],
-            inputs["token_exists_mask"],
-            inputs["atom_exists_mask"],
-            inputs["token_backbone_frame_index"],
-            inputs["atom_token_index"],
-        )
+        scores_basename = f"scores.model_idx_{idx}.npz"
+        scores_out_path = output_dir / scores_basename
 
-        ranking_data.append(
-            rank(
-                atom_pos[idx : idx + 1],
-                atom_mask=inputs["atom_exists_mask"],
-                atom_token_index=inputs["atom_token_index"],
-                token_exists_mask=inputs["token_exists_mask"],
-                token_asym_id=inputs["token_asym_id"],
-                token_entity_type=inputs["token_entity_type"],
-                token_valid_frames_mask=valid_frames_mask,
-                lddt_logits=plddt_logits[idx : idx + 1],
-                lddt_bin_centers=_bin_centers(0, 1, plddt_logits.shape[-1]).to(
-                    plddt_logits.device
-                ),
-                pae_logits=pae_logits[idx : idx + 1],
-                pae_bin_centers=_bin_centers(0.0, 32.0, 64).to(pae_logits.device),
-            )
+        scores = get_scores(ranking_outputs)
+        np.savez(
+            scores_out_path,
+            **scores,
         )
 
     return output_paths, confidence_scores, ranking_data

@@ -101,7 +101,7 @@ def raw_inputs_to_entitites_data(
                 parsed_sequence: list | None = constituents_of_modified_fasta(
                     input.sequence
                 )
-                assert parsed_sequence is not None
+                assert parsed_sequence is not None, f'incorrect FASTA: {parsed_sequence=} '
                 expanded_sequence = [
                     get_residue_name(r, entity_type=entity_type) if len(r) == 1 else r
                     for r in parsed_sequence

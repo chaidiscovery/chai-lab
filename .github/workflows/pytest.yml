@@ -1,0 +1,27 @@
+name: Pytest
+on:
+  # Triggered whenever a commit is added to the main branch
+  push:
+    branches:
+      - main
+  # Triggered whenever a PR is opened or updated
+  pull_request:
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10" # ensure we support 3.10
+          cache: "pip"
+      - name: Install dependencies
+        run: |
+          # install uv and cpu-only torch
+          pip install --no-deps uv -r <( cat requirements.in | grep torch) --extra-index-url https://download.pytorch.org/whl/cpu
+          # install requirements, except torch and potentially nvidia-related stuff
+          uv pip install --system -r <( cat requirements.in | grep -v nvidia | grep -v torch )
+          uv pip install --system --no-deps -e .
+      - name: Run pytest
+        run: pytest ./tests/

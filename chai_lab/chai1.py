@@ -271,7 +271,7 @@ def run_inference(
         constraint_context=constraint_context,
     )
 
-    output_pdb_paths, _, _ = run_folding_on_context(
+    output_pdb_paths, _, _, _ = run_folding_on_context(
         feature_context,
         output_dir=output_dir,
         num_trunk_recycles=num_trunk_recycles,
@@ -309,10 +309,16 @@ def run_folding_on_context(
     num_diffn_timesteps: int = 200,
     seed: int | None = None,
     device: torch.device | None = None,
-) -> tuple[list[Path], ConfidenceScores, list[SampleRanking]]:
+) -> tuple[list[Path], ConfidenceScores, list[SampleRanking], Path]:
     """
     Function for in-depth explorations.
     User completely controls folding inputs.
+
+    Returns:
+    - list of Path corresponding to folding outputs
+    - ConfidenceScores object
+    - SampleRanking data
+    - Path to plot of MSA coverage
     """
     # Set seed
     if seed is not None:
@@ -612,13 +618,14 @@ def run_folding_on_context(
 
     # Write a MSA plot
     output_dir.mkdir(parents=True, exist_ok=True)
-    plot_msa(
+    msa_plot_path = plot_msa(
         {
             "token_residue_type": feature_context.structure_context.token_residue_type,
             "msa_tokens": feature_context.msa_context.tokens,
         },
         output_dir / "msa_depth.pdf",
     )
+    assert msa_plot_path is not None
 
     output_paths: list[Path] = []
     ranking_data: list[SampleRanking] = []
@@ -687,4 +694,4 @@ def run_folding_on_context(
             **scores,
         )
 
-    return output_paths, confidence_scores, ranking_data
+    return output_paths, confidence_scores, ranking_data, msa_plot_path

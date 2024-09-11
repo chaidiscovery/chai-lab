@@ -13,14 +13,14 @@ from chai_lab.data import residue_constants as rc
 
 def plot_msa(
     batch: dict[str, Any],
-    out_fname: Path | str,
+    out_fname: Path,
     gap: str = "-",
     mask: str = ":",
     sort_by_identity: bool = True,
-):
+) -> Path | None:
     if "token_residue_type" not in batch or "msa_tokens" not in batch:
         logging.warning("No keys for MSA plotting; skipping...")
-        return
+        return None
 
     gap_idx = rc.residue_types_with_nucleotides.index(gap)
     mask_idx = rc.residue_types_with_nucleotides.index(mask)
@@ -77,3 +77,4 @@ def plot_msa(
     fig.savefig(out_fname, bbox_inches="tight")
     logging.info(f"Saved MSA plot to {out_fname}")
     plt.close(fig)
+    return out_fname

@@ -36,4 +36,4 @@ output_pdb_paths = run_inference(
 )
 
 # Load pTM, ipTM, pLDDTs and clash scores for sample 2
-scores: dict = np.load(output_dir.joinpath("scores_idx_2.npz"))
+scores = np.load(output_dir.joinpath("scores.model_idx_2.npz"))

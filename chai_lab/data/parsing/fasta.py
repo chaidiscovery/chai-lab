@@ -1,5 +1,4 @@
 import logging
-import re
 from pathlib import Path
 from typing import Iterable
 
@@ -35,6 +34,8 @@ def get_residue_name(
     fasta_code: str,
     entity_type: EntityType,
 ) -> str:
+    if len(fasta_code) != 1:
+        raise ValueError("Cannot handle non-single chars: {}".format(fasta_code))
     match entity_type:
         case EntityType.PROTEIN:
             return restype_1to3_with_x.get(fasta_code, "UNK")
@@ -44,20 +45,3 @@ def get_residue_name(
             return nucleic_acid_1_to_name.get((fasta_code, entity_type), unk)
         case _:
             raise ValueError(f"Invalid polymer entity type {entity_type}")
-
-
-def parse_modified_fasta_sequence(sequence: str, entity_type: EntityType) -> list[str]:
-    """
-    Parses a fasta-like string containing modified residues in
-    brackets, returns a list of residue codes
-    """
-    pattern = r"[A-Z]|\[[A-Z0-9]+\]"
-    residues = re.findall(pattern, sequence)
-
-    # get full residue name if regular fasta code (not in brackets),
-    # otherwise return what user passed in brackets
-    parsed_residues = [
-        get_residue_name(x, entity_type) if not x.startswith("[") else x.strip("[]")
-        for x in residues
-    ]
-    return parsed_residues

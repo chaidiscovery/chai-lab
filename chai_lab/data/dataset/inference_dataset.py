@@ -11,7 +11,11 @@ from chai_lab.data.dataset.structure.all_atom_residue_tokenizer import (
     _make_sym_ids,
 )
 from chai_lab.data.dataset.structure.chain import Chain
-from chai_lab.data.parsing.fasta import parse_modified_fasta_sequence, read_fasta
+from chai_lab.data.parsing.fasta import get_residue_name, read_fasta
+from chai_lab.data.parsing.input_validation import (
+    constituents_of_modified_fasta,
+    identify_potential_entity_types,
+)
 from chai_lab.data.parsing.structure.all_atom_entity_data import AllAtomEntityData
 from chai_lab.data.parsing.structure.entity_type import EntityType
 from chai_lab.data.parsing.structure.residue import Residue, get_restype
@@ -50,7 +54,7 @@ def get_lig_residues(
 def get_polymer_residues(
     residue_names: list[str],
     entity_type: EntityType,
-):
+) -> list[Residue]:
     residues = []
     for i, residue_name in enumerate(residue_names):
         residues.append(
@@ -94,10 +98,17 @@ def raw_inputs_to_entitites_data(
                 residues = get_lig_residues(smiles=input.sequence)
 
             case EntityType.PROTEIN | EntityType.RNA | EntityType.DNA:
-                parsed_sequence: list = parse_modified_fasta_sequence(
-                    input.sequence, entity_type
+                parsed_sequence: list | None = constituents_of_modified_fasta(
+                    input.sequence
                 )
-                residues = get_polymer_residues(parsed_sequence, entity_type)
+                assert (
+                    parsed_sequence is not None
+                ), f"incorrect FASTA: {parsed_sequence=} "
+                expanded_sequence = [
+                    get_residue_name(r, entity_type=entity_type) if len(r) == 1 else r
+                    for r in parsed_sequence
+                ]
+                residues = get_polymer_residues(expanded_sequence, entity_type)
             case _:
                 raise NotImplementedError
         assert residues is not None
@@ -192,7 +203,7 @@ def read_inputs(fasta_file: str | Path, length_limit: int | None = None) -> list
     for desc, sequence in sequences:
         logger.info(f"[fasta] [{fasta_file}] {desc} {len(sequence)}")
         # get the type of the sequence
-        entity_str = desc.split("|")[0].strip()
+        entity_str = desc.split("|")[0].strip().lower()
         match entity_str:
             case "protein":
                 entity_type = EntityType.PROTEIN
@@ -204,6 +215,16 @@ def read_inputs(fasta_file: str | Path, length_limit: int | None = None) -> list
                 entity_type = EntityType.DNA
             case _:
                 raise ValueError(f"{entity_str} is not a valid entity type")
+
+        possible_types = identify_potential_entity_types(sequence)
+        if len(possible_types) == 0:
+            logger.error(f"Provided {sequence=} is invalid")
+        elif entity_type not in possible_types:
+            types_fmt = "/".join(str(et.name) for et in possible_types)
+            logger.warning(
+                f"Provided {sequence=} is likely {types_fmt}, not {entity_type.name}"
+            )
+
         retval.append(Input(sequence, entity_type.value))
         total_length += len(sequence)
 

@@ -78,6 +78,7 @@ from chai_lab.model.utils import center_random_augmentation
 from chai_lab.ranking.frames import get_frames_and_mask
 from chai_lab.ranking.rank import SampleRanking, get_scores, rank
 from chai_lab.utils.paths import chai1_component
+from chai_lab.utils.plot import plot_msa
 from chai_lab.utils.tensor_utils import move_data_to_device, set_seed, und_self
 from chai_lab.utils.typing import Float, typecheck
 
@@ -608,6 +609,16 @@ def run_folding_on_context(
     ##
     ## Write the outputs
     ##
+
+    # Write a MSA plot
+    output_dir.mkdir(parents=True, exist_ok=True)
+    plot_msa(
+        {
+            "token_residue_type": feature_context.structure_context.token_residue_type,
+            "msa_tokens": feature_context.msa_context.tokens,
+        },
+        output_dir / "msa_depth.pdf",
+    )
 
     output_paths: list[Path] = []
     ranking_data: list[SampleRanking] = []

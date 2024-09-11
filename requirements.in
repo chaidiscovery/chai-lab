@@ -18,7 +18,7 @@ typer~=0.12        # CLI generator
 # notebooks, plotting
 ipykernel~=6.27    # needed by vs code to run notebooks in devcontainer
 # seaborn
-# matplotlib
+matplotlib
 
 # misc
 tqdm~=4.66

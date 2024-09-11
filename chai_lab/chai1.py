@@ -1,8 +1,9 @@
 # %%
 import math
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from pathlib import Path
 
+import numpy as np
 import torch
 import torch.export
 from einops import einsum, rearrange, repeat
@@ -75,7 +76,7 @@ from chai_lab.data.io.pdb_utils import write_pdbs_from_outputs
 from chai_lab.model.diffusion_schedules import InferenceNoiseSchedule
 from chai_lab.model.utils import center_random_augmentation
 from chai_lab.ranking.frames import get_frames_and_mask
-from chai_lab.ranking.rank import SampleRanking, rank
+from chai_lab.ranking.rank import SampleRanking, get_scores, rank
 from chai_lab.utils.paths import chai1_component
 from chai_lab.utils.tensor_utils import move_data_to_device, set_seed, und_self
 from chai_lab.utils.typing import Float, typecheck
@@ -278,13 +279,12 @@ def run_inference(
         device=device,
     )
 
-    scores_output_path = Path(output_dir).joinpath("scores.pt")
-    torch.save(
-        move_data_to_device(
-            [asdict(data) for data in ranking_data], torch.device("cpu")
-        ),
-        scores_output_path,
-    )
+    for idx, data in enumerate(ranking_data):
+        scores = get_scores(data)
+        np.savez(
+            Path(output_dir).joinpath(f"scores_idx_{idx}.npz"),
+            **scores,
+        )
 
     return output_paths
 

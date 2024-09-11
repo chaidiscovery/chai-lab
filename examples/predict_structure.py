@@ -1,5 +1,6 @@
 from pathlib import Path
 
+import numpy as np
 import torch
 
 from chai_lab.chai1 import run_inference
@@ -34,5 +35,5 @@ output_pdb_paths = run_inference(
     use_esm_embeddings=True,
 )
 
-# Load pTM, ipTM, pLDDTs and clash scores for each sample
-confidence_scores_per_sample: list = torch.load(output_dir.joinpath("scores.pt"))
+# Load pTM, ipTM, pLDDTs and clash scores for sample 2
+scores: dict = np.load(output_dir.joinpath("scores_idx_2.npz"))

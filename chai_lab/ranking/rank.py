@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 
+import numpy as np
 import torch
 from torch import Tensor
 
@@ -112,3 +113,17 @@ def rank(
         clash_scores=clash_scores,
         plddt_scores=plddt_scores,
     )
+
+
+def get_scores(ranking_data: SampleRanking) -> dict[str, np.ndarray]:
+    scores = {
+        "aggregate_score": ranking_data.aggregate_score,
+        "ptm": ranking_data.ptm_scores.complex_ptm,
+        "iptm": ranking_data.ptm_scores.interface_ptm,
+        "per_chain_ptm": ranking_data.ptm_scores.per_chain_ptm,
+        "per_chain_pair_iptm": ranking_data.ptm_scores.per_chain_pair_iptm,
+        "has_clashes": ranking_data.clash_scores.total_clashes,
+        "per_chain_intra_clashes": ranking_data.clash_scores.per_chain_intra_clashes,
+        "per_chain_pair_inter_clashes": ranking_data.clash_scores.per_chain_pair_clashes,
+    }
+    return {k: v.cpu().numpy() for k, v in scores.items()}

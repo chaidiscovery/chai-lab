@@ -150,7 +150,7 @@ below have the following meanings.
     service to be sold or made available for a fee or other economic
     consideration, is strictly prohibited under this License.
 
-2.  **Drug Discovery.** You may use the AI Model, Contributions,
+2.  **Drug Discovery.** You may not use the AI Model, Contributions,
     Derivative Works, Outputs and Output Derivatives in connection with
     drug development or discovery, including but not limited to: (i) the
     development (at any stage) or discovery of any drug, medication,

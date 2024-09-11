@@ -7,7 +7,7 @@ on:
   # Triggered whenever a PR is opened or updated
   pull_request:
 jobs:
-  mypy:
+  pytest:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

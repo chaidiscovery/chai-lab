@@ -623,7 +623,6 @@ def run_folding_on_context(
         msa_tokens=feature_context.msa_context.tokens,
         out_fname=output_dir / "msa_depth.pdf",
     )
-    assert msa_plot_path is not None
 
     output_paths: list[Path] = []
     ranking_data: list[SampleRanking] = []

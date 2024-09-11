@@ -19,7 +19,7 @@ def plot_msa(
     gap: str = "-",
     mask: str = ":",
     sort_by_identity: bool = True,
-) -> Path | None:
+) -> Path:
     gap_idx = rc.residue_types_with_nucleotides.index(gap)
     mask_idx = rc.residue_types_with_nucleotides.index(mask)
 

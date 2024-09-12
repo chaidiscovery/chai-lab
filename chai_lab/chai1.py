@@ -391,10 +391,10 @@ def run_folding_on_context(
 
     embedded_features = feature_embedding.forward(**features)
     token_single_input_feats = embedded_features["TOKEN"]
-    token_pair_input_feats, token_pair_structure_input_features = embedded_features[
+    token_pair_input_feats, token_pair_structure_input_feats = embedded_features[
         "TOKEN_PAIR"
     ].chunk(2, dim=-1)
-    atom_single_input_feats, atom_single_structure_input_features = embedded_features[
+    atom_single_input_feats, atom_single_structure_input_feats = embedded_features[
         "ATOM"
     ].chunk(2, dim=-1)
     block_atom_pair_input_feats, block_atom_pair_structure_input_feats = (
@@ -455,10 +455,10 @@ def run_folding_on_context(
         noise_sigma = repeat(sigma, " -> b s", b=batch_size, s=s)
         return diffusion_module.forward(
             token_single_initial_repr=token_single_structure_input.float(),
-            token_pair_initial_repr=token_pair_structure_input_features.float(),
+            token_pair_initial_repr=token_pair_structure_input_feats.float(),
             token_single_trunk_repr=token_single_trunk_repr.float(),
             token_pair_trunk_repr=token_pair_trunk_repr.float(),
-            atom_single_input_feats=atom_single_structure_input_features.float(),
+            atom_single_input_feats=atom_single_structure_input_feats.float(),
             atom_block_pair_input_feats=block_atom_pair_structure_input_feats.float(),
             atom_single_mask=atom_single_mask,
             atom_block_pair_mask=block_atom_pair_mask,

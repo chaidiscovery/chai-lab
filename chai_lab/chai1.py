@@ -616,7 +616,7 @@ def run_folding_on_context(
     ## Write the outputs
     ##
 
-    # Write a MSA plot
+    # Plot coverage of tokens by MSA, save plot
     output_dir.mkdir(parents=True, exist_ok=True)
     msa_plot_path = plot_msa(
         input_tokens=feature_context.structure_context.token_residue_type,

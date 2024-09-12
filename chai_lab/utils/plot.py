@@ -25,7 +25,7 @@ def plot_msa(
 
     # Trim tokens that are all pad
     token_is_pad = torch.all(msa_tokens == mask_idx, dim=0)
-    msa_tokens = msa_tokens[..., ~token_is_pad]
+    msa_tokens = msa_tokens[:, ~token_is_pad]
     input_tokens = input_tokens[~token_is_pad]
 
     # Calculate sequence identity for each MSA sequence

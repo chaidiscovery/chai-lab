@@ -23,7 +23,7 @@ def plot_msa(
     gap_idx = rc.residue_types_with_nucleotides.index(gap)
     mask_idx = rc.residue_types_with_nucleotides.index(mask)
 
-    # Trim tokens that are all pad
+    # Trim padding tokens (= pad in all alignments)
     token_is_pad = torch.all(msa_tokens == mask_idx, dim=0)
     msa_tokens = msa_tokens[:, ~token_is_pad]
     input_tokens = input_tokens[~token_is_pad]

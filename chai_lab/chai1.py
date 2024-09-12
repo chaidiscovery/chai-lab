@@ -78,6 +78,7 @@ from chai_lab.model.utils import center_random_augmentation
 from chai_lab.ranking.frames import get_frames_and_mask
 from chai_lab.ranking.rank import SampleRanking, get_scores, rank
 from chai_lab.utils.paths import chai1_component
+from chai_lab.utils.plot import plot_msa
 from chai_lab.utils.tensor_utils import move_data_to_device, set_seed, und_self
 from chai_lab.utils.typing import Float, typecheck
 
@@ -270,7 +271,7 @@ def run_inference(
         constraint_context=constraint_context,
     )
 
-    output_pdb_paths, _, _ = run_folding_on_context(
+    output_pdb_paths, _, _, _ = run_folding_on_context(
         feature_context,
         output_dir=output_dir,
         num_trunk_recycles=num_trunk_recycles,
@@ -308,10 +309,16 @@ def run_folding_on_context(
     num_diffn_timesteps: int = 200,
     seed: int | None = None,
     device: torch.device | None = None,
-) -> tuple[list[Path], ConfidenceScores, list[SampleRanking]]:
+) -> tuple[list[Path], ConfidenceScores, list[SampleRanking], Path]:
     """
     Function for in-depth explorations.
     User completely controls folding inputs.
+
+    Returns:
+    - list of Path corresponding to folding outputs
+    - ConfidenceScores object
+    - SampleRanking data
+    - Path to plot of MSA coverage
     """
     # Set seed
     if seed is not None:
@@ -609,6 +616,14 @@ def run_folding_on_context(
     ## Write the outputs
     ##
 
+    # Write a MSA plot
+    output_dir.mkdir(parents=True, exist_ok=True)
+    msa_plot_path = plot_msa(
+        input_tokens=feature_context.structure_context.token_residue_type,
+        msa_tokens=feature_context.msa_context.tokens,
+        out_fname=output_dir / "msa_depth.pdf",
+    )
+
     output_paths: list[Path] = []
     ranking_data: list[SampleRanking] = []
 
@@ -676,4 +691,4 @@ def run_folding_on_context(
             **scores,
         )
 
-    return output_paths, confidence_scores, ranking_data
+    return output_paths, confidence_scores, ranking_data, msa_plot_path

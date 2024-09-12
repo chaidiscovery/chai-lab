@@ -590,16 +590,16 @@ def run_folding_on_context(
         "b a d, d -> b a",
     )
 
-    # converting to per-token
+    # converting per-atom plddt to per-token
     [mask] = atom_single_mask.cpu()
     [indices] = atom_token_indices.cpu()
 
-    def avg_1d(x):
+    def avg_per_token_1d(x):
         n = torch.bincount(indices[mask], weights=x[mask])
         d = torch.bincount(indices[mask]).clamp(min=1)
         return n / d
 
-    plddt_scores = torch.stack([avg_1d(x) for x in plddt_scores_atom])
+    plddt_scores = torch.stack([avg_per_token_1d(x) for x in plddt_scores_atom])
 
     confidence_scores = ConfidenceScores(
         pae=pae_scores,

@@ -553,15 +553,10 @@ def run_folding_on_context(
         for s in range(num_diffn_samples)
     ]
 
-    pae_logits = torch.cat(
-        [x[0] for x in confidence_outputs],
-    )
-    pde_logits = torch.cat(
-        [x[1] for x in confidence_outputs],
-    )
-    plddt_logits = torch.cat(
-        [x[2] for x in confidence_outputs],
-    )
+    pae_logits, pde_logits, plddt_logits = [
+        torch.cat(single_sample, dim=0)
+        for single_sample in zip(*confidence_outputs, strict=True)
+    ]
 
     assert atom_pos.shape[0] == num_diffn_samples
     assert pae_logits.shape[0] == num_diffn_samples
@@ -666,8 +661,7 @@ def run_folding_on_context(
         ## Write output files
         ##
 
-        out_basename = f"pred.model_idx_{idx}.pdb"
-        pdb_out_path = output_dir / out_basename
+        pdb_out_path = output_dir.joinpath(f"pred.model_idx_{idx}.pdb")
 
         print(f"Writing output to {pdb_out_path}")
 

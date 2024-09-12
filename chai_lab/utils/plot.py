@@ -4,6 +4,7 @@ import logging
 from pathlib import Path
 
 import torch
+from einops import reduce
 from matplotlib import pyplot as plt
 from torch import Tensor
 
@@ -38,7 +39,7 @@ def plot_msa(
 
     # Valid tokens are not padding and not a gap; we plot the valid tokens
     msa_tokens_is_valid = (msa_tokens != gap_idx) & (msa_tokens != mask_idx)
-    msa_coverage = msa_tokens_is_valid.float().mean(dim=-2)
+    msa_coverage = reduce(msa_tokens_is_valid.float(), "m t -> t", "mean")
 
     # Scale each of the MSA entries by its sequence identity for plotting
     msa_by_identity = msa_tokens_is_valid.float() * msa_seq_ident.unsqueeze(-1)

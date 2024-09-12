@@ -99,7 +99,9 @@ class PDBContext:
         # warning: calling this on cuda tensors is extremely slow
         atom_asym_id = self.token_asym_id[self.atom_token_index]
         # atom level attributes
-        atom_residue_index = self.token_residue_index[self.atom_token_index]
+        atom_residue_index = (
+            self.token_residue_index[self.atom_token_index] + 1
+        )  # residues are 1-indexed
         atom_names = _tensor_to_atom_names(self.atom_ref_name_chars.unsqueeze(0))
         atom_res_names = self.token_residue_names[self.atom_token_index]
         atom_res_names_strs = [
@@ -121,7 +123,7 @@ class PDBContext:
                     f"Too many chains for PDB file: {atom_asym_id[atom_index].item()} -- wrapping around"
                 )
             atom = PDBAtom(
-                record_type="ATOM",
+                record_type="ATOM" if not self.is_ligand else "HETATM",
                 atom_index=atom_index,
                 atom_name=atom_names[atom_index],
                 alt_loc="",

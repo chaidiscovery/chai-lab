@@ -98,7 +98,7 @@ def rank(
     aggregate_score = (
         0.2 * ptm_scores.complex_ptm
         + 0.8 * ptm_scores.interface_ptm
-        - 100 * clash_scores.has_clashes.float()
+        - 100 * clash_scores.has_inter_chain_clashes.float()
     )
 
     _, asyms = rutils.get_chain_masks_and_asyms(
@@ -122,8 +122,9 @@ def get_scores(ranking_data: SampleRanking) -> dict[str, np.ndarray]:
         "iptm": ranking_data.ptm_scores.interface_ptm,
         "per_chain_ptm": ranking_data.ptm_scores.per_chain_ptm,
         "per_chain_pair_iptm": ranking_data.ptm_scores.per_chain_pair_iptm,
-        "has_clashes": ranking_data.clash_scores.total_clashes,
-        "per_chain_intra_clashes": ranking_data.clash_scores.per_chain_intra_clashes,
-        "per_chain_pair_inter_clashes": ranking_data.clash_scores.per_chain_pair_clashes,
+        "has_inter_chain_clashes": ranking_data.clash_scores.has_inter_chain_clashes,
+        # TODO replace with just one tensor that contains both
+        "chain_intra_clashes": ranking_data.clash_scores.chain_intra_clashes,
+        "chain_chain_inter_clashes": ranking_data.clash_scores.chain_chain_inter_clashes,
     }
     return {k: v.cpu().numpy() for k, v in scores.items()}

@@ -15,8 +15,7 @@ def get_chain_masks_and_asyms(
     """
     Returns a mask for each chain and the unique asym ids
     """
-    unique_asyms = torch.unique(asym_id[mask])
-    sorted_unique_asyms, _ = torch.sort(unique_asyms)
+    sorted_unique_asyms = torch.unique(asym_id[mask])
     # shape: (..., max_num_chains, n)
     chain_masks = rearrange(asym_id, "... n -> ... 1 n") == rearrange(
         sorted_unique_asyms, "nc -> nc 1"

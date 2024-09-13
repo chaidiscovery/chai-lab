@@ -71,7 +71,8 @@ def has_inter_chain_clashes(
     # max_clash_ratio of the smaller chain's total atoms, then also
     # consider it a clash
     has_clashes |= (
-        per_chain_pair_clashes / rearrange(atoms_per_chain, "b c -> b c 1").clamp(min=1)
+        per_chain_pair_clashes
+        / rearrange(atoms_per_chain, "... c -> ... c 1").clamp(min=1)
     ).ge(max_clash_ratio)
 
     has_clashes |= (
@@ -100,6 +101,11 @@ def get_scores(
     max_clashes: int = 100,
     max_clash_ratio: float = 0.5,
 ) -> ClashScores:
+    # shift asym_id from 1-based to 0-based
+    assert atom_asym_id.dtype in (torch.int32, torch.int64)
+    atom_asym_id = (atom_asym_id - 1).to(torch.int64)
+    assert torch.amin(atom_asym_id) >= 0
+
     # dimensions
     n_chains = atom_asym_id.amax().add(1).item()
     assert isinstance(n_chains, int)

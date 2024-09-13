@@ -32,7 +32,7 @@ logger = logging.getLogger(__name__)
 class Input:
     sequence: str
     entity_type: int
-    identifier: str
+    entity_name: str
 
 
 def get_lig_residues(
@@ -132,7 +132,7 @@ def raw_inputs_to_entitites_data(
                 release_datetime=datetime.now(),
                 pdb_id=identifier,
                 source_pdb_chain_id=_synth_subchain_id(i),
-                entity_name=input.identifier,
+                entity_name=input.entity_name,
                 entity_id=entity_id,
                 method="none",
                 entity_type=entity_type,

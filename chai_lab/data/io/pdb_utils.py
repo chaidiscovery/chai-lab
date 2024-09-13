@@ -92,7 +92,7 @@ def write_pdb(chain_atoms: list[list[PDBAtom]], out_path: str):
 @typecheck
 @dataclass
 class PDBContext:
-    """Data needed to produce Posebuster input file types"""
+    """Complex (multiple entities) represented as a collection of tensors"""
 
     token_residue_index: Int[Tensor, "n_tokens"]
     token_asym_id: Int[Tensor, "n_tokens"]
@@ -145,7 +145,8 @@ class PDBContext:
         ]
 
         pdb_atoms = []
-        for atom_index in range(self.num_atoms):
+        num_atoms = self.atom_coords.shape[0]
+        for atom_index in range(num_atoms):
             if not self.atom_exists_mask[atom_index].item():
                 # skip missing atoms
                 continue

@@ -686,7 +686,7 @@ def run_folding_on_context(
         write_pdbs_from_outputs(
             coords=atom_pos[idx : idx + 1],
             bfactors=scaled_plddt_scores_per_atom,
-            output_batch=move_data_to_device(inputs, torch.device("cpu")),
+            output_batch=inputs,
             write_path=pdb_out_path,
         )
         output_paths.append(pdb_out_path)

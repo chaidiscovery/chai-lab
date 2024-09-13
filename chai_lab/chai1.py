@@ -446,6 +446,9 @@ def run_folding_on_context(
             token_single_mask=token_single_mask,
             token_pair_mask=token_pair_mask,
         )
+    # We won't be using the trunk anymore; remove it from memory
+    del trunk
+    torch.cuda.empty_cache()
 
     ##
     ## Denoise the trunk representation by passing it through the diffusion module
@@ -536,6 +539,10 @@ def run_folding_on_context(
             )
             d_i_prime = (atom_pos - denoised_pos) / sigma_next
             atom_pos = atom_pos + (sigma_next - sigma_hat) * ((d_i_prime + d_i) / 2)
+
+    # We won't be running diffusion anymore
+    del diffusion_module
+    torch.cuda.empty_cache()
 
     ##
     ## Run the confidence model

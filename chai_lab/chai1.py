@@ -391,10 +391,10 @@ def run_folding_on_context(
 
     embedded_features = feature_embedding.forward(**features)
     token_single_input_feats = embedded_features["TOKEN"]
-    token_pair_input_feats, token_pair_structure_input_features = embedded_features[
+    token_pair_input_feats, token_pair_structure_input_feats = embedded_features[
         "TOKEN_PAIR"
     ].chunk(2, dim=-1)
-    atom_single_input_feats, atom_single_structure_input_features = embedded_features[
+    atom_single_input_feats, atom_single_structure_input_feats = embedded_features[
         "ATOM"
     ].chunk(2, dim=-1)
     block_atom_pair_input_feats, block_atom_pair_structure_input_feats = (
@@ -455,10 +455,10 @@ def run_folding_on_context(
         noise_sigma = repeat(sigma, " -> b s", b=batch_size, s=s)
         return diffusion_module.forward(
             token_single_initial_repr=token_single_structure_input.float(),
-            token_pair_initial_repr=token_pair_structure_input_features.float(),
+            token_pair_initial_repr=token_pair_structure_input_feats.float(),
             token_single_trunk_repr=token_single_trunk_repr.float(),
             token_pair_trunk_repr=token_pair_trunk_repr.float(),
-            atom_single_input_feats=atom_single_structure_input_features.float(),
+            atom_single_input_feats=atom_single_structure_input_feats.float(),
             atom_block_pair_input_feats=block_atom_pair_structure_input_feats.float(),
             atom_single_mask=atom_single_mask,
             atom_block_pair_mask=block_atom_pair_mask,
@@ -553,15 +553,10 @@ def run_folding_on_context(
         for s in range(num_diffn_samples)
     ]
 
-    pae_logits = torch.cat(
-        [x[0] for x in confidence_outputs],
-    )
-    pde_logits = torch.cat(
-        [x[1] for x in confidence_outputs],
-    )
-    plddt_logits = torch.cat(
-        [x[2] for x in confidence_outputs],
-    )
+    pae_logits, pde_logits, plddt_logits = [
+        torch.cat(single_sample, dim=0)
+        for single_sample in zip(*confidence_outputs, strict=True)
+    ]
 
     assert atom_pos.shape[0] == num_diffn_samples
     assert pae_logits.shape[0] == num_diffn_samples
@@ -595,16 +590,16 @@ def run_folding_on_context(
         "b a d, d -> b a",
     )
 
-    # converting to per-token
+    # converting per-atom plddt to per-token
     [mask] = atom_single_mask.cpu()
     [indices] = atom_token_indices.cpu()
 
-    def avg_1d(x):
+    def avg_per_token_1d(x):
         n = torch.bincount(indices[mask], weights=x[mask])
         d = torch.bincount(indices[mask]).clamp(min=1)
         return n / d
 
-    plddt_scores = torch.stack([avg_1d(x) for x in plddt_scores_atom])
+    plddt_scores = torch.stack([avg_per_token_1d(x) for x in plddt_scores_atom])
 
     confidence_scores = ConfidenceScores(
         pae=pae_scores,
@@ -616,7 +611,7 @@ def run_folding_on_context(
     ## Write the outputs
     ##
 
-    # Write a MSA plot
+    # Plot coverage of tokens by MSA, save plot
     output_dir.mkdir(parents=True, exist_ok=True)
     msa_plot_path = plot_msa(
         input_tokens=feature_context.structure_context.token_residue_type,
@@ -666,8 +661,7 @@ def run_folding_on_context(
         ## Write output files
         ##
 
-        out_basename = f"pred.model_idx_{idx}.pdb"
-        pdb_out_path = output_dir / out_basename
+        pdb_out_path = output_dir.joinpath(f"pred.model_idx_{idx}.pdb")
 
         print(f"Writing output to {pdb_out_path}")
 

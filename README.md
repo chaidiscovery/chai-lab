@@ -11,7 +11,10 @@ For more information on the model's performance and capabilities, see our [techn
 ## Installation
 
 ```shell
-pip install chai_lab
+# current version (updates daily):
+pip install git+https://github.com/chaidiscovery/chai-lab.git
+# version on pypi:
+pip install chai_lab==0.0.1
 ```
 
 This Python package requires Linux, and a GPU with CUDA.
@@ -47,7 +50,7 @@ We welcome community testing and feedback. To share observations about the model
 
 We use [devcontainers](https://code.visualstudio.com/docs/devcontainers/containers) in development, which helps us ensure we work in identical environments. We recommend working inside a devcontainer if you want to make a contribution to this repository.
 
-Devcontainers work on local Linux setup, and on remote machines with over an SSH connection.
+Devcontainers work on local Linux setup, and on remote machines over an SSH connection.
 
 ## Status
 

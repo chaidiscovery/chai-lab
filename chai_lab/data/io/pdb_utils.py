@@ -147,7 +147,7 @@ class PDBContext:
         atom_residue_index = (
             self.token_residue_index[self.atom_token_index] + 1
         )  # residues are 1-indexed
-        atom_names = _tensor_to_atom_names(self.atom_ref_name_chars.unsqueeze(0))
+        atom_names = _tensor_to_atom_names(self.atom_ref_name_chars)
         atom_res_names = self.token_residue_names[self.atom_token_index]
         atom_res_names_strs = [
             tensorcode_to_string(x)[:3].ljust(3) for x in atom_res_names
@@ -184,14 +184,6 @@ class PDBContext:
             )
             pdb_atoms.append(atom)
         return pdb_atoms
-
-    # @classmethod
-    # def cat(cls, contexts: list["PDBContext"]) -> "PDBContext":
-    #     """Concatenates multiple posebuster contexts into a single context"""
-    #     cat_attrs: dict[str, Tensor] = dict()
-    #     for attr in cls.__annotations__.keys():
-    #         cat_attrs[attr] = torch.cat([getattr(c, attr) for c in contexts], dim=0)
-    #     return cls(**cat_attrs)
 
 
 def _atomic_num_to_element(atomic_num: int) -> str:
@@ -276,5 +268,5 @@ def _tensor_to_atom_names(
 ) -> list[str]:
     return [
         "".join([chr(ord_val + 32) for ord_val in ords_atom]).rstrip()
-        for ords_atom in tensor.squeeze(0)
+        for ords_atom in tensor
     ]

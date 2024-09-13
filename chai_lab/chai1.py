@@ -327,6 +327,9 @@ def run_folding_on_context(
     if device is None:
         device = torch.device("cuda:0")
 
+    # Clear memory
+    torch.cuda.empty_cache()
+
     ##
     ## Validate inputs
     ##

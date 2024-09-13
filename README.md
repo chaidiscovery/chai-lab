@@ -17,7 +17,9 @@ pip install git+https://github.com/chaidiscovery/chai-lab.git
 pip install chai_lab==0.0.1
 ```
 
-This Python package requires Linux, and a GPU with CUDA.
+This Python package requires Linux, and a GPU with CUDA and bfloat16 support 
+
+(we recommend A100/H100, but A10, A30 should work for smaller complexes. Users reported success with consumer-grade RTX 4090).
 
 
 ## Running the model

@@ -595,3 +595,5 @@ restype_1to3 = {
 }
 
 restype_1to3_with_x = {**restype_1to3, "X": "UNK"}
+
+restype_3to1 = {v: k for k, v in restype_1to3.items()}

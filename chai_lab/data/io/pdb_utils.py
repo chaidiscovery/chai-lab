@@ -115,20 +115,8 @@ class PDBContext:
         return [tensorcode_to_string(x) for x in self.token_residue_names.cpu()]
 
     @property
-    def num_atoms(self) -> int:
-        return self.atom_coords.shape[0]
-
-    @property
-    def is_protein(self) -> bool:
-        return self.is_entity(EntityType.PROTEIN)
-
-    @property
     def is_ligand(self) -> bool:
         return self.is_entity(EntityType.LIGAND)
-
-    @property
-    def first_residue_name(self) -> str:
-        return self.token_res_names_to_string[0].strip()
 
     def is_entity(self, ety: EntityType) -> bool:
         return self.token_entity_type[0].item() == ety.value

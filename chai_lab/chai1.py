@@ -72,7 +72,7 @@ from chai_lab.data.features.generators.token_dist_restraint import (
 from chai_lab.data.features.generators.token_pair_pocket_restraint import (
     TokenPairPocketRestraint,
 )
-from chai_lab.data.io.pdb_utils import write_pdbs_from_outputs
+from chai_lab.data.io.cif_utils import outputs_to_cif
 from chai_lab.model.diffusion_schedules import InferenceNoiseSchedule
 from chai_lab.model.utils import center_random_augmentation
 from chai_lab.ranking.frames import get_frames_and_mask
@@ -271,7 +271,7 @@ def run_inference(
         constraint_context=constraint_context,
     )
 
-    output_pdb_paths, _, _, _ = run_folding_on_context(
+    output_cif_paths, _, _, _ = run_folding_on_context(
         feature_context,
         output_dir=output_dir,
         num_trunk_recycles=num_trunk_recycles,
@@ -280,7 +280,7 @@ def run_inference(
         device=device,
     )
 
-    return output_pdb_paths
+    return output_cif_paths
 
 
 def _bin_centers(min_bin: float, max_bin: float, no_bins: int) -> Tensor:
@@ -676,20 +676,24 @@ def run_folding_on_context(
         ## Write output files
         ##
 
-        pdb_out_path = output_dir.joinpath(f"pred.model_idx_{idx}.pdb")
+        cif_out_path = output_dir.joinpath(f"pred.model_idx_{idx}.cif")
 
-        print(f"Writing output to {pdb_out_path}")
+        print(f"Writing output to {cif_out_path}")
 
         # use 0-100 scale for pLDDT in pdb outputs
         scaled_plddt_scores_per_atom = 100 * plddt_scores_atom[idx : idx + 1]
 
-        write_pdbs_from_outputs(
+        outputs_to_cif(
             coords=atom_pos[idx : idx + 1],
             bfactors=scaled_plddt_scores_per_atom,
             output_batch=inputs,
-            write_path=pdb_out_path,
+            write_path=cif_out_path,
+            entity_names={
+                c.entity_data.entity_id: c.entity_data.entity_name
+                for c in feature_context.chains
+            },
         )
-        output_paths.append(pdb_out_path)
+        output_paths.append(cif_out_path)
 
         scores_basename = f"scores.model_idx_{idx}.npz"
         scores_out_path = output_dir / scores_basename

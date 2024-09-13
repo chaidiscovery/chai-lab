@@ -1,7 +1,7 @@
 import logging
 import string
 from collections import defaultdict
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from functools import cached_property
 from pathlib import Path
 
@@ -15,6 +15,21 @@ from chai_lab.utils.typing import Bool, Float, Int, UInt8, typecheck
 logger = logging.getLogger(__name__)
 
 
+_CHAIN_VOCAB = string.ascii_uppercase + string.ascii_lowercase
+
+
+def get_pdb_chain_name(asym_id: int) -> str:
+    vocab_index = asym_id - 1  # 1 -> A
+    if vocab_index >= len(_CHAIN_VOCAB):
+        # two letter codes
+        chr1, chr2 = (
+            (vocab_index // len(_CHAIN_VOCAB)) - 1,
+            vocab_index % len(_CHAIN_VOCAB),
+        )
+        return _CHAIN_VOCAB[chr1] + _CHAIN_VOCAB[chr2]
+    return _CHAIN_VOCAB[vocab_index]
+
+
 @dataclass(frozen=True)
 class PDBAtom:
     record_type: str
@@ -23,6 +38,7 @@ class PDBAtom:
     alt_loc: str
     res_name_3: str
     chain_tag: str
+    asym_id: int
     residue_index: int
     insertion_code: str
     pos: list[float]
@@ -45,6 +61,24 @@ class PDBAtom:
         )
         return atom_line
 
+    def rename(self, atom_name: str) -> "PDBAtom":
+        return PDBAtom(
+            self.record_type,
+            self.atom_index,
+            atom_name,
+            self.alt_loc,
+            self.res_name_3,
+            self.chain_tag,
+            self.asym_id,
+            self.residue_index,
+            self.insertion_code,
+            self.pos,
+            self.occupancy,
+            self.b_factor,
+            self.element,
+            self.charge,
+        )
+
 
 def write_pdb(chain_atoms: list[list[PDBAtom]], out_path: str):
     with open(out_path, "w") as f:
@@ -58,18 +92,22 @@ def write_pdb(chain_atoms: list[list[PDBAtom]], out_path: str):
 @typecheck
 @dataclass
 class PDBContext:
-    """Data needed to produce Posebuster input file types"""
+    """Complex (multiple entities) represented as a collection of tensors"""
 
     token_residue_index: Int[Tensor, "n_tokens"]
     token_asym_id: Int[Tensor, "n_tokens"]
     token_entity_type: Int[Tensor, "n_tokens"]
+    token_entity_id: Int[Tensor, "n_tokens"]
     token_residue_names: UInt8[Tensor, "n_tokens 8"]
+    token_centre_atom_index: Int[Tensor, "n_tokens"]
     atom_token_index: Int[Tensor, "n_atoms"]
     atom_ref_element: Int[Tensor, "n_atoms"]
     atom_ref_mask: Bool[Tensor, "n_atoms"]
     atom_coords: Float[Tensor, "n_atoms 3"]
     atom_exists_mask: Bool[Tensor, "n_atoms"]
+    token_exists_mask: Bool[Tensor, "n_tokens"]
     atom_ref_name_chars: Int[Tensor, "n_atoms 4"]
+    atom_within_token_index: Int[Tensor, "n_atoms"]
     atom_bfactor_or_plddt: Float[Tensor, "n_atoms"] | None = None
 
     @cached_property
@@ -77,23 +115,18 @@ class PDBContext:
         return [tensorcode_to_string(x) for x in self.token_residue_names.cpu()]
 
     @property
-    def num_atoms(self) -> int:
-        return self.atom_coords.shape[0]
-
-    @property
-    def is_protein(self) -> bool:
-        return self.is_entity(EntityType.PROTEIN)
-
-    @property
     def is_ligand(self) -> bool:
         return self.is_entity(EntityType.LIGAND)
 
-    @property
-    def first_residue_name(self) -> str:
-        return self.token_res_names_to_string[0].strip()
-
     def is_entity(self, ety: EntityType) -> bool:
         return self.token_entity_type[0].item() == ety.value
+
+    def get_chain_entity_type(self, asym_id: int) -> int:
+        mask = self.token_asym_id == asym_id
+        assert mask.sum() > 0
+        e_type = self.token_entity_type[mask][0].item()
+        assert isinstance(e_type, int)
+        return e_type
 
     def get_pdb_atoms(self):
         # warning: calling this on cuda tensors is extremely slow
@@ -102,7 +135,7 @@ class PDBContext:
         atom_residue_index = (
             self.token_residue_index[self.atom_token_index] + 1
         )  # residues are 1-indexed
-        atom_names = _tensor_to_atom_names(self.atom_ref_name_chars.unsqueeze(0))
+        atom_names = _tensor_to_atom_names(self.atom_ref_name_chars)
         atom_res_names = self.token_residue_names[self.atom_token_index]
         atom_res_names_strs = [
             tensorcode_to_string(x)[:3].ljust(3) for x in atom_res_names
@@ -112,25 +145,20 @@ class PDBContext:
         ]
 
         pdb_atoms = []
-        for atom_index in range(self.num_atoms):
+        num_atoms = self.atom_coords.shape[0]
+        for atom_index in range(num_atoms):
             if not self.atom_exists_mask[atom_index].item():
                 # skip missing atoms
                 continue
 
-            chain_tag_vocab = string.ascii_uppercase + string.ascii_lowercase
-            if int(atom_asym_id[atom_index].item()) >= len(chain_tag_vocab):
-                logger.warning(
-                    f"Too many chains for PDB file: {atom_asym_id[atom_index].item()} -- wrapping around"
-                )
             atom = PDBAtom(
                 record_type="ATOM" if not self.is_ligand else "HETATM",
                 atom_index=atom_index,
                 atom_name=atom_names[atom_index],
                 alt_loc="",
                 res_name_3=atom_res_names_strs[atom_index],
-                chain_tag=chain_tag_vocab[
-                    int(atom_asym_id[atom_index].item()) % len(chain_tag_vocab)
-                ],
+                chain_tag=get_pdb_chain_name(int(atom_asym_id[atom_index].item())),
+                asym_id=int(atom_asym_id[atom_index].item()),
                 residue_index=int(atom_residue_index[atom_index].item()),
                 insertion_code="",
                 pos=self.atom_coords[atom_index].tolist(),
@@ -146,14 +174,6 @@ class PDBContext:
             pdb_atoms.append(atom)
         return pdb_atoms
 
-    # @classmethod
-    # def cat(cls, contexts: list["PDBContext"]) -> "PDBContext":
-    #     """Concatenates multiple posebuster contexts into a single context"""
-    #     cat_attrs: dict[str, Tensor] = dict()
-    #     for attr in cls.__annotations__.keys():
-    #         cat_attrs[attr] = torch.cat([getattr(c, attr) for c in contexts], dim=0)
-    #     return cls(**cat_attrs)
-
 
 def _atomic_num_to_element(atomic_num: int) -> str:
     return gemmi.Element(atomic_num).name
@@ -164,8 +184,26 @@ def entity_to_pdb_atoms(entity: PDBContext) -> list[list[PDBAtom]]:
     pdb_atoms = entity.get_pdb_atoms()
     chains = defaultdict(list)
     for atom in pdb_atoms:
-        chains[atom.chain_tag].append(atom)
+        chains[atom.asym_id].append(atom)
+
+    for asym_id in chains:
+        # deduplicate atom names within all ligand chains
+        if entity.get_chain_entity_type(asym_id) == EntityType.LIGAND.value:
+            chains[asym_id] = rename_ligand_atoms(chains[asym_id])
+
     return list(chains.values())
+
+
+def rename_ligand_atoms(atoms: list[PDBAtom]) -> list[PDBAtom]:
+    # transform ligand atom names from "C" to "C1", "C2"...
+    atom_type_counter: dict[str, int] = {}
+    renumbered_atoms = []
+    for atom in atoms:
+        idx = atom_type_counter.get(atom.element, 1)
+        atom_type_counter[atom.element] = idx + 1
+        base_name = atom.atom_name
+        renumbered_atoms.append(atom.rename(f"{base_name}_{idx}"))
+    return renumbered_atoms
 
 
 def entities_to_pdb_file(entities: list[PDBContext], path: str):
@@ -178,19 +216,26 @@ def entities_to_pdb_file(entities: list[PDBContext], path: str):
 def pdb_context_from_batch(
     d: dict, coords: Tensor, plddt: Tensor | None = None
 ) -> PDBContext:
-    return PDBContext(
+    context = PDBContext(
         token_residue_index=d["token_residue_index"][0],
         token_asym_id=d["token_asym_id"][0],
         token_entity_type=d["token_entity_type"][0],
+        token_entity_id=d["token_entity_id"][0],
         token_residue_names=d["token_residue_name"][0],
+        token_centre_atom_index=d["token_centre_atom_index"][0],
         atom_token_index=d["atom_token_index"][0],
         atom_ref_element=d["atom_ref_element"][0],
         atom_ref_mask=d["atom_ref_mask"][0],
-        atom_coords=coords[0],
+        atom_coords=coords[0].cpu(),
         atom_exists_mask=d["atom_exists_mask"][0],
+        token_exists_mask=d["token_exists_mask"][0],
         atom_ref_name_chars=d["atom_ref_name_chars"][0],
-        atom_bfactor_or_plddt=plddt[0] if plddt is not None else None,
+        atom_bfactor_or_plddt=plddt[0].cpu() if plddt is not None else None,
+        atom_within_token_index=d["atom_within_token_index"][0],
     )
+    for k, v in asdict(context).items():
+        assert v.device.type == "cpu", ("not on cpu:", k, v.device)
+    return context
 
 
 def write_pdbs_from_outputs(
@@ -215,5 +260,5 @@ def _tensor_to_atom_names(
 ) -> list[str]:
     return [
         "".join([chr(ord_val + 32) for ord_val in ords_atom]).rstrip()
-        for ords_atom in tensor.squeeze(0)
+        for ords_atom in tensor
     ]

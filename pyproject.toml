@@ -46,6 +46,8 @@ module = [
     "DockQ.*",
     "boto3.*",
     "transformers.*",
+    "modelcif.*",
+    "ihm.*",
 ]
 ignore_missing_imports = true
 

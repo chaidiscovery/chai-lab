@@ -24,7 +24,7 @@ fasta_path = Path("/tmp/example.fasta")
 fasta_path.write_text(example_fasta)
 
 output_dir = Path("/tmp/outputs")
-output_pdb_paths = run_inference(
+output_cif_paths = run_inference(
     fasta_file=fasta_path,
     output_dir=output_dir,
     # 'default' setup

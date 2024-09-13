@@ -1,7 +1,7 @@
 import logging
 import string
 from collections import defaultdict
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from functools import cached_property
 from pathlib import Path
 
@@ -215,7 +215,7 @@ def entities_to_pdb_file(entities: list[PDBContext], path: str):
 def pdb_context_from_batch(
     d: dict, coords: Tensor, plddt: Tensor | None = None
 ) -> PDBContext:
-    return PDBContext(
+    context = PDBContext(
         token_residue_index=d["token_residue_index"][0],
         token_asym_id=d["token_asym_id"][0],
         token_entity_type=d["token_entity_type"][0],
@@ -225,13 +225,16 @@ def pdb_context_from_batch(
         atom_token_index=d["atom_token_index"][0],
         atom_ref_element=d["atom_ref_element"][0],
         atom_ref_mask=d["atom_ref_mask"][0],
-        atom_coords=coords[0],
+        atom_coords=coords[0].cpu(),
         atom_exists_mask=d["atom_exists_mask"][0],
         token_exists_mask=d["token_exists_mask"][0],
         atom_ref_name_chars=d["atom_ref_name_chars"][0],
-        atom_bfactor_or_plddt=plddt[0] if plddt is not None else None,
+        atom_bfactor_or_plddt=plddt[0].cpu() if plddt is not None else None,
         atom_within_token_index=d["atom_within_token_index"][0],
     )
+    for k, v in asdict(context).items():
+        assert v.device.type == "cpu", ("not on cpu:", k, v.device)
+    return context
 
 
 def write_pdbs_from_outputs(

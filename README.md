@@ -11,7 +11,10 @@ For more information on the model's performance and capabilities, see our [techn
 ## Installation
 
 ```shell
-pip install chai_lab
+# current version (updates daily):
+pip install git+https://github.com/chaidiscovery/chai-lab.git
+# version on pypi:
+pip install chai_lab==0.0.1
 ```
 
 This Python package requires Linux, and a GPU with CUDA.

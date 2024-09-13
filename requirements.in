@@ -29,6 +29,7 @@ rdkit==2023.9.5    # parsing of ligands. 2023.9.6 has broken type stubs
 biopython==1.83    # parsing, data access
 antipickle==0.2.0  # save/load heterogeneous python structures
 tmtools>=0.0.3     # Python bindings for the TM-align algorithm
+modelcif>=1.0      # mmcif writing, confirmed to work currently latest 1.0
 
 # commented out following optional dependencies for release on pypi
 # dockq metric for comparing predicted pdbs and ground truth pdbs

@@ -673,6 +673,10 @@ def run_folding_on_context(
             bfactors=scaled_plddt_scores_per_atom,
             output_batch=move_data_to_device(inputs, torch.device("cpu")),
             write_path=cif_out_path,
+            entity_names={
+                c.entity_data.entity_id: c.entity_data.entity_name
+                for c in feature_context.chains
+            },
         )
         output_paths.append(cif_out_path)
 

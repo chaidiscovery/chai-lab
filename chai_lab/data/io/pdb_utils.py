@@ -19,9 +19,15 @@ _CHAIN_VOCAB = string.ascii_uppercase + string.ascii_lowercase
 
 
 def get_pdb_chain_name(asym_id: int) -> str:
-    if asym_id >= len(_CHAIN_VOCAB):
-        logger.warning(f"Too many chains for PDB file: {asym_id} -- wrapping around")
-    return _CHAIN_VOCAB[(asym_id - 1) % len(_CHAIN_VOCAB)]  # 1 -> A
+    vocab_index = asym_id - 1  # 1 -> A
+    if vocab_index >= len(_CHAIN_VOCAB):
+        # two letter codes
+        chr1, chr2 = (
+            (vocab_index // len(_CHAIN_VOCAB)) - 1,
+            vocab_index % len(_CHAIN_VOCAB),
+        )
+        return _CHAIN_VOCAB[chr1] + _CHAIN_VOCAB[chr2]
+    return _CHAIN_VOCAB[vocab_index]
 
 
 @dataclass(frozen=True)

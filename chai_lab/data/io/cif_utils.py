@@ -1,6 +1,7 @@
 import logging
 from pathlib import Path
 
+import gemmi
 import modelcif
 import torch
 from ihm import ChemComp, DNAChemComp, LPeptideChemComp, RNAChemComp
@@ -58,11 +59,12 @@ def get_chains_metadata(context: PDBContext) -> list[dict]:
 
         # check no missing residues
         max_res = torch.max(residue_indices).item()
-        tokens_in_residue = residue_indices[..., None] == torch.arange(max_res + 1)
+        tokens_in_residue = (
+            residue_indices == torch.arange(max_res + 1)[..., None]
+        )  # (residues, tokens)
         assert tokens_in_residue.any(dim=-1).all()
 
-        _, inverse = torch.unique(residue_indices, return_inverse=True)
-        first_token_in_resi = torch.unique(inverse).tolist()
+        first_token_in_resi = torch.argmax(tokens_in_residue.int(), dim=-1)
 
         sequence = [chain_token_res_names[i] for i in first_token_in_resi]
         entity_id = context.token_entity_id[token_indices][0]
@@ -88,7 +90,8 @@ def _to_chem_component(res_name_3: str, entity_type: int):
             return ChemComp(res_name_3, code, code_canonical=code)
         case EntityType.PROTEIN.value:
             code = restype_3to1.get(res_name_3, res_name_3)
-            return LPeptideChemComp(res_name_3, code, code_canonical=code)
+            one_letter_code = gemmi.find_tabulated_residue(res_name_3).one_letter_code
+            return LPeptideChemComp(res_name_3, code, code_canonical=one_letter_code)
         case EntityType.DNA.value:
             code = res_name_3
             # canonical code is DA -> A for DNA in cif files from wwpdb
@@ -104,7 +107,7 @@ def sequence_to_chem_comps(sequence: list[str], entity_type: int) -> list[ChemCo
     return [_to_chem_component(resi, entity_type) for resi in sequence]
 
 
-def context_to_cif(context: PDBContext, outpath: Path):
+def context_to_cif(context: PDBContext, outpath: Path, entity_names: dict[int, str]):
     records = get_chains_metadata(context)
 
     entities_map = {}
@@ -116,7 +119,7 @@ def context_to_cif(context: PDBContext, outpath: Path):
         chem_components = sequence_to_chem_comps(
             record["sequence"], record["entity_type"]
         )
-        cif_entity = Entity(chem_components, description=f"Entity {entity_id}")
+        cif_entity = Entity(chem_components, description=entity_names[entity_id])
 
         entities_map[entity_id] = cif_entity
 
@@ -188,9 +191,10 @@ def outputs_to_cif(
     coords: Float[Tensor, "1 n_atoms 3"],
     output_batch: dict,
     write_path: Path,
+    entity_names: dict[int, str],
     bfactors: Float[Tensor, "1 n_atoms"] | None = None,
 ):
     context = pdb_context_from_batch(output_batch, coords, plddt=bfactors)
     write_path.parent.mkdir(parents=True, exist_ok=True)
-    context_to_cif(context, write_path)
+    context_to_cif(context, write_path, entity_names)
     logger.info(f"saved cif file to {write_path}")

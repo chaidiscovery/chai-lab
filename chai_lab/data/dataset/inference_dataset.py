@@ -32,6 +32,7 @@ logger = logging.getLogger(__name__)
 class Input:
     sequence: str
     entity_type: int
+    identifier: str
 
 
 def get_lig_residues(
@@ -131,7 +132,7 @@ def raw_inputs_to_entitites_data(
                 release_datetime=datetime.now(),
                 pdb_id=identifier,
                 source_pdb_chain_id=_synth_subchain_id(i),
-                entity_name=f"entity_{i}_{entity_type.name}",
+                entity_name=input.identifier,
                 entity_id=entity_id,
                 method="none",
                 entity_type=entity_type,
@@ -204,6 +205,8 @@ def read_inputs(fasta_file: str | Path, length_limit: int | None = None) -> list
         logger.info(f"[fasta] [{fasta_file}] {desc} {len(sequence)}")
         # get the type of the sequence
         entity_str = desc.split("|")[0].strip().lower()
+        entity_name = desc.split("|")[1].strip().lower()
+
         match entity_str:
             case "protein":
                 entity_type = EntityType.PROTEIN
@@ -225,7 +228,7 @@ def read_inputs(fasta_file: str | Path, length_limit: int | None = None) -> list
                 f"Provided {sequence=} is likely {types_fmt}, not {entity_type.name}"
             )
 
-        retval.append(Input(sequence, entity_type.value))
+        retval.append(Input(sequence, entity_type.value, entity_name))
         total_length += len(sequence)
 
     if length_limit is not None and total_length > length_limit:

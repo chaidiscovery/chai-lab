@@ -613,6 +613,11 @@ def run_folding_on_context(
     ##
     ## Write the outputs
     ##
+    # Move data to the CPU so we don't hit GPU memory limits
+    inputs = move_data_to_device(inputs, torch.device("cpu"))
+    atom_pos = atom_pos.cpu()
+    plddt_logits = plddt_logits.cpu()
+    pae_logits = pae_logits.cpu()
 
     # Plot coverage of tokens by MSA, save plot
     output_dir.mkdir(parents=True, exist_ok=True)

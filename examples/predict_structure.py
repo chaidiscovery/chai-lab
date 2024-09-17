@@ -7,7 +7,7 @@ from chai_lab.chai1 import run_inference
 
 # We use fasta-like format for inputs.
 # Every record may encode protein, ligand, RNA or DNA
-#  see example below
+#  see example below. You can modify it to run with your example.
 
 example_fasta = """
 >protein|example-of-long-protein

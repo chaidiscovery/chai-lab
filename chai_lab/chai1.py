@@ -230,8 +230,9 @@ def run_inference(
 
     # Load structure context
     chains = load_chains_from_raw(fasta_inputs)
-    contexts = [c.structure_context for c in chains]
-    merged_context = AllAtomStructureContext.merge(contexts)
+    merged_context = AllAtomStructureContext.merge(
+        [c.structure_context for c in chains]
+    )
     n_actual_tokens = merged_context.num_tokens
     raise_if_too_many_tokens(n_actual_tokens)
 
@@ -313,12 +314,6 @@ def run_folding_on_context(
     """
     Function for in-depth explorations.
     User completely controls folding inputs.
-
-    Returns:
-    - list of Path corresponding to folding outputs
-    - ConfidenceScores object
-    - SampleRanking data
-    - Path to plot of MSA coverage
     """
     # Set seed
     if seed is not None:

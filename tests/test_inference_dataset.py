@@ -27,6 +27,7 @@ def test_malformed_smiles():
     assert len(chains) == 3
     for chain in chains:
         # NOTE this check is only valid because there are no residues that are tokenized per-atom
+        # Ensures that the entity data and the structure context in each chain are paired correctly
         assert chain.structure_context.num_tokens == len(
             chain.entity_data.full_sequence
         )

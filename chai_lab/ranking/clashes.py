@@ -4,7 +4,7 @@ import torch
 from einops import rearrange, reduce, repeat
 from torch import Tensor
 
-import chai_lab.ranking.utils as rutils
+import chai_lab.ranking.utils as rank_utils
 from chai_lab.utils.tensor_utils import cdist, und_self
 from chai_lab.utils.typing import Bool, Float, Int, typecheck
 
@@ -62,7 +62,7 @@ def has_inter_chain_clashes(
     """
     has_clashes = per_chain_pair_clashes >= max_clashes
 
-    atoms_per_chain = rutils.num_atoms_per_chain(
+    atoms_per_chain = rank_utils.num_atoms_per_chain(
         atom_mask=atom_mask,
         asym_id=atom_asym_id,
     )
@@ -80,7 +80,7 @@ def has_inter_chain_clashes(
     ).ge(max_clash_ratio)
 
     # only consider clashes between pairs of polymer chains
-    polymer_chains = rutils.chain_is_polymer(
+    polymer_chains = rank_utils.chain_is_polymer(
         asym_id=atom_asym_id,
         mask=atom_mask,
         entity_type=atom_entity_type,

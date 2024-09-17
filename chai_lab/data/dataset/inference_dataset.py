@@ -169,7 +169,7 @@ def load_chains_from_raw(
     # Tokenize the entity data
     structure_contexts: list[AllAtomStructureContext | None] = []
     sym_ids = _make_sym_ids([x.entity_id for x in entities])
-    for idx, (entity_data, sym_id) in enumerate(zip(entities, sym_ids)):
+    for entity_data, sym_id in zip(entities, sym_ids):
         # chain index should not count null contexts that result from failed tokenization
         chain_index = sum(ctx is not None for ctx in structure_contexts) + 1
         try:
@@ -179,7 +179,7 @@ def load_chains_from_raw(
                 sym_id=sym_id,
             )
         except Exception:
-            logger.exception(f"Failed to tokenize input {inputs[idx]}")
+            logger.exception(f"Failed to tokenize input {entity_data=}  {sym_id=}")
             tok = None
         structure_contexts.append(tok)
     assert len(structure_contexts) == len(entities)

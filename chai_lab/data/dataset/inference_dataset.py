@@ -173,10 +173,11 @@ def load_chains_from_raw(
                 chain_id=idx + 1,
                 sym_id=sym_id,
             )
-            structure_contexts.append(tok)
         except Exception:
             logger.exception(f"Failed to tokenize input {inputs[idx]}")
-
+            tok = None
+        structure_contexts.append(tok)
+    assert len(structure_contexts) == len(entities)
     # Join the untokenized entity data with the tokenized chain data, removing
     # chains we failed to tokenize
     chains = [

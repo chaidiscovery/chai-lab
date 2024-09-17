@@ -10,6 +10,9 @@ from chai_lab.data.dataset.structure.all_atom_residue_tokenizer import (
     AllAtomResidueTokenizer,
     _make_sym_ids,
 )
+from chai_lab.data.dataset.structure.all_atom_structure_context import (
+    AllAtomStructureContext,
+)
 from chai_lab.data.dataset.structure.chain import Chain
 from chai_lab.data.parsing.fasta import get_residue_name, read_fasta
 from chai_lab.data.parsing.input_validation import (
@@ -164,13 +167,15 @@ def load_chains_from_raw(
     )
 
     # Tokenize the entity data
-    structure_contexts = []
+    structure_contexts: list[AllAtomStructureContext | None] = []
     sym_ids = _make_sym_ids([x.entity_id for x in entities])
     for idx, (entity_data, sym_id) in enumerate(zip(entities, sym_ids)):
+        # chain index should not count null contexts that result from failed tokenization
+        chain_index = sum(ctx is not None for ctx in structure_contexts) + 1
         try:
             tok = tokenizer._tokenize_entity(
                 entity_data,
-                chain_id=idx + 1,
+                chain_id=chain_index,
                 sym_id=sym_id,
             )
         except Exception:

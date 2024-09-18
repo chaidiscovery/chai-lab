@@ -1,4 +1,5 @@
 import dataclasses
+import os
 from pathlib import Path
 from typing import Final
 
@@ -7,6 +8,12 @@ import requests
 # use this path object to specify location
 # of anything within repository
 repo_root: Final[Path] = Path(__file__).parents[2].absolute()
+
+# weights and helper data is downloaded to CHAI_DOWNLOADS_DIR if provided.
+# otherwise we use <repo>/downloads, which is gitignored by default
+downloads_path = repo_root.joinpath("downloads")
+downloads_path = Path(os.environ.get("CHAI_DOWNLOADS_DIR", downloads_path))
+
 
 # minimal sanity check in case we start moving things around
 assert repo_root.exists()
@@ -44,7 +51,7 @@ class Downloadable:
 
 cached_conformers = Downloadable(
     url="https://chaiassets.com/chai1-inference-depencencies/conformers.apkl",
-    path=repo_root.joinpath("downloads", "conformers.apkl"),
+    path=downloads_path.joinpath("conformers.apkl"),
 )
 
 
@@ -55,7 +62,7 @@ def chai1_component(comp_key: str) -> Path:
     """
     assert comp_key.endswith(".pt2")
     url = f"https://chaiassets.com/chai1-inference-depencencies/models/{comp_key}"
-    result = repo_root.joinpath("downloads", "models", comp_key)
+    result = downloads_path.joinpath("models", comp_key)
     if not result.exists():
         download(url, result)
 

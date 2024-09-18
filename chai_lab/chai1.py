@@ -255,7 +255,7 @@ def run_inference(
 
     for name, count in Counter([inp.entity_name for inp in fasta_inputs]).items():
         if count > 1:
-            raise ValueError(f"Name {name=} appears more than once in inputs")
+            raise UnsupportedInputError(f"{name=} used more than once in inputs")
 
     # Load structure context
     chains = load_chains_from_raw(fasta_inputs)

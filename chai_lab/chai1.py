@@ -204,7 +204,7 @@ def raise_if_too_many_templates(n_actual_templates: int):
 def raise_if_msa_too_deep(msa_depth: int):
     if msa_depth > MAX_MSA_DEPTH:
         raise UnsupportedInputError(
-            f"MSA to deep: {msa_depth} > {MAX_MSA_DEPTH}. "
+            f"MSA too deep: {msa_depth} > {MAX_MSA_DEPTH}. "
             "Please limit the MSA depth."
         )
 

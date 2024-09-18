@@ -50,8 +50,8 @@ class Downloadable:
 
 
 cached_conformers = Downloadable(
-    url="https://chaiassets.com/chai1-inference-depencencies/conformers.apkl",
-    path=downloads_path.joinpath("conformers.apkl"),
+    url="https://chaiassets.com/chai1-inference-depencencies/conformers_v1.apkl",
+    path=downloads_path.joinpath("conformers_v1.apkl"),
 )
 
 

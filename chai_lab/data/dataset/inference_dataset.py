@@ -238,7 +238,7 @@ def read_inputs(fasta_file: str | Path, length_limit: int | None = None) -> list
         total_length += len(sequence)
 
     if length_limit is not None and total_length > length_limit:
-        logger.warning(
+        raise ValueError(
             f"[fasta] [{fasta_file}] too many chars ({total_length} > {length_limit}); skipping"
         )
         return []

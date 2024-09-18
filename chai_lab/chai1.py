@@ -224,7 +224,7 @@ class StructureCandidates:
     cif_paths: list[Path]
     # scores for each of candidates + info that was used for scoring.
     ranking_data: list[SampleRanking]
-    # iff MSA are available, we also save a plot as PDF
+    # iff MSA search was performed, we also save a plot as PDF
     msa_coverage_plot_path: Path | None
 
     # Predicted aligned error(PAE)

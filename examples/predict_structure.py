@@ -6,20 +6,20 @@ import torch
 from chai_lab.chai1 import run_inference
 
 # We use fasta-like format for inputs.
-# - each entity encodes protein, ligand, RNA or DNA.
+# - each entity encodes protein, ligand, RNA or DNA
 # - each entity is labeled with unique name;
 # - ligands are encoded with SMILES; modified residues encoded like AAA(SEP)AAA
 
-# Modify example below to your problem.
+# Example given below, just modify it
 
 example_fasta = """
->protein|example-of-long-protein
+>protein|name=example-of-long-protein
 AGSHSMRYFSTSVSRPGRGEPRFIAVGYVDDTQFVRFDSDAASPRGEPRAPWVEQEGPEYWDRETQKYKRQAQTDRVSLRNLRGYYNQSEAGSHTLQWMFGCDLGPDGRLLRGYDQSAYDGKDYIALNEDLRSWTAADTAAQITQRKWEAAREAEQRRAYLEGTCVEWLRRYLENGKETLQRAEHPKTHVTHHPVSDHEATLRCWALGFYPAEITLTWQWDGEDQTQDTELVETRPAGDGTFQKWAAVVVPSGEEQRYTCHVQHEGLPEPLTLRWEP
->protein|example-of-short-protein
+>protein|name=example-of-short-protein
 AIQRTPKIQVYSRHPAENGKSNFLNCYVSGFHPSDIEVDLLKNGERIEKVEHSDLSFSKDWSFYLLYYTEFTPTEKDEYACRVNHVTLSQPKIVKWDRDM
->protein|example-of-peptide
+>protein|name=example-peptide
 GAAL
->ligand|and-example-for-ligand-encoded-as-smiles
+>ligand|name=example-ligand-as-smiles
 CCCCCCCCCCCCCC(=O)O
 """.strip()
 

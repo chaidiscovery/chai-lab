@@ -7,6 +7,7 @@ from transformers import logging as tr_logging
 from chai_lab.data.dataset.embeddings.embedding_context import EmbeddingContext
 from chai_lab.data.dataset.structure.chain import Chain
 from chai_lab.data.parsing.structure.entity_type import EntityType
+from chai_lab.utils.paths import downloads_path
 from chai_lab.utils.tensor_utils import move_data_to_device
 from chai_lab.utils.typing import typecheck
 
@@ -19,6 +20,8 @@ os.register_at_fork(after_in_child=lambda: _esm_model.clear())
 # Did not find a way to filter specifically that logging message :/
 tr_logging.set_verbosity_error()
 
+esm_cache_folder = downloads_path.joinpath("esm")
+
 
 @contextmanager
 def esm_model(model_name: str, device):
@@ -27,7 +30,9 @@ def esm_model(model_name: str, device):
 
     if len(_esm_model) == 0:
         # lazy loading of the model
-        _esm_model.append(EsmModel.from_pretrained(model_name))
+        _esm_model.append(
+            EsmModel.from_pretrained(model_name, cache_dir=esm_cache_folder)
+        )
 
     [model] = _esm_model
     model.to(device)
@@ -46,7 +51,7 @@ def _get_esm_contexts_for_sequences(
     from transformers import EsmTokenizer
 
     model_name = "facebook/esm2_t36_3B_UR50D"
-    tokenizer = EsmTokenizer.from_pretrained(model_name)
+    tokenizer = EsmTokenizer.from_pretrained(model_name, cache_dir=esm_cache_folder)
 
     seq2embedding_context = {}
 

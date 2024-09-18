@@ -1,5 +1,6 @@
 # %%
 import math
+from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -237,18 +238,24 @@ class StructureCandidates:
 @torch.no_grad()
 def run_inference(
     fasta_file: Path,
+    *,
     output_dir: Path,
     use_esm_embeddings: bool = True,
     # expose some params for easy tweaking
     num_trunk_recycles: int = 3,
-    num_diffn_timesteps: int = 2,
+    num_diffn_timesteps: int = 200,
     seed: int | None = None,
     device: torch.device | None = None,
 ) -> StructureCandidates:
     # Prepare inputs
     assert fasta_file.exists(), fasta_file
     fasta_inputs = read_inputs(fasta_file, length_limit=None)
+
     assert len(fasta_inputs) > 0, "No inputs found in fasta file"
+
+    for name, count in Counter([inp.entity_name for inp in fasta_inputs]).items():
+        if count > 1:
+            raise ValueError(f"Name {name=} appears more than once in inputs")
 
     # Load structure context
     chains = load_chains_from_raw(fasta_inputs)
@@ -311,6 +318,7 @@ def _bin_centers(min_bin: float, max_bin: float, no_bins: int) -> Tensor:
 @torch.no_grad()
 def run_folding_on_context(
     feature_context: AllAtomFeatureContext,
+    *,
     output_dir: Path,
     # expose some params for easy tweaking
     num_trunk_recycles: int = 3,

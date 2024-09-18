@@ -209,11 +209,14 @@ def read_inputs(fasta_file: str | Path, length_limit: int | None = None) -> list
     total_length: int = 0
     for desc, sequence in sequences:
         logger.info(f"[fasta] [{fasta_file}] {desc} {len(sequence)}")
-        # get the type of the sequence
-        entity_str = desc.split("|")[0].strip().lower()
-        entity_name = desc.split("|")[1].strip().lower()
+        # examples of inputs
+        # 'protein|example-of-protein'
+        # 'protein|name=example-of-protein'
+        # 'protein|name=example-of-protein|use_esm=true' # example hot it can be in the future
 
-        match entity_str:
+        entity_str, *desc_parts = desc.split("|")
+
+        match entity_str.lower().strip():
             case "protein":
                 entity_type = EntityType.PROTEIN
             case "ligand":
@@ -224,6 +227,19 @@ def read_inputs(fasta_file: str | Path, length_limit: int | None = None) -> list
                 entity_type = EntityType.DNA
             case _:
                 raise ValueError(f"{entity_str} is not a valid entity type")
+
+        match desc_parts:
+            case []:
+                raise ValueError(f"label is not provided in {desc=}")
+            case [label_part]:
+                label_part = label_part.strip()
+                if "=" in label_part:
+                    field_name, entity_name = label_part.split("=")
+                    assert field_name == "name"
+                else:
+                    entity_name = label_part
+            case _:
+                raise ValueError(f"Unsupported inputs: {desc=}")
 
         possible_types = identify_potential_entity_types(sequence)
         if len(possible_types) == 0:
@@ -241,6 +257,5 @@ def read_inputs(fasta_file: str | Path, length_limit: int | None = None) -> list
         raise ValueError(
             f"[fasta] [{fasta_file}] too many chars ({total_length} > {length_limit}); skipping"
         )
-        return []
 
     return retval

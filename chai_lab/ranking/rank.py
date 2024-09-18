@@ -116,8 +116,6 @@ def get_scores(ranking_data: SampleRanking) -> dict[str, np.ndarray]:
         "per_chain_ptm": ranking_data.ptm_scores.per_chain_ptm,
         "per_chain_pair_iptm": ranking_data.ptm_scores.per_chain_pair_iptm,
         "has_inter_chain_clashes": ranking_data.clash_scores.has_inter_chain_clashes,
-        # TODO replace with just one tensor that contains both
-        "chain_intra_clashes": ranking_data.clash_scores.chain_intra_clashes,
-        "chain_chain_inter_clashes": ranking_data.clash_scores.chain_chain_inter_clashes,
+        "chain_chain_clashes": ranking_data.clash_scores.chain_chain_clashes,
     }
     return {k: v.cpu().numpy() for k, v in scores.items()}

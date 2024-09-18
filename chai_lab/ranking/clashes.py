@@ -22,8 +22,7 @@ class ClashScores:
 
     total_clashes: Int[Tensor, "..."]
     total_inter_chain_clashes: Int[Tensor, "..."]
-    chain_intra_clashes: Int[Tensor, "... n_chains"]
-    chain_chain_inter_clashes: Int[Tensor, "... n_chains n_chains"]
+    chain_chain_clashes: Int[Tensor, "... n_chains n_chains"]
     has_inter_chain_clashes: Bool[Tensor, "..."]
 
 
@@ -129,8 +128,14 @@ def get_scores(
     )
     # i, j enumerate chains
     total_clashes = reduce(clashes_chain_chain, "... i j -> ...", "sum") // 2
-    # NB: diagonal term (self-interaction of chain), contains doubled self-interaction
-    per_chain_intra_clashes = torch.einsum("... i i -> ... i", clashes_chain_chain) // 2
+
+    # NB: self-interaction of chain contains doubled self-interaction,
+    #  we compensate for this.
+    clashes_chain_chain = clashes_chain_chain // (
+        1 + torch.diag(clashes_a_a.new_ones(n_chains))
+    )
+    # in case anyone needs
+    # per_chain_intra_clashes = torch.einsum("... i i -> ... i", clashes_chain_chain)
     # delete self-interaction for simplicity
     non_diag = 1 - torch.diag(clashes_a_a.new_ones(n_chains))
     inter_chain_chain = non_diag * clashes_chain_chain
@@ -142,8 +147,7 @@ def get_scores(
     return ClashScores(
         total_clashes=total_clashes,
         total_inter_chain_clashes=inter_chain_clashes,
-        chain_intra_clashes=per_chain_intra_clashes,
-        chain_chain_inter_clashes=inter_chain_chain,
+        chain_chain_clashes=clashes_chain_chain,
         has_inter_chain_clashes=has_inter_chain_clashes(
             atom_mask=atom_mask,
             atom_asym_id=atom_asym_id,

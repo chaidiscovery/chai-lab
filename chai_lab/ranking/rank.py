@@ -7,7 +7,7 @@ from torch import Tensor
 import chai_lab.ranking.clashes as clashes
 import chai_lab.ranking.plddt as plddt
 import chai_lab.ranking.ptm as ptm
-import chai_lab.ranking.utils as rutils
+import chai_lab.ranking.utils as rank_utils
 from chai_lab.utils.typing import Bool, Float, Int, typecheck
 
 
@@ -15,16 +15,15 @@ from chai_lab.utils.typing import Bool, Float, Int, typecheck
 @dataclass
 class SampleRanking:
     """Sample Ranking Data
-    asym ids: a tensor of shape (c,) containing the unique asym ids for
-        each chain in the sample. The asym ids are sorted numerically.
-    aggregate_score: a tensor of shape (...) containing the aggregate ranking
-        score for the sample
+    asym ids: tensor with unique asym ids for each chain in the sample.
+     The asym ids are sorted numerically, starting from 1.
+    aggregate_score: aggregate ranking score for the sample
     ptm_scores: see ptm.get_scores for a description of the ptm scores
     clash_scores: a dictionary of clash scores
     plddt_scores: see plddt.PLDDTScores for a description of the plddt scores
     """
 
-    asym_ids: Int[Tensor, "c"]
+    asym_ids: Int[Tensor, "chain"]
     aggregate_score: Float[Tensor, "..."]
     ptm_scores: ptm.PTMScores
     clash_scores: clashes.ClashScores
@@ -65,14 +64,12 @@ def rank(
         bin_centers=pae_bin_centers,
         token_asym_id=token_asym_id,
     )
+    atom_asym_id = torch.gather(token_asym_id, dim=-1, index=atom_token_index.long())
+
     clash_scores = clashes.get_scores(
         atom_coords=atom_coords,
         atom_mask=atom_mask,
-        atom_asym_id=torch.gather(
-            token_asym_id,
-            dim=-1,
-            index=atom_token_index.long(),
-        ),
+        atom_asym_id=atom_asym_id,
         atom_entity_type=torch.gather(
             token_entity_type,
             dim=-1,
@@ -87,11 +84,7 @@ def rank(
         lddt_logits=lddt_logits,
         atom_mask=atom_mask,
         bin_centers=lddt_bin_centers,
-        atom_asym_id=torch.gather(
-            token_asym_id,
-            dim=-1,
-            index=atom_token_index.long(),
-        ),
+        atom_asym_id=atom_asym_id,
     )
 
     # aggregate score
@@ -101,7 +94,7 @@ def rank(
         - 100 * clash_scores.has_inter_chain_clashes.float()
     )
 
-    _, asyms = rutils.get_chain_masks_and_asyms(
+    _, asyms = rank_utils.get_chain_masks_and_asyms(
         asym_id=token_asym_id,
         mask=token_exists_mask,
     )
@@ -123,8 +116,6 @@ def get_scores(ranking_data: SampleRanking) -> dict[str, np.ndarray]:
         "per_chain_ptm": ranking_data.ptm_scores.per_chain_ptm,
         "per_chain_pair_iptm": ranking_data.ptm_scores.per_chain_pair_iptm,
         "has_inter_chain_clashes": ranking_data.clash_scores.has_inter_chain_clashes,
-        # TODO replace with just one tensor that contains both
-        "chain_intra_clashes": ranking_data.clash_scores.chain_intra_clashes,
-        "chain_chain_inter_clashes": ranking_data.clash_scores.chain_chain_inter_clashes,
+        "chain_chain_clashes": ranking_data.clash_scores.chain_chain_clashes,
     }
     return {k: v.cpu().numpy() for k, v in scores.items()}

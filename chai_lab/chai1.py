@@ -234,6 +234,10 @@ class StructureCandidates:
     # Predicted local distance difference test (pLDDT)
     plddt: Float[Tensor, "candidate num_tokens"]
 
+    def __post_init__(self):
+        assert len(self.cif_paths) == len(self.ranking_data)
+        assert len(self.cif_paths) == len(self.pae)
+
 
 @torch.no_grad()
 def run_inference(
@@ -255,7 +259,9 @@ def run_inference(
 
     for name, count in Counter([inp.entity_name for inp in fasta_inputs]).items():
         if count > 1:
-            raise UnsupportedInputError(f"{name=} used more than once in inputs. Each entity must have a unique name")
+            raise UnsupportedInputError(
+                f"{name=} used more than once in inputs. Each entity must have a unique name"
+            )
 
     # Load structure context
     chains = load_chains_from_raw(fasta_inputs)

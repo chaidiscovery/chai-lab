@@ -1,6 +1,7 @@
 # Copyright (c) 2024 Chai Discovery, Inc.
 # This source code is licensed under the Chai Discovery Community License
 # Agreement (LICENSE.md) found in the root directory of this source tree.
+
 """
 Feature generators for templates. This includes the following:
 - Template mask (includes both the psuedo beta mask and backbone frame mask)

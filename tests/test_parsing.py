@@ -1,6 +1,7 @@
 # Copyright (c) 2024 Chai Discovery, Inc.
 # This source code is licensed under the Chai Discovery Community License
 # Agreement (LICENSE.md) found in the root directory of this source tree.
+
 from chai_lab.data.parsing.input_validation import (
     constituents_of_modified_fasta,
     identify_potential_entity_types,

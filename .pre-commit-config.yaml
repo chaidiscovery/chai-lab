@@ -8,3 +8,16 @@ repos:
       - id: ruff
       # Run the formatter.
       - id: ruff-format
+
+  - repo: https://github.com/johannsdg/pre-commit-license-headers
+    rev: v0.1.0
+    hooks:
+      - id: check-license-headers
+        args:
+          - "--template"
+          - |
+            Copyright (c) 2024 Chai Discovery, Inc.
+
+            This source code is licensed under the Chai Discovery Community License
+            Agreement (LICENSE.md) found in the root directory of this source tree.
+          # - "--owner=The Pre-Commit License Headers Authors"

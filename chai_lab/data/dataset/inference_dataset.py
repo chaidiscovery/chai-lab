@@ -212,7 +212,7 @@ def read_inputs(fasta_file: str | Path, length_limit: int | None = None) -> list
         # examples of inputs
         # 'protein|example-of-protein'
         # 'protein|name=example-of-protein'
-        # 'protein|name=example-of-protein|use_esm=true' # example hot it can be in the future
+        # 'protein|name=example-of-protein|use_esm=true' # example how it can be in the future
 
         entity_str, *desc_parts = desc.split("|")
 

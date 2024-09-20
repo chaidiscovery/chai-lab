@@ -16,8 +16,24 @@ repos:
         args:
           - "--template"
           - |
-            Copyright (c) 2024 Chai Discovery, Inc.
-
+            Copyright (c) [YEARS] Chai Discovery, Inc.
             This source code is licensed under the Chai Discovery Community License
             Agreement (LICENSE.md) found in the root directory of this source tree.
           # - "--owner=The Pre-Commit License Headers Authors"
+        include: .*py
+        exclude: |
+          (?x)^(
+            examples/.*|
+            .pre-commit-config.yaml|
+            .pre-commit-hooks.yaml|
+            .github/workflows/.*yml|
+            .github/dependabot.yml|
+            .github/pull_request_template.md|
+            Dockerfile.chailab|
+            LICENSE.md|
+            README.md|
+            requirements.in|
+            ruff.toml|
+            chai_lab/data/residue_constants.py|
+            pyproject.toml
+          )$

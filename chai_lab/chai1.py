@@ -220,7 +220,7 @@ class StructureCandidates:
     #   with confidence predictions and ranking scores.
     # Predicted structure is a candidate with the highest score.
 
-    # locations of CIF files, one file per caondidate
+    # locations of CIF files, one file per candidate
     cif_paths: list[Path]
     # scores for each of candidates + info that was used for scoring.
     ranking_data: list[SampleRanking]

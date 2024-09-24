@@ -78,7 +78,7 @@ from chai_lab.data.features.generators.token_pair_pocket_restraint import (
     TokenPairPocketRestraint,
 )
 from chai_lab.data.io.cif_utils import outputs_to_cif
-from chai_lab.model.diffusion_schedules import InferenceNoiseSchedule
+from chai_lab.model.diffusion_schedules import DiffusionConfig, InferenceNoiseSchedule
 from chai_lab.model.utils import center_random_augmentation
 from chai_lab.ranking.frames import get_frames_and_mask
 from chai_lab.ranking.rank import SampleRanking, get_scores, rank
@@ -175,14 +175,14 @@ feature_factory = FeatureFactory(feature_generators)
 # %%
 # Config
 
-
-class DiffusionConfig:
-    S_churn: float = 80
-    S_tmin: float = 4e-4
-    S_tmax: float = 80.0
-    S_noise: float = 1.003
-    sigma_data: float = 16.0
-    second_order: bool = True
+diffusion_cfg = DiffusionConfig(
+    S_churn=80,
+    S_tmin=4e-4,
+    S_tmax=80.0,
+    S_noise=1.003,
+    sigma_data=16.0,
+    second_order=True,
+)
 
 
 # %%
@@ -498,17 +498,17 @@ def run_folding_on_context(
 
     num_diffn_samples = 5  # Fixed at export time
     inference_noise_schedule = InferenceNoiseSchedule(
-        s_max=DiffusionConfig.S_tmax,
+        s_max=diffusion_cfg.S_tmax,
         s_min=4e-4,
         p=7.0,
-        sigma_data=DiffusionConfig.sigma_data,
+        sigma_data=diffusion_cfg.sigma_data,
     )
     sigmas = inference_noise_schedule.get_schedule(
         device=device, num_timesteps=num_diffn_timesteps
     )
     gammas = torch.where(
-        (sigmas >= DiffusionConfig.S_tmin) & (sigmas <= DiffusionConfig.S_tmax),
-        min(DiffusionConfig.S_churn / num_diffn_timesteps, math.sqrt(2) - 1),
+        (sigmas >= diffusion_cfg.S_tmin) & (sigmas <= diffusion_cfg.S_tmax),
+        min(diffusion_cfg.S_churn / num_diffn_timesteps, math.sqrt(2) - 1),
         0.0,
     )
 
@@ -534,7 +534,7 @@ def run_folding_on_context(
         )
 
         # Alg 2. lines 4-6
-        noise = DiffusionConfig.S_noise * torch.randn(
+        noise = diffusion_cfg.S_noise * torch.randn(
             atom_pos.shape, device=atom_pos.device
         )
         sigma_hat = sigma_curr + gamma_curr * sigma_curr
@@ -551,7 +551,7 @@ def run_folding_on_context(
         atom_pos = atom_pos_hat + (sigma_next - sigma_hat) * d_i
 
         # Lines 9-11
-        if sigma_next != 0 and DiffusionConfig.second_order:  # second order update
+        if sigma_next != 0 and diffusion_cfg.second_order:  # second order update
             denoised_pos = _denoise(
                 atom_pos,
                 sigma=sigma_next,

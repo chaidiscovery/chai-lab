@@ -11,6 +11,16 @@ from chai_lab.utils.typing import Float, typecheck
 
 
 @dataclass(frozen=True)
+class DiffusionConfig:
+    S_churn: float = 80
+    S_tmin: float = 4e-4
+    S_tmax: float = 80.0
+    S_noise: float = 1.003
+    sigma_data: float = 16.0
+    second_order: bool = True
+
+
+@dataclass(frozen=True)
 class InferenceNoiseSchedule:
     s_max: float = 160.0
     s_min: float = 4e-4

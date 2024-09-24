@@ -79,10 +79,9 @@ from chai_lab.data.features.generators.token_pair_pocket_restraint import (
 )
 from chai_lab.data.io.cif_utils import outputs_to_cif
 from chai_lab.model.diffusion_schedules import DiffusionConfig, InferenceNoiseSchedule
-from chai_lab.model.utils import center_random_augmentation
+from chai_lab.model.utils import center_random_augmentation, load_exported
 from chai_lab.ranking.frames import get_frames_and_mask
 from chai_lab.ranking.rank import SampleRanking, get_scores, rank
-from chai_lab.utils.paths import chai1_component
 from chai_lab.utils.plot import plot_msa
 from chai_lab.utils.tensor_utils import move_data_to_device, set_seed, und_self
 from chai_lab.utils.typing import Float, typecheck
@@ -90,12 +89,6 @@ from chai_lab.utils.typing import Float, typecheck
 
 class UnsupportedInputError(RuntimeError):
     pass
-
-
-def load_exported(comp_key: str, device: torch.device) -> torch.nn.Module:
-    local_path = chai1_component(comp_key)
-    exported_program = torch.export.load(local_path)
-    return exported_program.module().to(device)
 
 
 # %%

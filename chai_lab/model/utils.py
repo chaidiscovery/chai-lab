@@ -8,6 +8,7 @@ import torch
 from einops import rearrange, reduce, repeat
 from torch import Tensor
 
+from chai_lab.utils.paths import chai1_component
 from chai_lab.utils.tensor_utils import string_to_tensorcode, und
 from chai_lab.utils.typing import Bool, Float, Int, UInt8, typecheck
 
@@ -214,3 +215,10 @@ def get_asym_id_from_subchain_id(
         f"asyms: {chain_id_asyms}"
     )
     return chain_id_asyms[0].item()
+
+
+def load_exported(comp_key: str, device: torch.device) -> torch.nn.Module:
+    """Load the explorted model."""
+    local_path = chai1_component(comp_key)
+    exported_program = torch.export.load(local_path)
+    return exported_program.module().to(device)

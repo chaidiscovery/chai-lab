@@ -10,6 +10,7 @@ from torch import Tensor
 from chai_lab.utils.typing import Float, typecheck
 
 
+@typecheck
 @dataclass(frozen=True)
 class DiffusionConfig:
     S_churn: float = 80

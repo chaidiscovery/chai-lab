@@ -8,7 +8,7 @@ from pathlib import Path
 import gemmi
 import modelcif
 import torch
-from ihm import ChemComp, DNAChemComp, LPeptideChemComp, RNAChemComp
+from ihm import ChemComp, DNAChemComp, LPeptideChemComp, RNAChemComp, SaccharideChemComp
 from modelcif import Assembly, AsymUnit, Entity, dumper, model
 from torch import Tensor
 
@@ -87,11 +87,19 @@ def get_chains_metadata(context: PDBContext) -> list[dict]:
     return records
 
 
-def _to_chem_component(res_name_3: str, entity_type: int):
+def _to_chem_component(res_name_3: str, entity_type: int, ntot: int):
     match entity_type:
         case EntityType.LIGAND.value:
+            # if the ligand is multi-residue ("branched"), we need to use
+            # SaccharideChemComp
+            # so that each ChemComp gets assigned a residue index 1...ntot
+            # otherwise crashes when adding atoms that have a residue index > 1
             code = res_name_3
-            return ChemComp(res_name_3, code, code_canonical=code)
+            return (
+                ChemComp(res_name_3, code, code_canonical=code)
+                if ntot == 1
+                else SaccharideChemComp(id=code, name=code, ccd="core")
+            )
         case EntityType.PROTEIN.value:
             code = restype_3to1.get(res_name_3, res_name_3)
             one_letter_code = gemmi.find_tabulated_residue(res_name_3).one_letter_code
@@ -108,7 +116,9 @@ def _to_chem_component(res_name_3: str, entity_type: int):
 
 
 def sequence_to_chem_comps(sequence: list[str], entity_type: int) -> list[ChemComp]:
-    return [_to_chem_component(resi, entity_type) for resi in sequence]
+    return [
+        _to_chem_component(resi, entity_type, ntot=len(sequence)) for resi in sequence
+    ]
 
 
 def context_to_cif(context: PDBContext, outpath: Path, entity_names: dict[int, str]):
@@ -158,7 +168,7 @@ def context_to_cif(context: PDBContext, outpath: Path, entity_names: dict[int, s
                         x=a.pos[0],
                         y=a.pos[1],
                         z=a.pos[2],
-                        het=False,
+                        het=a.record_type != "ATOM",
                         biso=a.b_factor,
                         occupancy=1.00,
                     )

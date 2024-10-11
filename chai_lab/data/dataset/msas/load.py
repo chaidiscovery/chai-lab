@@ -37,6 +37,8 @@ def get_msa_contexts(
 
     - First context to tokenize and give to model
     - Second context for computing summary statistics.
+
+    Looks inside msa_directory to find .aligned.pqt files to load alignments from.
     """
     pdb_ids = set(chain.entity_data.pdb_id for chain in chains)
     assert len(pdb_ids) == 1, f"Found >1 pdb ids in chains: {pdb_ids=}"

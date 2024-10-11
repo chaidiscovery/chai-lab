@@ -3,12 +3,10 @@
 # Agreement (LICENSE.md) found in the root directory of this source tree.
 """
 Parsing code for .aligned.pqt files for MSAs.
-
-NOTE this code is meant to be open-sourced, so it should contain as little proprietary
-information as possible
 """
 
 import hashlib
+import logging
 from pathlib import Path
 from typing import Literal, Mapping
 
@@ -188,3 +186,39 @@ def merge_multi_a3m_to_aligned_dataframe(
         # Take the non-query sequences for all sources
         chunks.append(df.iloc[1:])
     return pd.concat(chunks, ignore_index=True).reset_index(drop=True)
+
+
+def _merge_files_in_directory(directory: str):
+    """Finds .a3m files in a directory and combine them into a single aligned.pqt file.
+    Files are expected to be named like hits_uniref90.a3m (uniref90 is the source database).
+    All files in the directoroy are assumed to be derived from the same query sequence.
+
+    Provided as a example commandline interface to merge files.
+    """
+    dir_path = Path(directory)
+    assert dir_path.is_dir()
+
+    mapped_a3m_files = {}
+    for file in dir_path.glob("*.a3m"):
+        # Automatically determine the source based on filename
+        dbname = file.stem.replace("_hits", "")
+        try:
+            msa_src = MSADataSource(dbname)
+        except Exception:
+            logging.warning(
+                f"Could not determine source for {file=}; default to uniref90"
+            )
+            msa_src = MSADataSource.UNIREF90
+        mapped_a3m_files[msa_src] = file
+    df = merge_multi_a3m_to_aligned_dataframe(
+        mapped_a3m_files, insert_keys_for_sources="uniprot"
+    )
+    # Get the query sequence and use it to determine where we save the file.
+    query_seq: str = df.iloc[0]["sequence"]
+    df.to_parquet(dir_path / expected_basename(query_seq))
+
+
+if __name__ == "__main__":
+    import typer
+
+    typer.run(_merge_files_in_directory)

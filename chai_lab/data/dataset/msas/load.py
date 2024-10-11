@@ -84,12 +84,11 @@ def get_msa_contexts(
     # Re-index to handle residues that are tokenized per-atom
     msa_sets_exploded = [
         msa_ctx[..., chain.structure_context.token_residue_index]
-        for chain, msa_ctx in zip(chains, msa_contexts)
+        for chain, msa_ctx in zip(chains, msa_contexts, strict=True)
     ]
 
-    # Partition MSAs by whether or not a pairing key is present
-    divided = [partition_msa_by_pairing_key(m) for m in msa_sets_exploded]
     # Pair up the MSAs that have a pairing key (typically species) provided
+    divided = [partition_msa_by_pairing_key(m) for m in msa_sets_exploded]
     pairing_contexts = [d[0] for d in divided]
     paired_msa = pair_msas_by_chain_with_species_matching(pairing_contexts)
 

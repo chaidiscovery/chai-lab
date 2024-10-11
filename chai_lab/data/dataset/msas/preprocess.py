@@ -100,10 +100,8 @@ def _pair_msas_by_chain_with_species_matching_just_pairing(
     chunks = [dummy_chunk]
     masks = [torch.zeros([len(msas), 0], dtype=torch.bool)]
 
-    # Hack: When we pair UniProt and UniProt-n3, we may have different query sequences
-    # (we are inconsistent in how we deal with modified amino acids) which therefore
-    # results in an MSA with depth 2. Let's skip pairing in these cases.
-    num_msas_to_pair = len([msa for msa in msas if msa.depth > 2])
+    # Skip pairing for MSAs that contain only the query sequence
+    num_msas_to_pair = len([msa for msa in msas if msa.depth > 1])
 
     # For each MSA, precompute similarities between each row and the reference sequence
     msa_similarity = [
@@ -114,8 +112,6 @@ def _pair_msas_by_chain_with_species_matching_just_pairing(
         if len(msa_id2sequence) < num_msas_to_pair:
             continue  # not present in one of non-empty MSAs
 
-        # TODO current strategy works poorly for complexes with > 2 proteins,
-        #  if one chain misses a species, pairing of all others won't be considered
         n_pairings = min(len(seqs) for seqs in msa_id2sequence.values())
 
         # select closest by edit distance
@@ -159,7 +155,7 @@ def pair_msas_by_chain_with_species_matching(msas: list[MSAContext]) -> MSAConte
     query_msas = [msa[0:1, :] for msa in msas]
 
     # Get the paired sequences for each MSA (if we found any species matches)
-    paired_msas = []
+    paired_msas: list[MSAContext] = []
     for msa_idx, (matches, mask) in enumerate(
         zip(all_stacked_matches, all_stacked_masks, strict=True)
     ):
@@ -167,7 +163,7 @@ def pair_msas_by_chain_with_species_matching(msas: list[MSAContext]) -> MSAConte
         mask = rearrange(mask, "depth -> depth 1")
         paired_msas.append(msa_chunk.apply_mask(mask))
 
-    # Stack the query and paired MSAs along the depth dimension
+    # Stack the query and paired MSAs for each chain along the depth dimension
     full_msas = [
         MSAContext.cat(
             [query_msa, paired_msa],

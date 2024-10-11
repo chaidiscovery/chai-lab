@@ -56,7 +56,11 @@ class MSAContext:
         # enforce typing on item
         if not (
             isinstance(subscript, tuple)
-            and ((len(subscript) == 2) or subscript[0] is Ellipsis)
+            and (
+                (len(subscript) == 2)
+                or subscript[0] is Ellipsis
+                or subscript[1] is Ellipsis
+            )
         ):
             raise TypeError(
                 "Subscript must be a tuple with 2 elements or have an ellipsis."

@@ -5,6 +5,7 @@
 Code for loading MSAs given
 """
 
+import logging
 from pathlib import Path
 
 import torch
@@ -48,12 +49,14 @@ def get_msa_contexts(
         if chain.entity_data.entity_type == EntityType.PROTEIN
     }
 
-    msa_contexts_for_entities = {
-        (seq, entity_id): parse_aligned_pqt_to_msa_set(
-            msa_directory / expected_basename(seq)
-        )
-        for (seq, entity_id) in msas_to_load
-    }
+    # Load up the MSAs for each chain
+    msa_contexts_for_entities = dict()
+    for seq, entity_id in msas_to_load:
+        path = msa_directory / expected_basename(seq)
+        if not path.is_file():
+            logging.warning(f"No MSA found for sequence: {seq}")
+            continue
+        msa_contexts_for_entities[(seq, entity_id)] = parse_aligned_pqt_to_msa_set(path)
 
     # For each chain, either fetch the corresponding MSA or create an empty MSA
     msa_sets = [

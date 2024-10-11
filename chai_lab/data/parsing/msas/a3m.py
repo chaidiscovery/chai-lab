@@ -62,7 +62,7 @@ def _parse_seqs_to_ndarrays(
     """Fills in out_sequences and out_deletions in-place."""
     start_strpos = 0
     seq_index = -1  # first used value is zero
-    SPLITTER = ord(b"\n")
+    SPLITTER = 10  # ord(b"\n") = 10
     assert alignments_concatenated[-1] == SPLITTER
     n_positions = out_sequences.shape[1]
     for current_strpos, char in enumerate(alignments_concatenated):
@@ -94,6 +94,8 @@ def tokenize_sequences_to_arrays(
     seqs_str: list[str],
 ) -> tuple[np.ndarray, np.ndarray]:
     """Tokenize a list of aligned sequences in a3m format."""
+    # see: https://yanglab.qd.sdu.edu.cn/trRosetta/msa_format.html#a3m
+    assert seqs_str, "Must provide non-empty list of sequences."
     seq_len: int = sum(c in string.ascii_uppercase or c == "-" for c in seqs_str[0])
     n_seqs = len(seqs_str)
     out_sequences = np.zeros(shape=(n_seqs, seq_len), dtype="uint8")

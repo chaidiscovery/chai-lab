@@ -24,8 +24,13 @@ from chai_lab.data.parsing.msas.data_source import (
     msa_dataset_source_to_int,
     msa_dataset_source_to_quota,
 )
-from chai_lab.data.parsing.msas.species import UNKNOWN_SPECIES, get_tax_ids, stable_hash
+from chai_lab.data.parsing.msas.species import (
+    UNKNOWN_SPECIES,
+    get_tax_names,
+    stable_hash,
+)
 from chai_lab.data.residue_constants import residue_types_with_nucleotides_order
+from chai_lab.utils.typing import typecheck
 
 RECOGNIZED_SOURCES = {s.value for s in MSADataSource.get_default_sources()}
 
@@ -62,7 +67,7 @@ def _parse_single_source_pqt(
         table = table.head(quota)
 
     # Drop duplicates (done after cropping to quote)
-    table.drop_duplicates(subset=["sequence"], inplace=True, keep="first")
+    table = table.drop_duplicates(subset=["sequence"], keep="first")
 
     # Tokenize the query and the match sequences
     aligned_seqs: list[str] = [query_seq] + table["sequence"].tolist()
@@ -146,12 +151,12 @@ def a3m_to_aligned_dataframe(
             "sequence": alignment.sequence,
             "source_database": src,
             # Empty pairing keys get encoded as UNKNOWN
-            "pairing_key": str(
-                get_tax_ids([alignment.header], source_database)[0]
+            "pairing_key": (
+                get_tax_names([alignment.header], source_database).pop()
                 if insert_pairing_key
                 else ""
             ),
-            "comment": "",
+            "comment": alignment.header,
         }
         records.append(record)
     assert records[0]["source_database"] == "query"
@@ -160,6 +165,7 @@ def a3m_to_aligned_dataframe(
     return retval
 
 
+@typecheck
 def merge_multi_a3m_to_aligned_dataframe(
     msa_a3m_files: Mapping[MSADataSource, Path | str],
     insert_keys_for_sources: Literal["all", "none", "uniprot"] = "uniprot",
@@ -205,10 +211,10 @@ def _merge_files_in_directory(directory: str):
         try:
             msa_src = MSADataSource(dbname)
         except Exception:
-            logging.warning(
-                f"Could not determine source for {file=}; default to uniref90"
-            )
             msa_src = MSADataSource.UNIREF90
+            logging.warning(
+                f"Could not determine source for {file=}; default to {msa_src}"
+            )
         mapped_a3m_files[msa_src] = file
     df = merge_multi_a3m_to_aligned_dataframe(
         mapped_a3m_files, insert_keys_for_sources="uniprot"

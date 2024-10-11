@@ -49,7 +49,7 @@ def get_msa_contexts(
         if chain.entity_data.entity_type == EntityType.PROTEIN
     }
 
-    # Load up the MSAs for each chain
+    # Load up the MSAs for each chain; do this by checking for MSA sequences
     msa_contexts_for_entities = dict()
     for seq, entity_id in msas_to_load:
         path = msa_directory / expected_basename(seq)
@@ -58,11 +58,13 @@ def get_msa_contexts(
             continue
         msa_contexts_for_entities[(seq, entity_id)] = parse_aligned_pqt_to_msa_set(path)
 
-    # For each chain, either fetch the corresponding MSA or create an empty MSA
+    # For each chain, either fetch the corresponding MSA or create an empty MSA if it is missing
     msa_sets = [
-        msa_contexts_for_entities.get(
-            (chain.entity_data.sequence, chain.entity_data.entity_id),
-            {
+        (
+            msa_contexts_for_entities[k]
+            if (k := (chain.entity_data.sequence, chain.entity_data.entity_id))
+            in msa_contexts_for_entities
+            else {
                 MSADataSource.NONE: MSAContext.create(
                     MSADataSource.NONE,
                     tokens=torch.from_numpy(
@@ -71,12 +73,12 @@ def get_msa_contexts(
                         ].squeeze(0)
                     ),
                 )
-            },
+            }
         )
         for chain in chains
     ]
 
-    # Stack them together across MSA sources
+    # Stack the MSA for each chain together across MSA sources
     msa_contexts = [merge_msas_by_datasource(msa_set) for msa_set in msa_sets]
 
     # Re-index to handle residues that are tokenized per-atom
@@ -87,14 +89,16 @@ def get_msa_contexts(
 
     # Partition MSAs by whether or not a pairing key is present
     divided = [partition_msa_by_pairing_key(m) for m in msa_sets_exploded]
+    # Pair up the MSAs that have a pairing key (typically species) provided
     pairing_contexts = [d[0] for d in divided]
     paired_msa = pair_msas_by_chain_with_species_matching(pairing_contexts)
 
-    # Process main  MSA
+    # Process main MSA - deduplicate and merge across chains
     main_contexts = [d[1] for d in divided]
     main_msa_deduped = [drop_duplicates(msa) for msa in main_contexts]
     main_msa = merge_main_msas_by_chain(main_msa_deduped)
 
+    # Combine the paired and main MSAs
     merged_msa = concatenate_paired_and_main_msas(paired_msa, main_msa)
     merged_dedup_msa = drop_duplicates(merged_msa)
 

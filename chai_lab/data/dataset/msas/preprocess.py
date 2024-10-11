@@ -29,10 +29,10 @@ def merge_msas_by_datasource(
     query_sequences_matches = [
         torch.equal(filtered_first_msa_rows[0], row) for row in filtered_first_msa_rows
     ]
-
     assert all(query_sequences_matches)
 
-    # Only keep query sequence for the first MSA.
+    # Only keep query sequence for the first MSA such that the merged MSA has exactly
+    # one copy of the query sequence.
     # If an MSA has depth 1 (just query sequence), or no sequence, it is dropped
     merged_msa = MSAContext.cat(
         [

@@ -22,6 +22,8 @@ from chai_lab.utils.typing import Bool, Int32, UInt8, typecheck
 @dataclass
 class MSAContext:
     # MSA-level
+    # NOTE dataset_source can change as we process MSAContexts and may not always
+    # reflect the sequence source matrix (which shouldn't change).
     dataset_source: MSADataSource
 
     # token level
@@ -137,12 +139,13 @@ class MSAContext:
             is_paired_mask=self.is_paired_mask.masked_fill(~mask.any(dim=-1), False),
         )
 
+    @typecheck
     @classmethod
     def cat(
         cls,
         msas: list["MSAContext"],
         dataset_source: MSADataSource | None = None,
-        dim=-1,
+        dim: int = -1,
     ) -> "MSAContext":
         if dataset_source is None:
             dataset_sources = set([msa.dataset_source for msa in msas])
@@ -153,10 +156,12 @@ class MSAContext:
             dataset_source = dataset_sources.pop()
 
         assert dim == -1 or dim >= 0, "dim < 0 not implemented except for -1"
-        if 0 <= dim < 1:
+        if dim == 0:
+            # Concat on depth dim
             is_paired_mask = torch.cat([msa.is_paired_mask for msa in msas], dim=dim)
         else:
-            assert len(msas) > 0
+            # Concat on token dim
+            assert msas
             is_paired_mask = msas[0].is_paired_mask
 
         return MSAContext(

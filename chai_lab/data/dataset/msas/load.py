@@ -101,4 +101,5 @@ def get_msa_contexts(
     merged_msa = concatenate_paired_and_main_msas(paired_msa, main_msa)
     merged_dedup_msa = drop_duplicates(merged_msa)
 
+    logging.info(f"Loaded MSA context with {merged_dedup_msa.depth=}")
     return merged_dedup_msa, main_msa

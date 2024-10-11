@@ -42,6 +42,18 @@ def encode_source_to_int(source: MSADataSource) -> int:
     return msa_dataset_source_to_int.get(source, 4)
 
 
+msa_dataset_source_to_quota: dict[MSADataSource, int] = {
+    MSADataSource.UNIREF90: 10_000,
+    MSADataSource.UNIPROT: 50_000,
+    MSADataSource.BFD_UNICLUST: 1_000_000,  # unlimited
+    MSADataSource.BFD: 5000,
+    MSADataSource.MGNIFY: 5000,
+    MSADataSource.UNIREF90_N3: 10_000,
+    MSADataSource.UNIPROT_N3: 50_000,
+    MSADataSource.MGNIFY_N3: 5000,
+    MSADataSource.PDB70: 5000,
+}
+
 # This becomes a feature so changing it might break checkpoint compatibility
 msa_dataset_source_to_int = {
     MSADataSource.BFD_UNICLUST: 0,

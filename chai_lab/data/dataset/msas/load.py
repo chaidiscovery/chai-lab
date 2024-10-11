@@ -66,7 +66,9 @@ def get_msa_contexts(
                 MSADataSource.NONE: MSAContext.create(
                     MSADataSource.NONE,
                     tokens=torch.from_numpy(
-                        tokenize_sequences_to_arrays([chain.entity_data.sequence])[0]
+                        tokenize_sequences_to_arrays([chain.entity_data.sequence])[
+                            0
+                        ].squeeze(0)
                     ),
                 )
             },

@@ -68,7 +68,7 @@ def merge_main_msas_by_chain(msas: list[MSAContext]) -> MSAContext:
 
 def partition_msa_by_pairing_key(msa: MSAContext) -> tuple[MSAContext, MSAContext]:
     """Divide the given msa by whether or not a pairing key is set."""
-    pairing_key_set = msa.species != 0
+    pairing_key_set = msa.species.any(dim=1) != 0
     return msa[pairing_key_set, ...], msa[~pairing_key_set, ...]
 
 

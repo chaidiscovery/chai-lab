@@ -26,6 +26,7 @@ from chai_lab.data.dataset.constraints.constraint_context import ConstraintConte
 from chai_lab.data.dataset.embeddings.embedding_context import EmbeddingContext
 from chai_lab.data.dataset.embeddings.esm import get_esm_embedding_context
 from chai_lab.data.dataset.inference_dataset import load_chains_from_raw, read_inputs
+from chai_lab.data.dataset.msas.load import get_msa_contexts
 from chai_lab.data.dataset.msas.msa_context import MSAContext
 from chai_lab.data.dataset.structure.all_atom_structure_context import (
     AllAtomStructureContext,
@@ -249,6 +250,7 @@ def run_inference(
     *,
     output_dir: Path,
     use_esm_embeddings: bool = True,
+    msa_directory: Path | None = None,
     # expose some params for easy tweaking
     num_trunk_recycles: int = 3,
     num_diffn_timesteps: int = 200,
@@ -276,14 +278,19 @@ def run_inference(
     raise_if_too_many_tokens(n_actual_tokens)
 
     # Load MSAs
-    msa_context = MSAContext.create_empty(
-        n_tokens=n_actual_tokens,
-        depth=MAX_MSA_DEPTH,
-    )
-    main_msa_context = MSAContext.create_empty(
-        n_tokens=n_actual_tokens,
-        depth=MAX_MSA_DEPTH,
-    )
+    if msa_directory is not None:
+        msa_context, main_msa_context = get_msa_contexts(
+            chains, msa_directory=msa_directory
+        )
+    else:
+        msa_context = MSAContext.create_empty(
+            n_tokens=n_actual_tokens,
+            depth=MAX_MSA_DEPTH,
+        )
+        main_msa_context = MSAContext.create_empty(
+            n_tokens=n_actual_tokens,
+            depth=MAX_MSA_DEPTH,
+        )
 
     # Load templates
     template_context = TemplateContext.empty(

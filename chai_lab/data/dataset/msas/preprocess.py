@@ -63,9 +63,13 @@ def merge_main_msas_by_chain(msas: list[MSAContext]) -> MSAContext:
 
 
 def partition_msa_by_pairing_key(msa: MSAContext) -> tuple[MSAContext, MSAContext]:
-    """Divide the given msa by whether or not a pairing key is set."""
-    pairing_key_set = msa.species.any(dim=1) != 0
-    return msa[pairing_key_set, ...], msa[~pairing_key_set, ...]
+    """Divide the given msa by whether or not a pairing key is set; ensure that query is in both."""
+    # Mask on the remaining rows
+    pairing_key_set = msa.species[1:].any(dim=1) != 0
+    # Always set the first element to be True to make sure we always include the query row
+    pair_mask = torch.concatenate([torch.ones(1, dtype=torch.bool), pairing_key_set])
+    unpair_mask = torch.concatenate([torch.ones(1, dtype=torch.bool), ~pairing_key_set])
+    return msa[pair_mask, ...], msa[~unpair_mask, ...]
 
 
 @typecheck
@@ -75,6 +79,7 @@ def _pair_msas_by_chain_with_species_matching_just_pairing(
     Int[Tensor, "num_msas sum_num_indices"], Bool[Tensor, "num_msas sum_num_indices"]
 ]:
     """Pairs based on species matrix values."""
+    assert all(msa.num_tokens > 0 for msa in msas)
     # for each species, dict keyed by msa index
     # containing a list of sequence indices that are from the given species
     species2msa_id2sequence: dict[str, dict[int, list[int]]] = defaultdict(

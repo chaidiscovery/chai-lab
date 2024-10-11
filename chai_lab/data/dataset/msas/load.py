@@ -89,11 +89,11 @@ def get_msa_contexts(
 
     # Pair up the MSAs that have a pairing key (typically species) provided
     divided = [partition_msa_by_pairing_key(m) for m in msa_sets_exploded]
-    pairing_contexts = [d[0] for d in divided]
+    pairing_contexts = [d for d, _ in divided]
     paired_msa = pair_msas_by_chain_with_species_matching(pairing_contexts)
 
     # Process main MSA - deduplicate and merge across chains
-    main_contexts = [d[1] for d in divided]
+    main_contexts = [d for _, d in divided]
     main_msa_deduped = [drop_duplicates(msa) for msa in main_contexts]
     main_msa = merge_main_msas_by_chain(main_msa_deduped)
 

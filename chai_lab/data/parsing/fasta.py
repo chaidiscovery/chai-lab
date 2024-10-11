@@ -30,7 +30,7 @@ def read_fasta(file_path: str | Path) -> list[Fasta]:
     from Bio import SeqIO
 
     fasta_sequences = SeqIO.parse(open(file_path), "fasta")
-    return [Fasta(fasta.id, str(fasta.seq)) for fasta in fasta_sequences]
+    return [Fasta(fasta.description, str(fasta.seq)) for fasta in fasta_sequences]
 
 
 def get_residue_name(

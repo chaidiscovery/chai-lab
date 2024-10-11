@@ -35,11 +35,7 @@ def merge_msas_by_datasource(
     # one copy of the query sequence.
     # If an MSA has depth 1 (just query sequence), or no sequence, it is dropped
     merged_msa = MSAContext.cat(
-        [
-            msa if idx == 0 else msa[1:, :]
-            for idx, msa in enumerate(msas.values())
-            if msa.depth > 1
-        ],
+        [msa if idx == 0 else msa[1:, :] for idx, msa in enumerate(msas.values())],
         dataset_source=new_source,
         dim=0,
     )

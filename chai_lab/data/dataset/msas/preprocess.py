@@ -69,6 +69,7 @@ def partition_msa_by_pairing_key(msa: MSAContext) -> tuple[MSAContext, MSAContex
     # Always set the first element to be True to make sure we always include the query row
     pair_mask = torch.concatenate([torch.ones(1, dtype=torch.bool), pairing_key_set])
     unpair_mask = torch.concatenate([torch.ones(1, dtype=torch.bool), ~pairing_key_set])
+    assert pair_mask.sum() > 0 and unpair_mask.sum() > 0
     return msa[pair_mask, ...], msa[~unpair_mask, ...]
 
 

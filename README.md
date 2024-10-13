@@ -69,7 +69,7 @@ If you find Chai-1 useful in your research or use any structures produced by the
 ```
 @article{Chai-1-Technical-Report,
 	title        = {Chai-1: Decoding the molecular interactions of life},
-	author       = {Chai Discovery},
+	author       = {{Chai Discovery}},
 	year         = 2024,
 	journal      = {bioRxiv},
 	publisher    = {Cold Spring Harbor Laboratory},

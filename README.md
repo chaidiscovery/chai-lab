@@ -6,7 +6,7 @@ Chai-1 is a multi-modal foundation model for molecular structure prediction that
     <img src='https://github.com/chaidiscovery/chai-lab/blob/main/assets/performance_barplot.png' height=400 >
 </p>
 
-For more information on the model's performance and capabilities, see our [technical report](https://chaiassets.com/chai-1/paper/technical_report_v1.pdf).
+For more information on the model's performance and capabilities, see our [technical report](https://www.biorxiv.org/content/10.1101/2024.10.10.615955v1).
 
 ## Installation
 

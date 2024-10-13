@@ -62,6 +62,24 @@ Since this is an initial release, we expect to make some breaking changes to the
 chai_lab==0.1.0
 ```
 
+## Citations
+
+If you find Chai-1 useful in your research or use any structures produced by the model, we ask that you cite our technical report:
+
+```
+@article{Chai-1-Technical-Report,
+	title        = {Chai-1: Decoding the molecular interactions of life},
+	author       = {Chai Discovery},
+	year         = 2024,
+	journal      = {bioRxiv},
+	publisher    = {Cold Spring Harbor Laboratory},
+	doi          = {10.1101/2024.10.10.615955},
+	url          = {https://www.biorxiv.org/content/early/2024/10/11/2024.10.10.615955},
+	elocation-id = {2024.10.10.615955},
+	eprint       = {https://www.biorxiv.org/content/early/2024/10/11/2024.10.10.615955.full.pdf}
+}
+```
+
 ## Licence 
 
 See [LICENSE.md](LICENSE.md).

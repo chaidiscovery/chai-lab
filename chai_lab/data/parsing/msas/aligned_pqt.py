@@ -10,29 +10,29 @@ import logging
 from pathlib import Path
 from typing import Literal, Mapping
 
+import numpy as np
 import pandas as pd
 import pandera as pa
-import torch
-from einops import repeat
 from pandera.typing import Series
 
-from chai_lab.data.dataset.msas.msa_context import MSAContext
 from chai_lab.data.parsing.fasta import read_fasta
 from chai_lab.data.parsing.msas.a3m import tokenize_sequences_to_arrays
 from chai_lab.data.parsing.msas.data_source import (
     MSADataSource,
-    msa_dataset_source_to_int,
+    msa_dataset_source_to_priority,
     msa_dataset_source_to_quota,
 )
+from chai_lab.data.parsing.msas.serialized_msa import SerializedMSAForSingleSequence
 from chai_lab.data.parsing.msas.species import (
     UNKNOWN_SPECIES,
     get_tax_names,
     stable_hash,
 )
-from chai_lab.data.residue_constants import residue_types_with_nucleotides_order
 from chai_lab.utils.typing import typecheck
 
-RECOGNIZED_SOURCES = {s.value for s in MSADataSource.get_default_sources()}
+RECOGNIZED_SOURCES: set[str] = {
+    s.value for s in MSADataSource.get_default_sources() + [MSADataSource.QUERY]
+}
 
 
 class AlignedParquetModel(pa.DataFrameModel):
@@ -55,56 +55,11 @@ def expected_basename(query_sequence: str) -> str:
     return f"{seqhash}.aligned.pqt"
 
 
-def _parse_single_source_pqt(
-    table: pd.DataFrame, query_seq: str, quota: int | None = None
-) -> MSAContext:
-    """Parse MSAs for a single source; drops duplicates and adds query as first row."""
-    assert table["source_database"].nunique() == 1
-    source_parsed = MSADataSource(table["source_database"].values[0])
-
-    if quota is not None:
-        assert quota > 0
-        table = table.head(quota)
-
-    # Drop duplicates (done after cropping to quote)
-    table = table.drop_duplicates(subset=["sequence"], keep="first")
-
-    # Tokenize the query and the match sequences
-    aligned_seqs: list[str] = [query_seq] + table["sequence"].tolist()
-
-    result_sequences, result_deletions = tokenize_sequences_to_arrays(aligned_seqs)
-    assert result_sequences.min() >= 0
-    assert result_sequences.max() < len(residue_types_with_nucleotides_order)
-    depth, n_tokens = result_sequences.shape
-
-    # Build pairing key; first entry corresponds to query which we assign UNKNOWN
-    # Empty pairing key is also encoded as UNKNOWN
-    tax_id_list = [UNKNOWN_SPECIES] + [
-        stable_hash(k) if k else UNKNOWN_SPECIES for k in table["pairing_key"]
-    ]
-    species = torch.asarray(tax_id_list, dtype=torch.int32)
-
-    tokens = torch.from_numpy(result_sequences)
-    species = repeat(species, "seq -> seq n_tokens", n_tokens=n_tokens)
-    deletion_matrix = torch.from_numpy(result_deletions)
-    mask = torch.ones_like(tokens, dtype=torch.bool)
-
-    return MSAContext(
-        dataset_source=source_parsed,
-        tokens=tokens,
-        species=species,
-        deletion_matrix=deletion_matrix,
-        mask=mask,
-        sequence_source=torch.full_like(
-            tokens, fill_value=msa_dataset_source_to_int[source_parsed]
-        ),
-        is_paired_mask=torch.zeros(depth, dtype=torch.bool),
-    )
-
-
 def parse_aligned_pqt_to_msa_set(
-    aligned_pqt_path: Path, apply_quota: bool = True
-) -> dict[MSADataSource, MSAContext]:
+    aligned_pqt_path: Path | str,
+    apply_quota: bool = True,
+    quota_sizes: dict[MSADataSource, int] = msa_dataset_source_to_quota,
+) -> SerializedMSAForSingleSequence:
     """
     Parse .aligned.pqt files, following the schema defined in AlignedParquetModel.
     If apply_quota is specified, then apply per-source quota limits.
@@ -121,18 +76,57 @@ def parse_aligned_pqt_to_msa_set(
     assert query_row["source_database"] == "query", "First row must be query"
     query_seq: str = query_row["sequence"]
 
-    # Non-query items
-    table = raw_table.iloc[1:]
-    retval = {}
-    for src, group in table.groupby(by="source_database"):
-        assert src != "query", "Encountered query as source"
-        parsed_src = MSADataSource(src)
-        retval[parsed_src] = _parse_single_source_pqt(
-            group,
-            query_seq=query_seq,
-            quota=msa_dataset_source_to_quota[parsed_src] if apply_quota else None,
+    # Apply quota
+    if apply_quota:
+        # For each group, take the quota size if there is a quota found, otherwise take
+        # the whole table (some big number)
+        # NOTE quota here requires an offset of -1 because in the a3m parsing logic, the
+        # quota caps the number of records from a fasta a3m file, which contains the
+        # query. Here, the groupby operation does NOT include the query row so we use
+        # the offset to account for this.
+        raw_table = (
+            raw_table.groupby("source_database")
+            .apply(
+                lambda table: table.head(
+                    quota_sizes.get(MSADataSource(table.name), 1_000_000) - 1
+                )  # type: ignore
+            )
+            .reset_index(drop=True)
         )
-    return retval
+        assert isinstance(raw_table, pd.DataFrame)
+
+    # Sort by priority
+    # db2priority is a dict that maps MSADataSource to a non-negative integer priority
+    # insert the query as -1 to make sure it is sorted first.
+    raw_table = raw_table.sort_values(
+        "source_database",
+        key=lambda series: (
+            pd.Series(
+                [
+                    (
+                        -1
+                        if (src := MSADataSource(x)) == MSADataSource.QUERY
+                        else msa_dataset_source_to_priority[src]
+                    )
+                    for x in series
+                ]
+            )
+        ),
+    )
+
+    sequences, deletions = tokenize_sequences_to_arrays(raw_table["sequence"].tolist())
+    species = np.array(
+        [stable_hash(k) if k else UNKNOWN_SPECIES for k in raw_table["pairing_key"]],
+        dtype=np.int32,
+    )
+    return SerializedMSAForSingleSequence(
+        query_seq,
+        species_id=species,
+        aligned_tokens=sequences,
+        deletions=deletions,
+        description=raw_table["comment"],
+        source_database=raw_table["source_database"],
+    )
 
 
 def a3m_to_aligned_dataframe(
@@ -146,7 +140,7 @@ def a3m_to_aligned_dataframe(
     records: list[dict[str, str]] = []
     for i, alignment in enumerate(alignments):
         # Assume first entry in a3m is the query
-        src = "query" if i == 0 else source_database.value
+        src = MSADataSource.QUERY.value if i == 0 else source_database.value
         record = {
             "sequence": alignment.sequence,
             "source_database": src,

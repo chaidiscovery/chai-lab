@@ -1,3 +1,4 @@
+import logging
 from pathlib import Path
 
 import numpy as np
@@ -11,6 +12,8 @@ from chai_lab.chai1 import run_inference
 # - ligands are encoded with SMILES; modified residues encoded like AAA(SEP)AAA
 
 # Example given below, just modify it
+
+logging.basicConfig(level=logging.INFO)
 
 example_fasta = """
 >protein|name=example-of-long-protein
@@ -32,6 +35,7 @@ candidates = run_inference(
     fasta_file=fasta_path,
     output_dir=output_dir,
     # 'default' setup
+    msa_directory=Path("/workspaces/chai-lab/examples/msas"),
     num_trunk_recycles=3,
     num_diffn_timesteps=200,
     seed=42,

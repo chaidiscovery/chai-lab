@@ -9,6 +9,9 @@ logger = logging.getLogger(__name__)
 
 
 class MSADataSource(Enum):
+    # Special value for the query sequence
+    QUERY = "query"
+
     UNIPROT = "uniprot"
     UNIREF90 = "uniref90"
     BFD = "BFD"
@@ -53,6 +56,9 @@ msa_dataset_source_to_quota: dict[MSADataSource, int] = {
     MSADataSource.MGNIFY_N3: 5000,
     MSADataSource.PDB70: 5000,
 }
+msa_dataset_source_to_priority = {
+    db: i for i, db in enumerate(msa_dataset_source_to_quota)
+}
 
 # This becomes a feature so changing it might break checkpoint compatibility
 msa_dataset_source_to_int = {
@@ -64,6 +70,7 @@ msa_dataset_source_to_int = {
     MSADataSource.UNIPROT_N3: 3,
     MSADataSource.UNIREF90_N3: 2,
     MSADataSource.MGNIFY_N3: 1,
+    MSADataSource.QUERY: 5,
 }
 
 database_ids: set[str] = set(x.value for x in MSADataSource)

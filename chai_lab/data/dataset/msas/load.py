@@ -26,6 +26,7 @@ from chai_lab.data.parsing.msas.aligned_pqt import (
     parse_aligned_pqt_to_msa_set,
 )
 from chai_lab.data.parsing.msas.data_source import MSADataSource
+from chai_lab.data.parsing.msas.serialized_msa import SerializedMSAForSingleSequence
 from chai_lab.data.parsing.structure.entity_type import EntityType
 
 
@@ -52,7 +53,9 @@ def get_msa_contexts(
     }
 
     # Load up the MSAs for each chain; do this by checking for MSA sequences
-    msa_contexts_for_entities = dict()
+    msa_contexts_for_entities: dict[tuple[str, int], SerializedMSAForSingleSequence] = (
+        dict()
+    )
     for seq, entity_id in msas_to_load:
         path = msa_directory / expected_basename(seq)
         if not path.is_file():
@@ -61,9 +64,9 @@ def get_msa_contexts(
         msa_contexts_for_entities[(seq, entity_id)] = parse_aligned_pqt_to_msa_set(path)
 
     # For each chain, either fetch the corresponding MSA or create an empty MSA if it is missing
-    msa_sets = [
+    msa_sets: list[dict[MSADataSource, MSAContext]] = [
         (
-            msa_contexts_for_entities[k]
+            MSAContext.from_serialized(msa_contexts_for_entities[k])
             if (k := (chain.entity_data.sequence, chain.entity_data.entity_id))
             in msa_contexts_for_entities
             else {
@@ -79,6 +82,7 @@ def get_msa_contexts(
         )
         for chain in chains
     ]
+    assert len(msa_sets) == len(chains)
 
     # Stack the MSA for each chain together across MSA sources
     msa_contexts = [merge_msas_by_datasource(msa_set) for msa_set in msa_sets]

@@ -4,6 +4,7 @@
 
 from dataclasses import dataclass
 
+import numpy as np
 import torch
 from einops import rearrange, repeat
 from torch import Tensor
@@ -12,6 +13,7 @@ from chai_lab.data.parsing.msas.data_source import (
     MSADataSource,
     msa_dataset_source_to_int,
 )
+from chai_lab.data.parsing.msas.serialized_msa import SerializedMSAForSingleSequence
 from chai_lab.data.parsing.msas.species import UNKNOWN_SPECIES
 from chai_lab.data.residue_constants import residue_types_with_nucleotides_order
 from chai_lab.utils.defaults import default
@@ -22,6 +24,8 @@ from chai_lab.utils.typing import Bool, Int32, UInt8, typecheck
 @dataclass
 class MSAContext:
     # MSA-level
+    # NOTE dataset_source can change as we process MSAContexts and may not always
+    # reflect the sequence source matrix (which shouldn't change).
     dataset_source: MSADataSource
 
     # token level
@@ -54,7 +58,11 @@ class MSAContext:
         # enforce typing on item
         if not (
             isinstance(subscript, tuple)
-            and ((len(subscript) == 2) or subscript[0] is Ellipsis)
+            and (
+                (len(subscript) == 2)
+                or subscript[0] is Ellipsis
+                or subscript[1] is Ellipsis
+            )
         ):
             raise TypeError(
                 "Subscript must be a tuple with 2 elements or have an ellipsis."
@@ -137,12 +145,13 @@ class MSAContext:
             is_paired_mask=self.is_paired_mask.masked_fill(~mask.any(dim=-1), False),
         )
 
+    @typecheck
     @classmethod
     def cat(
         cls,
         msas: list["MSAContext"],
         dataset_source: MSADataSource | None = None,
-        dim=-1,
+        dim: int = -1,
     ) -> "MSAContext":
         if dataset_source is None:
             dataset_sources = set([msa.dataset_source for msa in msas])
@@ -153,10 +162,12 @@ class MSAContext:
             dataset_source = dataset_sources.pop()
 
         assert dim == -1 or dim >= 0, "dim < 0 not implemented except for -1"
-        if 0 <= dim < 1:
+        if dim == 0:
+            # Concat on depth dim
             is_paired_mask = torch.cat([msa.is_paired_mask for msa in msas], dim=dim)
         else:
-            assert len(msas) > 0
+            # Concat on token dim
+            assert msas
             is_paired_mask = msas[0].is_paired_mask
 
         return MSAContext(
@@ -211,3 +222,57 @@ class MSAContext:
             ),
             is_paired_mask=torch.zeros((depth,), dtype=torch.bool),
         )
+
+    @classmethod
+    def from_serialized(
+        cls, serialized_msa: SerializedMSAForSingleSequence
+    ) -> dict[MSADataSource, "MSAContext"]:
+        result: dict[MSADataSource, MSAContext] = {}
+
+        is_query = serialized_msa.source_database == MSADataSource.QUERY.value
+        query_idx = np.where(is_query)[0].item()
+        assert query_idx == 0
+
+        source_dbs = [MSADataSource(s) for s in serialized_msa.source_database.unique()]
+        for source_db in source_dbs:
+            # Don't include query in the returned mapping of source > context
+            # The query is instead included as the first row in each context
+            if source_db == MSADataSource.QUERY:
+                continue
+            src_mask = serialized_msa.source_database == source_db.value
+            assert (
+                src_mask.sum() > 0 and not src_mask.iloc[query_idx]
+            ), f"Unexpected source database for {source_db}: {src_mask} from {serialized_msa.source_database.values}"
+            src_mask.iloc[query_idx] = True  # Manully include the query row
+
+            tokens = torch.from_numpy(serialized_msa.aligned_tokens[src_mask])
+            n_seq, n_tok = tokens.shape
+
+            deletions = torch.from_numpy(serialized_msa.deletions[src_mask])
+            species = repeat(
+                torch.from_numpy(serialized_msa.species_id[src_mask]),
+                "s -> s t",
+                t=n_tok,
+            )
+            mask = torch.ones_like(tokens, dtype=torch.bool)
+            source_db_int = torch.full_like(
+                tokens, fill_value=msa_dataset_source_to_int[source_db]
+            )
+            # The first row was the query, mark it as such
+            source_db_int[0] = msa_dataset_source_to_int[MSADataSource.QUERY]
+
+            ctx = cls(
+                source_db,
+                tokens=tokens,
+                species=species,
+                deletion_matrix=deletions,
+                mask=mask,
+                sequence_source=source_db_int,
+                is_paired_mask=torch.zeros(n_seq, dtype=torch.bool),
+            )
+            result[source_db] = ctx
+        # Each entry has a query sequence; sum of other sequences should match original
+        assert (
+            sum(msa.depth - 1 for msa in result.values()) == serialized_msa.depth - 1
+        ), f"Unexpected depths: {[m.depth for m in result.values()]} <> {serialized_msa.depth}"
+        return result

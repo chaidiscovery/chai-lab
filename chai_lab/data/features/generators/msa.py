@@ -214,7 +214,7 @@ class MSADataSourceGenerator(FeatureGenerator):
 
     def __init__(
         self,
-        num_classes: int = 5,
+        num_classes: int = 6,
     ):
         assert num_classes == max(msa_dataset_source_to_int.values()) + 1
 

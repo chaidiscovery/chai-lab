@@ -40,6 +40,8 @@ modelcif>=1.0      # mmcif writing, confirmed to work currently latest 1.0
 # computing, dl
 numpy~=1.21
 pandas[parquet,gcp,aws]~=2.1 
+pandera
+numba>=0.59
 # polars              
 einops~=0.8
 jaxtyping>=0.2.25   # versions <0.2.25 do not easily support runtime typechecking

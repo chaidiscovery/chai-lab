@@ -72,7 +72,6 @@ def chai1_component(comp_key: str) -> Path:
     assert comp_key.endswith(".pt2")
     url = f"https://chaiassets.com/chai1-inference-depencencies/models/{comp_key}"
     result = downloads_path.joinpath("models", comp_key)
-    if not result.exists():
-        download_if_not_exists(url, result)
+    download_if_not_exists(url, result)
 
     return result

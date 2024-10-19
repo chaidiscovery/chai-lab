@@ -7,27 +7,26 @@ Parsing code for .aligned.pqt files for MSAs.
 
 import hashlib
 import logging
+from functools import lru_cache
 from pathlib import Path
 from typing import Literal, Mapping
 
-import numpy as np
 import pandas as pd
 import pandera as pa
+import torch
+from einops import repeat
 from pandera.typing import Series
 
+from chai_lab.data.dataset.msas.msa_context import NO_PAIRING_KEY, MSAContext
 from chai_lab.data.parsing.fasta import read_fasta
 from chai_lab.data.parsing.msas.a3m import tokenize_sequences_to_arrays
 from chai_lab.data.parsing.msas.data_source import (
     MSADataSource,
+    msa_dataset_source_to_int,
     msa_dataset_source_to_priority,
     msa_dataset_source_to_quota,
 )
-from chai_lab.data.parsing.msas.serialized_msa import SerializedMSAForSingleSequence
-from chai_lab.data.parsing.msas.species import (
-    UNKNOWN_SPECIES,
-    get_tax_names,
-    stable_hash,
-)
+from chai_lab.data.parsing.msas.species import get_tax_names
 from chai_lab.utils.typing import typecheck
 
 RECOGNIZED_SOURCES: set[str] = {
@@ -39,7 +38,7 @@ class AlignedParquetModel(pa.DataFrameModel):
     """Model for aligned parquet files."""
 
     sequence: Series[str]
-    source_database: Series[str] = pa.Field(isin=RECOGNIZED_SOURCES.union({"query"}))
+    source_database: Series[str] = pa.Field(isin=RECOGNIZED_SOURCES)
     pairing_key: Series[str]
     comment: Series[str]
 
@@ -49,17 +48,22 @@ def hash_sequence(seq: str) -> str:
     return hash_object.hexdigest()
 
 
+@lru_cache(maxsize=1_000_000)
+def stable_hash_for_pairkey(str) -> int:
+    # very basic, fast hash, converts to int
+    return int(hashlib.sha256(str.encode("utf-8")).hexdigest()[:7], 16)
+
+
 def expected_basename(query_sequence: str) -> str:
     """Get the expected filename based on the uppercased query sequence."""
     seqhash = hash_sequence(query_sequence.upper())
     return f"{seqhash}.aligned.pqt"
 
 
-def parse_aligned_pqt_to_msa_set(
+def parse_aligned_pqt_to_serialized_msa(
     aligned_pqt_path: Path | str,
-    apply_quota: bool = True,
-    quota_sizes: dict[MSADataSource, int] = msa_dataset_source_to_quota,
-) -> SerializedMSAForSingleSequence:
+    quota_sizes: dict[MSADataSource, int] | None = msa_dataset_source_to_quota,
+) -> MSAContext:
     """
     Parse .aligned.pqt files, following the schema defined in AlignedParquetModel.
     If apply_quota is specified, then apply per-source quota limits.
@@ -74,10 +78,9 @@ def parse_aligned_pqt_to_msa_set(
     # Exactly one query row
     query_row = raw_table.iloc[0]
     assert query_row["source_database"] == "query", "First row must be query"
-    query_seq: str = query_row["sequence"]
 
     # Apply quota
-    if apply_quota:
+    if quota_sizes is not None:
         # For each group, take the quota size if there is a quota found, otherwise take
         # the whole table (some big number)
         # NOTE quota here requires an offset of -1 because in the a3m parsing logic, the
@@ -95,37 +98,44 @@ def parse_aligned_pqt_to_msa_set(
         )
         assert isinstance(raw_table, pd.DataFrame)
 
-    # Sort by priority
-    # db2priority is a dict that maps MSADataSource to a non-negative integer priority
-    # insert the query as -1 to make sure it is sorted first.
+    # Sort by priority, query goes first, other DBs have some order
     raw_table = raw_table.sort_values(
         "source_database",
         key=lambda series: (
             pd.Series(
-                [
-                    (
-                        -1
-                        if (src := MSADataSource(x)) == MSADataSource.QUERY
-                        else msa_dataset_source_to_priority[src]
-                    )
-                    for x in series
-                ]
+                [msa_dataset_source_to_priority[MSADataSource(x)] for x in series]
             )
         ),
     )
 
     sequences, deletions = tokenize_sequences_to_arrays(raw_table["sequence"].tolist())
-    species = np.array(
-        [stable_hash(k) if k else UNKNOWN_SPECIES for k in raw_table["pairing_key"]],
-        dtype=np.int32,
+    _n_seq, n_tok = sequences.shape
+
+    pairing_key_hash = torch.asarray(
+        [
+            stable_hash_for_pairkey(k) if k else NO_PAIRING_KEY
+            for k in raw_table["pairing_key"]
+        ],
+        dtype=torch.int32,
     )
-    return SerializedMSAForSingleSequence(
-        query_seq,
-        species_id=species,
-        aligned_tokens=sequences,
-        deletions=deletions,
-        description=raw_table["comment"],
-        source_database=raw_table["source_database"],
+
+    source_db_1d = [
+        msa_dataset_source_to_int[MSADataSource(x)]
+        for x in raw_table["source_database"]
+    ]
+    source_db_int = repeat(
+        torch.asarray(source_db_1d, dtype=torch.uint8), "s -> s t", t=n_tok
+    )
+    pairing_key_hash = repeat(pairing_key_hash, "s -> s t", t=n_tok)
+
+    tokens = torch.from_numpy(sequences)
+
+    return MSAContext(
+        tokens=tokens,
+        pairing_key_hash=pairing_key_hash,
+        deletion_matrix=torch.from_numpy(deletions),
+        sequence_source=source_db_int,
+        mask=torch.ones_like(tokens, dtype=torch.bool),
     )
 
 
@@ -161,7 +171,7 @@ def a3m_to_aligned_dataframe(
 
 @typecheck
 def merge_multi_a3m_to_aligned_dataframe(
-    msa_a3m_files: Mapping[MSADataSource, Path | str],
+    msa_a3m_files: Mapping[Path, MSADataSource],
     insert_keys_for_sources: Literal["all", "none", "uniprot"] = "uniprot",
 ) -> pd.DataFrame:
     """Merge multiple a3m files into a single aligned parquet file."""
@@ -175,7 +185,7 @@ def merge_multi_a3m_to_aligned_dataframe(
                 else (insert_keys_for_sources == "all")
             ),
         )
-        for src, a3m_path in msa_a3m_files.items()
+        for a3m_path, src in msa_a3m_files.items()
     }
     # Check that all the dfs share the same query sequence
     queries = {df.iloc[0]["sequence"] for df in dfs.values()}
@@ -201,15 +211,15 @@ def _merge_files_in_directory(directory: str):
     mapped_a3m_files = {}
     for file in dir_path.glob("*.a3m"):
         # Automatically determine the source based on filename
-        dbname = file.stem.replace("_hits", "")
+        dbname = file.stem.replace("_hits", "").replace("hits_", "")
         try:
             msa_src = MSADataSource(dbname)
-        except Exception:
+        except ValueError:
             msa_src = MSADataSource.UNIREF90
             logging.warning(
                 f"Could not determine source for {file=}; default to {msa_src}"
             )
-        mapped_a3m_files[msa_src] = file
+        mapped_a3m_files[file] = msa_src
     df = merge_multi_a3m_to_aligned_dataframe(
         mapped_a3m_files, insert_keys_for_sources="uniprot"
     )

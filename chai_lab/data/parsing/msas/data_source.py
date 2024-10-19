@@ -20,6 +20,8 @@ class MSADataSource(Enum):
     MAIN = "main"
     BFD_UNICLUST = "bfd_uniclust"
     SINGLETON = "singleton"
+
+    # pad value
     NONE = "none"
 
     # templates
@@ -59,6 +61,8 @@ msa_dataset_source_to_quota: dict[MSADataSource, int] = {
 msa_dataset_source_to_priority = {
     db: i for i, db in enumerate(msa_dataset_source_to_quota)
 }
+# query should always go first
+msa_dataset_source_to_priority[MSADataSource.QUERY] = -1
 
 # This becomes a feature so changing it might break checkpoint compatibility
 msa_dataset_source_to_int = {
@@ -70,7 +74,7 @@ msa_dataset_source_to_int = {
     MSADataSource.UNIPROT_N3: 3,
     MSADataSource.UNIREF90_N3: 2,
     MSADataSource.MGNIFY_N3: 1,
-    MSADataSource.QUERY: 5,
+    MSADataSource.QUERY: 5,  # TODO how does it work with chai-1?
 }
 
 database_ids: set[str] = set(x.value for x in MSADataSource)

@@ -80,12 +80,11 @@ class AllAtomFeatureContext:
             msa_tokens=self.msa_context.tokens,
             msa_mask=self.msa_context.mask,
             msa_deletion_matrix=self.msa_context.deletion_matrix,
-            msa_species=self.msa_context.species,
+            msa_pairkey=self.msa_context.pairing_key_hash,
             msa_sequence_source=self.msa_context.sequence_source,
             main_msa_tokens=self.main_msa_context.tokens,
             main_msa_mask=self.main_msa_context.mask,
             main_msa_deletion_matrix=self.main_msa_context.deletion_matrix,
-            paired_msa_depth=self.msa_context.paired_msa_depth,
         )
         return {
             **self.structure_context.to_dict(),

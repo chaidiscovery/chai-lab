@@ -4,7 +4,7 @@ While Chai-1 performs very well in "single-sequence mode," it can also be given 
 
 ## The `.aligned.pqt` file format
 
-The easiest way to provide MSA information to Chai-1 is through the `.aligned.pqt` file format that we have defined. This file can be thought of as an augmented `a3m` file, and is essentially a pandas dataframe saved in parquet format with the following four (required) columns:
+The easiest way to provide MSA information to Chai-1 is through the `.aligned.pqt` file format that we have defined. This file can be thought of as an augmented `a3m` file, and is essentially a dataframe saved in parquet format with the following four (required) columns:
 
 - `sequence` - contains alignment hits in the `a3m` sequence format. 
 - `source_database` - contains information regarding the database that the sequence came from. This can be set to one of `uniprot`, `uniref90`, `bfd_uniclust`, `mgnify`, or `query`. This source is featurized as an input to Chai-1 (and is therefore not just for book keeping!). The `query` key should only occur once in the table as the first row and indicates the query sequence used to construct the hits. If your alignments come from a database not included in these four options, it's probably a good idea to experiment with setting a source to get best results; `uniref90` should be a good "catchall" choice in general. 
@@ -13,7 +13,7 @@ The easiest way to provide MSA information to Chai-1 is through the `.aligned.pq
 
 This file format offers several advantages over standard `.a3m` files:
 - Alignments that come from different databases can be contained in a single file without losing track of which alignment came from where. Note, however, that all rows in this file are assumed to be associated with the same (indicated) query sequence. 
-- Allows flexible, easy specification of how sequences across different chains ought to be paired up.
+- Allows flexible specification of how sequences across different chains ought to be paired up.
 
 See the following for a toy example of what this table might look like:
 

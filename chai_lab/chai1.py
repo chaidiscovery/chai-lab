@@ -279,17 +279,15 @@ def run_inference(
 
     # Load MSAs
     if msa_directory is not None:
-        msa_context, main_msa_context = get_msa_contexts(
+        msa_context, msa_profile_context = get_msa_contexts(
             chains, msa_directory=msa_directory
         )
     else:
         msa_context = MSAContext.create_empty(
-            n_tokens=n_actual_tokens,
-            depth=MAX_MSA_DEPTH,
+            n_tokens=n_actual_tokens, depth=MAX_MSA_DEPTH
         )
-        main_msa_context = MSAContext.create_empty(
-            n_tokens=n_actual_tokens,
-            depth=MAX_MSA_DEPTH,
+        msa_profile_context = MSAContext.create_empty(
+            n_tokens=n_actual_tokens, depth=MAX_MSA_DEPTH
         )
 
     # Load templates
@@ -312,7 +310,7 @@ def run_inference(
         chains=chains,
         structure_context=merged_context,
         msa_context=msa_context,
-        main_msa_context=main_msa_context,
+        main_msa_context=msa_profile_context,
         template_context=template_context,
         embedding_context=embedding_context,
         constraint_context=constraint_context,

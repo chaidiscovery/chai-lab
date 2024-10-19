@@ -46,7 +46,7 @@ def _get_tokenization_mapping() -> np.ndarray:
     for letter in string.ascii_lowercase.encode():
         mapping[letter] = MAPPED_TOKEN_INSERTION  # lower-case, insertion
     assert mapping[ord(b"-")] >= 0, "skip (-) should have its token"
-    assert mapping[ord(b".")] == MAPPED_TOKEN_SKIP  # TODO confirm this with Josh
+    assert mapping[ord(b".")] == MAPPED_TOKEN_SKIP
     return mapping
 
 

@@ -3,7 +3,6 @@
 # Agreement (LICENSE.md) found in the root directory of this source tree.
 
 import logging
-import pickle
 from pathlib import Path
 
 import torch
@@ -39,8 +38,6 @@ def get_msa_contexts(
     - First context to tokenize and give to model
     - Second context for computing summary statistics
     """
-    with open("/tmp/chains.pkl", "wb") as f:
-        pickle.dump(chains, f)
 
     pdb_ids = set(chain.entity_data.pdb_id for chain in chains)
     assert len(pdb_ids) == 1, f"Found >1 pdb ids in chains: {pdb_ids=}"

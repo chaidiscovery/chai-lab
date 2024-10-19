@@ -34,6 +34,19 @@ python examples/predict_structure.py
 
 For more advanced use cases, we also expose the `chai_lab.chai1.run_folding_on_context`, which allows users to construct an `AllAtomFeatureContext` manually. This allows users to specify their own templates, MSAs, embeddings, and constraints. We currently provide an example of how to construct an embeddings context, and will be releasing helper methods to build MSA and templates contexts soon.
 
+<details>
+<summary>Where downloaded weights are stored?</summary>
+<p markdown="1">
+By default, weights are automatically downloaded and stored in <package_root>/downloads (usually that's within site-packages).
+In cases when you want to control location (e.g. on mounted drive in docker), you can set envvar, for example:
+
+```bash
+CHAI_DOWNLOADS_DIR=/tmp/downloads python ./examples/predict_structure.py 
+```
+</p>
+</details>
+
+
 ## ⚡ Try it online
 
 We provide a [web server](https://lab.chaidiscovery.com) so you can test the Chai-1 model right from your browser, without any setup.

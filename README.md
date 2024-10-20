@@ -17,10 +17,7 @@ pip install git+https://github.com/chaidiscovery/chai-lab.git
 pip install chai_lab==0.1.0
 ```
 
-This Python package requires Linux, and a GPU with CUDA and bfloat16 support 
-
-(we recommend A100/H100, but A10, A30 should work for smaller complexes. Users reported success with consumer-grade RTX 4090).
-
+This Python package requires Linux, and a GPU with CUDA and bfloat16 support. We recommend using an A100 80GB or H100 80GB chip, but A10s and A30s should work for smaller complexes. Users have also reported success with consumer-grade RTX 4090.
 
 ## Running the model
 
@@ -35,10 +32,10 @@ python examples/predict_structure.py
 For more advanced use cases, we also expose the `chai_lab.chai1.run_folding_on_context`, which allows users to construct an `AllAtomFeatureContext` manually. This allows users to specify their own templates, MSAs, embeddings, and constraints. We currently provide an example of how to construct an embeddings context, and will be releasing helper methods to build MSA and templates contexts soon.
 
 <details>
-<summary>Where downloaded weights are stored?</summary>
+<summary>Where are downloaded weights stored?</summary>
 <p markdown="1">
 By default, weights are automatically downloaded and stored in <package_root>/downloads (usually that's within site-packages).
-In cases when you want to control location (e.g. on mounted drive in docker), you can set envvar, for example:
+In cases where you want to control the download location (e.g. on a mounted drive in Docker), you can use the `CHAI_DOWNLOADS_DIR` envvar to control the download loacation. For example:
 
 ```bash
 CHAI_DOWNLOADS_DIR=/tmp/downloads python ./examples/predict_structure.py 

@@ -17,7 +17,7 @@ from chai_lab.data.dataset.structure.chain import Chain
 from chai_lab.data.parsing.msas.a3m import tokenize_sequences_to_arrays
 from chai_lab.data.parsing.msas.aligned_pqt import (
     expected_basename,
-    parse_aligned_pqt_to_serialized_msa,
+    parse_aligned_pqt_to_msa_context,
 )
 from chai_lab.data.parsing.msas.data_source import MSADataSource
 
@@ -52,7 +52,7 @@ def get_msa_contexts(
             return MSAContext.create_single_seq(
                 MSADataSource.QUERY, tokens=torch.from_numpy(tokenized_seq)
             )
-        msa = parse_aligned_pqt_to_serialized_msa(path)
+        msa = parse_aligned_pqt_to_msa_context(path)
         logger.info(f"MSA found for sequence: {seq}, {msa.depth=}")
         return msa
 

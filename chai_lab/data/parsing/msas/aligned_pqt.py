@@ -60,7 +60,7 @@ def expected_basename(query_sequence: str) -> str:
     return f"{seqhash}.aligned.pqt"
 
 
-def parse_aligned_pqt_to_serialized_msa(
+def parse_aligned_pqt_to_msa_context(
     aligned_pqt_path: Path | str,
     quota_sizes: dict[MSADataSource, int] | None = msa_dataset_source_to_quota,
 ) -> MSAContext:

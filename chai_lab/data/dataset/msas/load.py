@@ -9,7 +9,6 @@ import torch
 
 from chai_lab.data.dataset.msas.msa_context import MSAContext
 from chai_lab.data.dataset.msas.preprocess import (
-    FULL_DEPTH,
     drop_duplicates,
     merge_main_msas_by_chain,
     pair_and_merge_msas,
@@ -66,9 +65,10 @@ def get_msa_contexts(
         for chain in chains
     ]
 
+    # used later only for profile statistics
     profile_msa = merge_main_msas_by_chain(
-        [drop_duplicates(msa)[:FULL_DEPTH, :] for msa in msa_contexts]
-    )  # used later only for profile statistics
+        [drop_duplicates(msa) for msa in msa_contexts]
+    )
 
     joined_msa = pair_and_merge_msas(msa_contexts)
     joined_msa = drop_duplicates(joined_msa)  # rare dups after pairings

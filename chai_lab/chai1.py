@@ -289,6 +289,9 @@ def run_inference(
         msa_profile_context = MSAContext.create_empty(
             n_tokens=n_actual_tokens, depth=MAX_MSA_DEPTH
         )
+    assert (
+        msa_context.num_tokens == merged_context.num_tokens
+    ), f"Discrepant tokens in input and MSA: {merged_context.num_tokens} != {msa_context.num_tokens}"
 
     # Load templates
     template_context = TemplateContext.empty(

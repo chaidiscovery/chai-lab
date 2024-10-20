@@ -36,12 +36,12 @@ By default, the `run_inference` example inference code we provide assumes that a
 
 ## Putting it all together
 
-To demonstrate how these pieces tie together, we provide `aligned.pqt` files containing MSAs for the example in `examples/predict_structure.py` under the `examples/msa/7WJ3` folder. Inference can be run using these example MSAs by providing the path to this folder as an additional argument to `run_inference` as follows:
+To demonstrate how these pieces tie together, we provide `aligned.pqt` files containing MSAs for the example in `examples/predict_structure.py` under the `examples/msas` folder. Inference can be run using these example MSAs by providing the path to this folder as an additional argument to `run_inference` as follows:
 
 ```python
 candidates = run_inference(
     ...
-    msa_directory=Path("examples/msa/7WJ3"),
+    msa_directory=Path("examples/msas"),
     ...
 )
 ```

@@ -73,5 +73,5 @@ def get_msa_contexts(
     joined_msa = pair_and_merge_msas(msa_contexts)
     joined_msa = drop_duplicates(joined_msa)  # rare dups after pairings
 
-    print(f"Prepared MSA context with {joined_msa.depth=}")
+    logger.info(f"Prepared MSA context with {joined_msa.depth=}")
     return joined_msa, profile_msa

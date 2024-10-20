@@ -313,7 +313,7 @@ def run_inference(
         chains=chains,
         structure_context=merged_context,
         msa_context=msa_context,
-        main_msa_context=msa_profile_context,
+        profile_msa_context=msa_profile_context,
         template_context=template_context,
         embedding_context=embedding_context,
         constraint_context=constraint_context,
@@ -366,7 +366,7 @@ def run_folding_on_context(
     raise_if_too_many_tokens(n_actual_tokens)
     raise_if_too_many_templates(feature_context.template_context.num_templates)
     raise_if_msa_too_deep(feature_context.msa_context.depth)
-    raise_if_msa_too_deep(feature_context.main_msa_context.depth)
+    # NOTE profile MSA used only for statistics; no depth check
 
     ##
     ## Prepare batch

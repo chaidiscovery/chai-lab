@@ -1,6 +1,7 @@
 # Copyright (c) 2024 Chai Discovery, Inc.
 # This source code is licensed under the Chai Discovery Community License
 # Agreement (LICENSE.md) found in the root directory of this source tree.
+import logging
 from collections import Counter
 from typing import Iterable
 
@@ -9,6 +10,8 @@ from chai_lab.utils.tensor_utils import unique_indexes
 
 MAX_PAIRED_DEPTH = 8_192
 FULL_DEPTH = 16_384
+
+logger = logging.getLogger(__name__)
 
 
 def merge_main_msas_by_chain(msas: list[MSAContext]) -> MSAContext:
@@ -89,9 +92,9 @@ def pair_and_merge_msas(msas: list[MSAContext]) -> MSAContext:
 
         selected_msa = msa.take_rows_with_padding(all_rowids)
 
-        print(
-            f"Loaded (paired in includes query sequence):"
-            f"\n{n_paired_msa=} {n_unpaired_msa=} out of {msa.depth=} "
+        logger.info(
+            f"Loaded (paired in includes query sequence): "
+            f"{n_paired_msa=} {n_unpaired_msa=} out of {msa.depth=} "
         )
 
         # reorder each msa to have paired elements first; that's same # of rows

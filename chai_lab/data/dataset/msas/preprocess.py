@@ -2,14 +2,19 @@
 # This source code is licensed under the Chai Discovery Community License
 # Agreement (LICENSE.md) found in the root directory of this source tree.
 import logging
-from collections import Counter
-from typing import Iterable
+from collections import Counter, defaultdict
+
+import torch
+from einops import reduce
+from torch import Tensor
 
 from chai_lab.data.dataset.msas.msa_context import NO_PAIRING_KEY, MSAContext
 from chai_lab.utils.tensor_utils import unique_indexes
+from chai_lab.utils.typing import Int, typecheck
 
 MAX_PAIRED_DEPTH = 8_192
 FULL_DEPTH = 16_384
+_UKEY_FOR_QUERY = (-999, -999)
 
 logger = logging.getLogger(__name__)
 
@@ -39,30 +44,51 @@ def drop_duplicates(msa: MSAContext) -> MSAContext:
     return msa[idxs, :]
 
 
-def pair_and_merge_msas(msas: list[MSAContext]) -> MSAContext:
+@typecheck
+def prepair_ukey(
+    pairing_keys: Int[Tensor, "depth"], edit_distances: Int[Tensor, "depth"]
+) -> dict[tuple[int, int], int]:
+    """Return mapping of (pair_key, rank) -> ith row"""
     # pairing key is not unique, so we handle this with ukey,
     # which is unique and would be mapped 1-to-1.
     # e.g. keys 1, 1, 2, 1, 2, 3 would be transformed into tuples:
     # their ukeys = (1, 1), (1, 2), (2, 1), (1, 3), (2, 2), (3, 1)
-    _UKEY_FOR_QUERY = (-999, -999)
 
-    def prepair_ukey(pairing_keys: Iterable[int]) -> dict[tuple[int, int], int]:
-        pairkey2count: Counter[int] = Counter()
-        result = {}
-        for rowid, pairkey in enumerate(pairing_keys):
-            if rowid == 0:
-                result[_UKEY_FOR_QUERY] = rowid  # special ukey for query
-                continue
-            if pairkey == NO_PAIRING_KEY:
-                continue  # should not be paired
-            pairkey2count[pairkey] += 1
-            ukey = (pairkey, pairkey2count[pairkey])
-            result[ukey] = rowid
+    # For each row, find its rank by edit distance within hits sharing pairing key
+    key2edits: dict[int, list[tuple[int, int]]] = defaultdict(list)
+    for idx, (pairing_key, edit_distance) in enumerate(
+        zip(pairing_keys.tolist(), edit_distances.tolist())
+    ):
+        if idx == 0:  # Do not count the query
+            continue
+        key2edits[pairing_key].append((edit_distance, idx))
+    idx2pairrank: dict[int, tuple[int, int]] = {}
+    for pairkey, row_edits in key2edits.items():
+        edits, row_indices = zip(*row_edits)
+        assert len(edits) == len(row_indices)
+        ranks = torch.argsort(torch.tensor(edits))
+        for idx, rank in zip(row_indices, ranks, strict=True):
+            idx2pairrank[idx] = (pairkey, rank.item())
 
-        return result
+    result: dict[tuple[int, int], int] = {}
+    for rowid, pairkey in enumerate(pairing_keys.tolist()):
+        if rowid == 0:
+            result[_UKEY_FOR_QUERY] = rowid  # special ukey for query
+            continue
+        if pairkey == NO_PAIRING_KEY:
+            continue  # should not be paired
+        ukey = idx2pairrank[rowid]
+        result[ukey] = rowid
+    return result
 
+
+def pair_and_merge_msas(msas: list[MSAContext]) -> MSAContext:
+    msa_edit_distances = [
+        reduce(msa.tokens[0, :] != msa.tokens, "seq tok -> seq", "sum") for msa in msas
+    ]
     chain2ukey2rowid = [
-        prepair_ukey(msa.pairing_key_hash[:, 0].tolist()) for msa in msas
+        prepair_ukey(msa.pairing_key_hash[:, 0], msa_edit_distance)
+        for msa, msa_edit_distance in zip(msas, msa_edit_distances, strict=True)
     ]
 
     _ukey2count = Counter(

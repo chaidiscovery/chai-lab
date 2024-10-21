@@ -33,7 +33,7 @@ class AllAtomFeatureContext:
     # Contexts: these are what get padded and batched
     structure_context: AllAtomStructureContext
     msa_context: MSAContext
-    main_msa_context: MSAContext
+    profile_msa_context: MSAContext
     template_context: TemplateContext
     embedding_context: EmbeddingContext | None
     constraint_context: ConstraintContext
@@ -59,9 +59,9 @@ class AllAtomFeatureContext:
                 max_num_tokens=n_tokens,
                 max_msa_depth=MAX_MSA_DEPTH,
             ),
-            main_msa_context=self.main_msa_context.pad(
+            profile_msa_context=self.profile_msa_context.pad(
                 max_num_tokens=n_tokens,
-                max_msa_depth=MAX_MSA_DEPTH,
+                # max_msa_depth=MAX_MSA_DEPTH,
             ),
             template_context=self.template_context.pad(
                 max_tokens=n_tokens,
@@ -80,12 +80,11 @@ class AllAtomFeatureContext:
             msa_tokens=self.msa_context.tokens,
             msa_mask=self.msa_context.mask,
             msa_deletion_matrix=self.msa_context.deletion_matrix,
-            msa_species=self.msa_context.species,
+            msa_pairkey=self.msa_context.pairing_key_hash,
             msa_sequence_source=self.msa_context.sequence_source,
-            main_msa_tokens=self.main_msa_context.tokens,
-            main_msa_mask=self.main_msa_context.mask,
-            main_msa_deletion_matrix=self.main_msa_context.deletion_matrix,
-            paired_msa_depth=self.msa_context.paired_msa_depth,
+            main_msa_tokens=self.profile_msa_context.tokens,
+            main_msa_mask=self.profile_msa_context.mask,
+            main_msa_deletion_matrix=self.profile_msa_context.deletion_matrix,
         )
         return {
             **self.structure_context.to_dict(),

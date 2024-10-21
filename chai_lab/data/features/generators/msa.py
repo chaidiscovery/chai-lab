@@ -8,10 +8,10 @@ import torch
 from einops import rearrange
 from torch import Tensor
 
+from chai_lab.data.dataset.msas.msa_context import NO_PAIRING_KEY
 from chai_lab.data.features.feature_type import FeatureType
 from chai_lab.data.features.generators.base import EncodingType, FeatureGenerator
 from chai_lab.data.parsing.msas.data_source import msa_dataset_source_to_int
-from chai_lab.data.parsing.msas.species import UNKNOWN_SPECIES
 from chai_lab.data.residue_constants import residue_types_with_nucleotides_order
 from chai_lab.utils.tensor_utils import masked_mean
 from chai_lab.utils.typing import Bool, Int, UInt8, typecheck
@@ -173,7 +173,8 @@ class MSADeletionMeanGenerator(FeatureGenerator):
 
 class IsPairedMSAGenerator(FeatureGenerator):
     """
-    Relative species encoding within each MSA sequence
+    Assuming pairkey is species, for each token informs if it comes
+    from the same species as the first token in complex.
     """
 
     def __init__(self):
@@ -188,21 +189,19 @@ class IsPairedMSAGenerator(FeatureGenerator):
     def get_input_kwargs_from_batch(self, batch: dict[str, Any]) -> dict:
         return dict(
             msa_mask=batch["inputs"]["msa_mask"],
-            msa_species=batch["inputs"]["msa_species"],
+            pairing_key=batch["inputs"]["msa_pairkey"],
         )
 
     @typecheck
     def _generate(
         self,
         msa_mask: Bool[Tensor, "batch depth tokens"],
-        msa_species: Int[Tensor, "batch depth tokens"],
+        pairing_key: Int[Tensor, "batch depth tokens"],
     ) -> Tensor:
-        first_species = msa_species[..., :1]
+        can_be_paired = msa_mask & (pairing_key != NO_PAIRING_KEY)
 
-        is_paired = (msa_species == first_species).to(torch.uint8)
-
-        mask = msa_mask & (msa_species != UNKNOWN_SPECIES)
-        is_paired = is_paired.masked_fill(~mask, 0)
+        is_paired = pairing_key == pairing_key[..., :1]
+        is_paired = (is_paired & can_be_paired).to(torch.uint8)
 
         return self.make_feature(data=is_paired.unsqueeze(-1))
 
@@ -214,7 +213,7 @@ class MSADataSourceGenerator(FeatureGenerator):
 
     def __init__(
         self,
-        num_classes: int = 5,
+        num_classes: int = 6,  # TODO how this works with chai1?
     ):
         assert num_classes == max(msa_dataset_source_to_int.values()) + 1
 

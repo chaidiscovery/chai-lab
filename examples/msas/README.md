@@ -1,6 +1,6 @@
 # Adding MSA evolutionary information
 
-While Chai-1 performs very well in "single-sequence mode," it can also be given additional evolutionary information to further improve performance. As in other folding methods, this evolutionary information is provided in the form of a multiple sequence alignment (MSA). 
+While Chai-1 performs very well in "single-sequence mode," it can also be given additional evolutionary information to further improve performance. As in other folding methods, this evolutionary information is provided in the form of a multiple sequence alignment (MSA). This information is given in the form of a `MSAContext` object (see `chai_lab/data/dataset/msas/msa_context.py`); we provide code for building these `MSAContext` objects through `aligned.pqt` files, though you can play with building out an `MSAContext` yourself as well. 
 
 ## The `.aligned.pqt` file format
 
@@ -24,7 +24,7 @@ See the following for a toy example of what this table might look like:
 | RKSES... | uniprot         | Mus musculus | A mouse sequence from uniprot |
 | ...      |
 
-We additionally provide code to parse `a3m` files into this format; see `merge_multi_a3m_to_aligned_dataframe` in `chai_lab/data/parsing/msas/aligned_pqt.py`.
+We additionally provide code to parse `a3m` files into this format; see `merge_multi_a3m_to_aligned_dataframe` in `chai_lab/data/parsing/msas/aligned_pqt.py`. This file can also be run as a commandline script to run ; run `python chai_lab/data/parsing/msas/aligned_pqt.py --help` for details. 
 
 ### TLDR
 
@@ -32,16 +32,28 @@ Chai-1 uses `.aligned.pqt` files to specify MSAs. These are similar to `a3m` wit
 
 ## From `.aligned.pqt` to `MSAContext`
 
-By default, the `run_inference` example inference code we provide assumes that all MSAs required for a prediction are stored in a specified folder. Each file corresponds to the all alignments for a given sequence, and filenames are specified by the hash of their sequence (this filename is inferred using code in `chai_lab/data/parsing/msas/aligned_pqt.py`). During inference, the script tries to find `<HASH>.aligned.pqt` files in that folder (one file per unique chain sequence) and loads in a `MSAContext` for each MSA it can find; see `chai_lab/data/dataset/msas/load.py` for details. 
+By default, the `run_inference` example inference code we provide assumes that all MSAs required for a prediction are stored in a specified folder. Each `.aligned.pqt` file in that folder corresponds to the all MSA alignments for a given sequence (spanning several databases), and filenames are specified by the hash of their sequence (this filename is inferred using code in `chai_lab/data/parsing/msas/aligned_pqt.py`). During inference, the script tries to find `<HASH>.aligned.pqt` files in that folder (one file per unique chain sequence) and loads in a `MSAContext` for each MSA it can find. The code then performs some basic preprocessing such as pairing MSAs by their given `pairing_key` and merging MSAs across chains; see `chai_lab/data/dataset/msas/load.py` for details. 
 
 ## Putting it all together
 
 To demonstrate how these pieces tie together, we provide `aligned.pqt` files containing MSAs for the example in `examples/predict_structure.py` under the `examples/msas` folder. Inference can be run using these example MSAs by providing the path to this folder as an additional argument to `run_inference` as follows:
 
 ```python
+from pathlib import Path
+...
+
 candidates = run_inference(
     ...
     msa_directory=Path("examples/msas"),
     ...
 )
+```
+
+You can also manually inspect the example `aligned.pqt` files by loading them as pandas dataframes as follows:
+
+```python
+import pandas as pd
+
+aligned_pqt = pd.read_parquet("examples/msas/703adc2c74b8d7e613549b6efcf37126da7963522dc33852ad3c691eef1da06f.aligned.pqt")
+aligned_pqt.head()
 ```

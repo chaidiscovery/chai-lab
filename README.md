@@ -35,7 +35,7 @@ For more advanced use cases, we also expose the `chai_lab.chai1.run_folding_on_c
 <summary>Where are downloaded weights stored?</summary>
 <p markdown="1">
 By default, weights are automatically downloaded and stored in <package_root>/downloads (usually that's within site-packages).
-In cases where you want to control the download location (e.g. on a mounted drive in Docker), you can use the `CHAI_DOWNLOADS_DIR` envvar to control the download loacation. For example:
+In cases where you want to control the download location (e.g. on a mounted drive in Docker), you can use the CHAI_DOWNLOADS_DIR envvar to control the download location. For example:
 
 ```bash
 CHAI_DOWNLOADS_DIR=/tmp/downloads python ./examples/predict_structure.py 

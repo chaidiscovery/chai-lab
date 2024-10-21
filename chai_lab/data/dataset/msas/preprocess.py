@@ -98,6 +98,7 @@ def pair_and_merge_msas(msas: list[MSAContext]) -> MSAContext:
     n_msas = sum(msa.depth > 1 for msa in msas)
     selected_ukeys = [ukey for ukey, count in _ukey2count.items() if count >= n_msas]
     selected_ukeys = selected_ukeys[:MAX_PAIRED_DEPTH]
+    logger.info(f"Paired {len(selected_ukeys)} rows")
     assert selected_ukeys[0] == _UKEY_FOR_QUERY
 
     reordered_msas: list[MSAContext] = []

@@ -214,6 +214,7 @@ def _merge_files_in_directory(directory: str):
         dbname = file.stem.replace("_hits", "").replace("hits_", "")
         try:
             msa_src = MSADataSource(dbname)
+            logging.info(f"Found {msa_src} MSAs in {file}")
         except ValueError:
             msa_src = MSADataSource.UNIREF90
             logging.warning(
@@ -230,5 +231,7 @@ def _merge_files_in_directory(directory: str):
 
 if __name__ == "__main__":
     import typer
+
+    logging.basicConfig(level=logging.INFO)
 
     typer.run(_merge_files_in_directory)

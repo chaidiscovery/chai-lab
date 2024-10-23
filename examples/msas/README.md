@@ -24,7 +24,7 @@ See the following for a toy example of what this table might look like:
 | RKSES... | uniprot         | Mus musculus | A mouse sequence from uniprot |
 | ...      |
 
-We additionally provide example code to parse `a3m` files into this format; see `merge_multi_a3m_to_aligned_dataframe` in `chai_lab/data/parsing/msas/aligned_pqt.py`. This file can also be run as a commandline script; run `python chai_lab/data/parsing/msas/aligned_pqt.py --help` for details. Note, however, that this code defaults to only parsing pairing keys based on species annotation in UniProt files; this follows the logic described in both AlphaFold3 and AlphaFold2 multimer. To specify pairing keys for different data sources, or to use something other than species as the pairing key, we encourage users to built their own parsing logic to create `.aligned.pqt` files.
+We additionally provide example code to parse `a3m` files into this format; see `merge_multi_a3m_to_aligned_dataframe` in `chai_lab/data/parsing/msas/aligned_pqt.py`. This file can also be run as a commandline script; run `python chai_lab/data/parsing/msas/aligned_pqt.py --help` for details. Note, however, that this code defaults to only parsing pairing keys based on species annotation in UniProt files; as Chai-1 was trained with this logic, we expect that this should generally work well for most users. To specify pairing keys for different data sources, or to use something other than species as the pairing key, we encourage users to built their own parsing logic to create `.aligned.pqt` files.
 
 ### TLDR
 

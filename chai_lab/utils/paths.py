@@ -26,13 +26,13 @@ assert repo_root.exists()
 
 
 def download_if_not_exists(http_url: str, path: Path):
-    print(f"downloading {http_url}")
     if path.exists():
         return
 
     with FileLock(path.with_suffix(".download_lock")):
         if path.exists():
             return  # if-lock-if sandwich to download only once
+        print(f"downloading {http_url}")
         tmp_path = path.with_suffix(f".download_tmp_{random.randint(10 ** 5, 10**6)}")
         with requests.get(http_url, stream=True) as response:
             response.raise_for_status()  # Check if the request was successful

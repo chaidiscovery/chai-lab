@@ -213,10 +213,9 @@ class MSADataSourceGenerator(FeatureGenerator):
 
     def __init__(
         self,
-        num_classes: int = 6,  # TODO how this works with chai1?
+        num_classes: int = 6,  # chai1 : 5 classes + mask val
+        mask_value=5,
     ):
-        assert num_classes == max(msa_dataset_source_to_int.values()) + 1
-
         super().__init__(
             ty=FeatureType.MSA,
             encoding_ty=EncodingType.ONE_HOT,
@@ -224,6 +223,7 @@ class MSADataSourceGenerator(FeatureGenerator):
             num_classes=num_classes,
             mult=1,
         )
+        self.mask_value_msa = mask_value
 
     def get_input_kwargs_from_batch(self, batch: dict[str, Any]) -> dict:
         return dict(
@@ -237,8 +237,14 @@ class MSADataSourceGenerator(FeatureGenerator):
         msa_mask: Bool[Tensor, "batch depth tokens"],
         msa_sequence_source: UInt8[Tensor, "batch depth tokens"],
     ) -> Tensor:
-        msa_sequence_source = msa_sequence_source.masked_fill(
-            ~msa_mask, self.num_classes
-        )
+        from chai_lab.data.parsing.msas.data_source import MSADataSource
 
+        query = msa_dataset_source_to_int[MSADataSource.QUERY]
+        none = msa_dataset_source_to_int[MSADataSource.NONE]
+        # chai-1 specific: replace QUERY with NONE
+        msa_sequence_source[msa_sequence_source.eq(query)] = none
+        # use none as masking.
+        msa_sequence_source = msa_sequence_source.masked_fill(
+            ~msa_mask, self.mask_value_msa
+        )
         return self.make_feature(data=msa_sequence_source.unsqueeze(-1))

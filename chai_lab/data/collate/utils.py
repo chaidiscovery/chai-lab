@@ -34,5 +34,6 @@ def get_pad_sizes(contexts: list[AllAtomStructureContext]) -> PadSizes:
     max_n_atoms = max(context.num_atoms for context in contexts)
     n_atoms = 23 * n_tokens
     assert max_n_atoms <= n_atoms
+    assert n_atoms % 32 == 0
 
     return PadSizes(n_tokens=n_tokens, n_atoms=n_atoms)

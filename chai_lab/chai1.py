@@ -93,10 +93,19 @@ class UnsupportedInputError(RuntimeError):
     pass
 
 
-def load_exported(comp_key: str, device: torch.device) -> torch.nn.Module:
+class ModuleWrapper:
+    def __init__(self, jit_module):
+        self.jit_module = jit_module
+
+    def forward(self, crop_size: int, **kw):
+        return getattr(self.jit_module, f"forward_{crop_size}")(**kw)
+
+
+def load_exported(comp_key: str, device: torch.device) -> ModuleWrapper:
+    torch.jit.set_fusion_strategy([("STATIC", 0), ("DYNAMIC", 0)])
     local_path = chai1_component(comp_key)
-    exported_program = torch.export.load(local_path)
-    return exported_program.module().to(device)
+    # specifying map_location=... doesn't load weights properly
+    return ModuleWrapper(torch.jit.load(local_path).to(device))
 
 
 # %%
@@ -405,22 +414,20 @@ def run_folding_on_context(
     ## Load exported models
     ##
 
-    # Model is size-specific
-    model_size = min(x for x in AVAILABLE_MODEL_SIZES if n_actual_tokens <= x)
+    _, _, model_size = msa_mask.shape
+    assert model_size in AVAILABLE_MODEL_SIZES
 
-    feature_embedding = load_exported(f"{model_size}/feature_embedding.pt2", device)
-    token_input_embedder = load_exported(
-        f"{model_size}/token_input_embedder.pt2", device
-    )
-    trunk = load_exported(f"{model_size}/trunk.pt2", device)
-    diffusion_module = load_exported(f"{model_size}/diffusion_module.pt2", device)
-    confidence_head = load_exported(f"{model_size}/confidence_head.pt2", device)
+    feature_embedding = load_exported("feature_embedding.pt2", device)
+    token_input_embedder = load_exported("token_embedder.pt2", device)
+    trunk = load_exported("trunk.pt2", device)
+    diffusion_module = load_exported("diffusion_module.pt2", device)
+    confidence_head = load_exported("confidence_head.pt2", device)
 
     ##
     ## Run the features through the feature embedder
     ##
 
-    embedded_features = feature_embedding.forward(**features)
+    embedded_features = feature_embedding.forward(crop_size=model_size, **features)
     token_single_input_feats = embedded_features["TOKEN"]
     token_pair_input_feats, token_pair_structure_input_feats = embedded_features[
         "TOKEN_PAIR"
@@ -448,6 +455,7 @@ def run_folding_on_context(
         block_indices_w=block_indices_w,
         atom_single_mask=atom_single_mask,
         atom_token_indices=atom_token_indices,
+        crop_size=model_size,
     )
     token_single_initial_repr, token_single_structure_input, token_pair_initial_repr = (
         token_input_embedder_outputs
@@ -473,6 +481,7 @@ def run_folding_on_context(
             template_input_masks=template_input_masks,
             token_single_mask=token_single_mask,
             token_pair_mask=token_pair_mask,
+            crop_size=model_size,
         )
     # We won't be using the trunk anymore; remove it from memory
     del trunk
@@ -502,6 +511,7 @@ def run_folding_on_context(
             atom_noised_coords=atom_noised_coords.float(),
             noise_sigma=noise_sigma.float(),
             atom_token_indices=atom_token_indices,
+            crop_size=model_size,
         )
 
     num_diffn_samples = 5  # Fixed at export time
@@ -587,6 +597,7 @@ def run_folding_on_context(
             token_reference_atom_index=token_reference_atom_index,
             atom_token_index=atom_token_indices,
             atom_within_token_index=atom_within_token_index,
+            crop_size=model_size,
         )
         for s in range(num_diffn_samples)
     ]

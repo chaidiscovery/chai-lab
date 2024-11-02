@@ -70,7 +70,7 @@ def chai1_component(comp_key: str) -> Path:
     comp_key: e.g. '384/trunk.pt2'
     """
     assert comp_key.endswith(".pt2")
-    url = f"https://chaiassets.com/chai1-inference-depencencies/models/{comp_key}"
+    url = f"https://chaiassets.com/chai1-inference-depencencies/models_v2/{comp_key}"
     result = downloads_path.joinpath("models", comp_key)
     download_if_not_exists(url, result)
 

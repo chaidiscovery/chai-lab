@@ -214,7 +214,6 @@ class MSADataSourceGenerator(FeatureGenerator):
     def __init__(
         self,
         num_classes: int = 6,  # chai1 : 5 classes + mask val
-        mask_value=5,
     ):
         super().__init__(
             ty=FeatureType.MSA,
@@ -223,7 +222,6 @@ class MSADataSourceGenerator(FeatureGenerator):
             num_classes=num_classes,
             mult=1,
         )
-        self.mask_value_msa = mask_value
 
     def get_input_kwargs_from_batch(self, batch: dict[str, Any]) -> dict:
         return dict(
@@ -243,8 +241,6 @@ class MSADataSourceGenerator(FeatureGenerator):
         none = msa_dataset_source_to_int[MSADataSource.NONE]
         # chai-1 specific: replace QUERY with NONE
         msa_sequence_source[msa_sequence_source.eq(query)] = none
-        # use none as masking.
-        msa_sequence_source = msa_sequence_source.masked_fill(
-            ~msa_mask, self.mask_value_msa
-        )
+        # use none for masking.
+        msa_sequence_source = msa_sequence_source.masked_fill(~msa_mask, none)
         return self.make_feature(data=msa_sequence_source.unsqueeze(-1))

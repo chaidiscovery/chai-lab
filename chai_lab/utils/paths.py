@@ -63,15 +63,19 @@ cached_conformers = Downloadable(
     path=downloads_path.joinpath("conformers_v1.apkl"),
 )
 
+COMPONENT_URL = (
+    "https://chaiassets.com/chai1-inference-depencencies/models_v2/{comp_key}"
+)
+
 
 def chai1_component(comp_key: str) -> Path:
     """
     Downloads exported model, stores in locally in the repo/downloads
-    comp_key: e.g. '384/trunk.pt2'
+    comp_key: e.g. 'trunk.pt'
     """
-    assert comp_key.endswith(".pt2")
-    url = f"https://chaiassets.com/chai1-inference-depencencies/models/{comp_key}"
-    result = downloads_path.joinpath("models", comp_key)
+    assert comp_key.endswith(".pt")
+    url = COMPONENT_URL.format(comp_key=comp_key)
+    result = downloads_path.joinpath("models_v2", comp_key)
     download_if_not_exists(url, result)
 
     return result

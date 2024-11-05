@@ -74,7 +74,7 @@ msa_dataset_source_to_int = {
     MSADataSource.UNIPROT_N3: 3,
     MSADataSource.UNIREF90_N3: 2,
     MSADataSource.MGNIFY_N3: 1,
-    MSADataSource.QUERY: 5,  # TODO how does it work with chai-1?
+    MSADataSource.QUERY: 5,  # in chai-1 remapped to none.
 }
 
 database_ids: set[str] = set(x.value for x in MSADataSource)

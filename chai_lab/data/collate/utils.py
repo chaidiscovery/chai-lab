@@ -10,7 +10,7 @@ from chai_lab.data.dataset.structure.all_atom_structure_context import (
 
 # static graph is exported for different n_tokens,
 #  we pad to the closest one
-AVAILABLE_MODEL_SIZES = [256, 384, 512, 768, 1024, 2048]
+AVAILABLE_MODEL_SIZES = [256, 384, 512, 768, 1024, 1536, 2048]
 
 
 @dataclass(frozen=True)

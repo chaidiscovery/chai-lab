@@ -417,11 +417,11 @@ def run_folding_on_context(
     _, _, model_size = msa_mask.shape
     assert model_size in AVAILABLE_MODEL_SIZES
 
-    feature_embedding = load_exported("feature_embedding.pt2", device)
-    token_input_embedder = load_exported("token_embedder.pt2", device)
-    trunk = load_exported("trunk.pt2", device)
-    diffusion_module = load_exported("diffusion_module.pt2", device)
-    confidence_head = load_exported("confidence_head.pt2", device)
+    feature_embedding = load_exported("feature_embedding.pt", device)
+    token_input_embedder = load_exported("token_embedder.pt", device)
+    trunk = load_exported("trunk.pt", device)
+    diffusion_module = load_exported("diffusion_module.pt", device)
+    confidence_head = load_exported("confidence_head.pt", device)
 
     ##
     ## Run the features through the feature embedder

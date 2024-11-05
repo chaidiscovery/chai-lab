@@ -71,9 +71,9 @@ COMPONENT_URL = (
 def chai1_component(comp_key: str) -> Path:
     """
     Downloads exported model, stores in locally in the repo/downloads
-    comp_key: e.g. 'trunk.pt2'
+    comp_key: e.g. 'trunk.pt'
     """
-    assert comp_key.endswith(".pt2")
+    assert comp_key.endswith(".pt")
     url = COMPONENT_URL.format(comp_key=comp_key)
     result = downloads_path.joinpath("models_v2", comp_key)
     download_if_not_exists(url, result)

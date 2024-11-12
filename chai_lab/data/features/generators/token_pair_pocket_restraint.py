@@ -9,13 +9,11 @@ import torch
 from einops import rearrange, repeat
 from torch import Tensor
 
-from chai_lab.data import residue_constants as rc
 from chai_lab.data.features.feature_type import FeatureType
 from chai_lab.data.features.generators.base import EncodingType, FeatureGenerator
 from chai_lab.data.features.generators.token_dist_restraint import (
     TokenDistanceRestraint,
 )
-from chai_lab.data.parsing.constraints import PairwiseInteractionType
 from chai_lab.data.parsing.structure.entity_type import EntityType
 from chai_lab.model.utils import get_asym_id_from_subchain_id
 from chai_lab.utils.tensor_utils import tensorcode_to_string
@@ -67,18 +65,6 @@ class ConstraintGroup:
             f"pocket_token_residue_index={self.pocket_token_residue_index}, "
             f"pocket_token_residue_name={self.pocket_token_residue_name}, "
             f"pocket_distance_threshold={self.pocket_distance_threshold})"
-        )
-
-    @classmethod
-    def from_interaction(cls, interaction) -> "ConstraintGroup":
-        """Creates a PocketConstraint from a PairwiseInteraction."""
-        assert interaction.connection_type == PairwiseInteractionType.POCKET
-        return cls(
-            pocket_chain_subchain_id=interaction.chainA,
-            pocket_token_subchain_id=interaction.chainB,
-            pocket_token_residue_index=interaction.res_idxB_pos,
-            pocket_token_residue_name=rc.restype_1to3_with_x[interaction.res_idxB_name],
-            pocket_distance_threshold=interaction.max_dist_angstrom,
         )
 
 

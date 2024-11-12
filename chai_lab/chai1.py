@@ -24,7 +24,7 @@ from chai_lab.data.dataset.all_atom_feature_context import (
 )
 from chai_lab.data.dataset.constraints.constraint_context import (
     ConstraintContext,
-    load_manual_constraints,
+    load_manual_constraints_for_chai1,
 )
 from chai_lab.data.dataset.embeddings.embedding_context import EmbeddingContext
 from chai_lab.data.dataset.embeddings.esm import get_esm_embedding_context
@@ -157,7 +157,7 @@ feature_generators = dict(
     TemplateResType=TemplateResTypeGenerator(),
     TemplateDistogram=TemplateDistogramGenerator(),
     TokenDistanceRestraint=TokenDistanceRestraint(
-        include_probability=1.0,
+        include_probability=0.0,
         size=0.33,
         min_dist=6.0,
         max_dist=30.0,
@@ -170,7 +170,7 @@ feature_generators = dict(
     ),
     TokenPairPocketRestraint=TokenPairPocketRestraint(
         size=0.33,
-        include_probability=0.0,
+        include_probability=1.0,
         min_dist=6.0,
         max_dist=20.0,
         coord_noise=0.0,
@@ -326,7 +326,7 @@ def run_inference(
 
     # Constraints
     if constraint_path is not None:
-        constraint_context = load_manual_constraints(
+        constraint_context = load_manual_constraints_for_chai1(
             chains,
             crop_idces=None,
             provided_constraints=parse_pairwise_table(constraint_path),
@@ -408,6 +408,7 @@ def run_folding_on_context(
     feature_contexts = [feature_context]
     batch_size = len(feature_contexts)
     batch = collator(feature_contexts)
+
     batch = move_data_to_device(batch, device=device)
 
     # Get features and inputs from batch

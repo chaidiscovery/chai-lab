@@ -8,6 +8,7 @@ Parse table where each row correpsonds to a pairwise interaction
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
+from typing import assert_never
 
 import numpy as np
 import pandas as pd
@@ -63,15 +64,20 @@ class PairwiseInteraction:
         if ~np.isnan(self.max_dist_angstrom) and ~np.isnan(self.min_dist_angstrom):
             assert self.max_dist_angstrom >= self.min_dist_angstrom
 
-        if self.connection_type == PairwiseInteractionType.POCKET:
-            assert self.res_idxA == "", "A (chain-level) should NOT specify a token"
-            assert self.res_idxB != "", "B (token-level) should specify a token"
-            assert (
-                self.atom_nameA == self.atom_nameB == ""
-            ), "No atoms should be specified"
-        elif self.connection_type == PairwiseInteractionType.CONTACT:
-            assert self.res_idxA or self.atom_nameA, "A should specify a token/atom"
-            assert self.res_idxB or self.atom_nameB, "B should specify a token/atom"
+        match conn := self.connection_type:
+            case PairwiseInteractionType.COVALENT:
+                pass
+            case PairwiseInteractionType.POCKET:
+                assert self.res_idxA == "", "A (chain-level) should NOT specify a token"
+                assert self.res_idxB != "", "B (token-level) should specify a token"
+                assert (
+                    self.atom_nameA == self.atom_nameB == ""
+                ), "No atoms should be specified"
+            case PairwiseInteractionType.CONTACT:
+                assert self.res_idxA or self.atom_nameA, "A should specify a token/atom"
+                assert self.res_idxB or self.atom_nameB, "B should specify a token/atom"
+            case _:
+                assert_never(conn)
 
     @property
     def res_idxA_name(self) -> str:
@@ -89,7 +95,7 @@ class PairwiseInteraction:
     def res_idxB_pos(self) -> int:
         return int(self.res_idxB[1:])
 
-    def to_table_entry(self) -> pd.Series:
+    def to_table_entry(self) -> dict[str, str | float]:
         """Format as table entry, sans leading restraint_id column."""
         values = {
             "chainA": self.chainA,
@@ -106,7 +112,7 @@ class PairwiseInteraction:
             "max_distance_angstrom": self.max_dist_angstrom,
             "comment": self.comment,
         }
-        return pd.Series(values)
+        return values
 
 
 def _parse_res_idx(res_idx: str) -> tuple[str, str]:

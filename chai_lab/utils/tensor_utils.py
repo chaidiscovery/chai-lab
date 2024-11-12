@@ -259,9 +259,9 @@ def _move_data_to_device(x, device: torch.device):
     elif isinstance(x, tuple):
         return tuple(move_data_to_device(el, device) for el in x)
     if is_dataclass(x):
-        return replace(  # type: ignore
+        return replace(
             x,
-            **{k: move_data_to_device(v, device) for k, v in asdict(x).items()},
+            **{k: move_data_to_device(v, device) for k, v in asdict(x).items()},  # type: ignore
         )
     else:
         raise NotImplementedError(type(x))

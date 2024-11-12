@@ -8,6 +8,7 @@ from typing import Any, assert_never
 
 from torch import Tensor
 
+from chai_lab.data import residue_constants as rc
 from chai_lab.data.dataset.structure.chain import Chain
 from chai_lab.data.features.generators.docking import (
     ConstraintGroup as DockingConstraint,
@@ -80,7 +81,7 @@ def _is_cropped(
 
 
 @typecheck
-def load_manual_constraints(
+def load_manual_constraints_for_chai1(
     chains: list[Chain],
     crop_idces: list[Tensor] | None,
     provided_constraints: list[PairwiseInteraction],
@@ -102,11 +103,27 @@ def load_manual_constraints(
                 # Covalent bonds are handled elsewhere, not as a constraint
                 pass
             case PairwiseInteractionType.CONTACT:
-                contact_parsed = ContactConstraint.from_interaction(constraint)
+                contact_parsed = ContactConstraint(
+                    left_residue_subchain_id=constraint.chainA,
+                    right_residue_subchain_id=constraint.chainB,
+                    left_residue_index=constraint.res_idxA_pos,
+                    right_residue_index=constraint.res_idxB_pos,
+                    left_residue_name=rc.restype_1to3_with_x[constraint.res_idxA_name],
+                    right_residue_name=rc.restype_1to3_with_x[constraint.res_idxB_name],
+                    distance_threshold=constraint.max_dist_angstrom,
+                )
                 contact_constraints.append(contact_parsed)
             case PairwiseInteractionType.POCKET:
-                # Treats A as the "chain level" and B as the "token level"
-                pocket_parsed = PocketConstraint.from_interaction(constraint)
+                # Treats A as the "chain level" and B as the "token level" constraints
+                pocket_parsed = PocketConstraint(
+                    pocket_chain_subchain_id=constraint.chainA,
+                    pocket_token_subchain_id=constraint.chainB,
+                    pocket_token_residue_index=constraint.res_idxB_pos,
+                    pocket_token_residue_name=rc.restype_1to3_with_x[
+                        constraint.res_idxB_name
+                    ],
+                    pocket_distance_threshold=constraint.max_dist_angstrom,
+                )
                 pocket_constraints.append(pocket_parsed)
             case _:
                 assert_never(ctype)

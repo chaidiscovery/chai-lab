@@ -10,13 +10,8 @@ import torch
 from einops import rearrange, repeat
 from torch import Tensor
 
-from chai_lab.data import residue_constants as rc
 from chai_lab.data.features.feature_type import FeatureType
 from chai_lab.data.features.generators.base import EncodingType, FeatureGenerator
-from chai_lab.data.parsing.constraints import (
-    PairwiseInteraction,
-    PairwiseInteractionType,
-)
 from chai_lab.data.parsing.structure.entity_type import EntityType
 from chai_lab.model.utils import get_asym_id_from_subchain_id
 from chai_lab.utils.tensor_utils import cdist, tensorcode_to_string, und, und_self
@@ -66,19 +61,6 @@ class ConstraintGroup:
             f"right_residue_name={self.right_residue_name}, "
             f"left_residue_name={self.left_residue_name}, "
             f"distance_threshold={self.distance_threshold})"
-        )
-
-    @classmethod
-    def from_interaction(cls, interaction: PairwiseInteraction) -> "ConstraintGroup":
-        assert interaction.connection_type == PairwiseInteractionType.CONTACT
-        return cls(
-            left_residue_subchain_id=interaction.chainA,
-            right_residue_subchain_id=interaction.chainB,
-            left_residue_index=interaction.res_idxA_pos,
-            right_residue_index=interaction.res_idxB_pos,
-            left_residue_name=rc.restype_1to3_with_x[interaction.res_idxA_name],
-            right_residue_name=rc.restype_1to3_with_x[interaction.res_idxB_name],
-            distance_threshold=interaction.max_dist_angstrom,
         )
 
 

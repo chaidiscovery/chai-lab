@@ -22,7 +22,10 @@ from chai_lab.data.dataset.all_atom_feature_context import (
     MAX_NUM_TEMPLATES,
     AllAtomFeatureContext,
 )
-from chai_lab.data.dataset.constraints.constraint_context import ConstraintContext
+from chai_lab.data.dataset.constraints.constraint_context import (
+    ConstraintContext,
+    load_manual_constraints,
+)
 from chai_lab.data.dataset.embeddings.embedding_context import EmbeddingContext
 from chai_lab.data.dataset.embeddings.esm import get_esm_embedding_context
 from chai_lab.data.dataset.inference_dataset import load_chains_from_raw, read_inputs
@@ -79,6 +82,7 @@ from chai_lab.data.features.generators.token_pair_pocket_restraint import (
     TokenPairPocketRestraint,
 )
 from chai_lab.data.io.cif_utils import outputs_to_cif
+from chai_lab.data.parsing.constraints import parse_pairwise_table
 from chai_lab.model.diffusion_schedules import InferenceNoiseSchedule
 from chai_lab.model.utils import center_random_augmentation
 from chai_lab.ranking.frames import get_frames_and_mask
@@ -153,7 +157,7 @@ feature_generators = dict(
     TemplateResType=TemplateResTypeGenerator(),
     TemplateDistogram=TemplateDistogramGenerator(),
     TokenDistanceRestraint=TokenDistanceRestraint(
-        include_probability=0.0,
+        include_probability=1.0,
         size=0.33,
         min_dist=6.0,
         max_dist=30.0,
@@ -265,6 +269,7 @@ def run_inference(
     output_dir: Path,
     use_esm_embeddings: bool = True,
     msa_directory: Path | None = None,
+    constraint_path: Path | str | None = None,
     # expose some params for easy tweaking
     num_trunk_recycles: int = 3,
     num_diffn_timesteps: int = 200,
@@ -320,7 +325,14 @@ def run_inference(
         embedding_context = EmbeddingContext.empty(n_tokens=n_actual_tokens)
 
     # Constraints
-    constraint_context = ConstraintContext.empty()
+    if constraint_path is not None:
+        constraint_context = load_manual_constraints(
+            chains,
+            crop_idces=None,
+            provided_constraints=parse_pairwise_table(constraint_path),
+        )
+    else:
+        constraint_context = ConstraintContext.empty()
 
     # Build final feature context
     feature_context = AllAtomFeatureContext(

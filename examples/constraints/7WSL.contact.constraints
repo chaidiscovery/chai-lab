@@ -1,0 +1,4 @@
+chainA,res_idxA,chainB,res_idxB,connection_type,confidence,min_distance_angstrom,max_distance_angstrom,comment,restraint_id
+C,F168,A,V162,contact,1.0,0.0,5.5,foo,restraint_0
+A,Y93,B,P101,contact,1.0,0.0,5.5,bar,restraint_1
+C,M102,A,Y35,contact,1.0,0.0,5.5,baz,restraint_2

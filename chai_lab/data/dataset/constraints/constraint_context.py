@@ -2,9 +2,13 @@
 # This source code is licensed under the Chai Discovery Community License
 # Agreement (LICENSE.md) found in the root directory of this source tree.
 
+import logging
 from dataclasses import asdict, dataclass
-from typing import Any
+from typing import Any, assert_never
 
+from torch import Tensor
+
+from chai_lab.data.dataset.structure.chain import Chain
 from chai_lab.data.features.generators.docking import (
     ConstraintGroup as DockingConstraint,
 )
@@ -13,6 +17,10 @@ from chai_lab.data.features.generators.token_dist_restraint import (
 )
 from chai_lab.data.features.generators.token_pair_pocket_restraint import (
     ConstraintGroup as PocketConstraint,
+)
+from chai_lab.data.parsing.constraints import (
+    PairwiseInteraction,
+    PairwiseInteractionType,
 )
 from chai_lab.utils.typing import typecheck
 
@@ -60,3 +68,50 @@ class ConstraintContext:
             contact_constraints=None,
             pocket_constraints=None,
         )
+
+
+def _is_cropped(
+    chains: list[Chain],
+    crop_idces: list[Tensor],
+):
+    return not all(
+        [chain.num_tokens == len(crop) for chain, crop in zip(chains, crop_idces)]
+    )
+
+
+@typecheck
+def load_manual_constraints(
+    chains: list[Chain],
+    crop_idces: list[Tensor] | None,
+    provided_constraints: list[PairwiseInteraction],
+) -> ConstraintContext:
+    """Load constraints from manual specification."""
+    if len(chains) == 0 or len(provided_constraints) == 0:
+        return ConstraintContext.empty()
+    assert crop_idces is None or not _is_cropped(chains, crop_idces)
+
+    # For each of the constraints, add it into the constraint context
+    docking_constraints: list[DockingConstraint] = []
+    contact_constraints: list[ContactConstraint] = []
+    pocket_constraints: list[PocketConstraint] = []
+
+    logging.info(f"Loading {len(provided_constraints)} constraints...")
+    for constraint in provided_constraints:
+        match ctype := constraint.connection_type:
+            case PairwiseInteractionType.COVALENT:
+                # Covalent bonds are handled elsewhere, not as a constraint
+                pass
+            case PairwiseInteractionType.CONTACT:
+                contact_parsed = ContactConstraint.from_interaction(constraint)
+                contact_constraints.append(contact_parsed)
+            case PairwiseInteractionType.POCKET:
+                # Treats A as the "chain level" and B as the "token level"
+                pocket_parsed = PocketConstraint.from_interaction(constraint)
+                pocket_constraints.append(pocket_parsed)
+            case _:
+                assert_never(ctype)
+    return ConstraintContext(
+        docking_constraints=docking_constraints if docking_constraints else None,
+        contact_constraints=contact_constraints if contact_constraints else None,
+        pocket_constraints=pocket_constraints if pocket_constraints else None,
+    )

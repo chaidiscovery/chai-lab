@@ -17,7 +17,7 @@ from chai_lab.data.features.generators.token_dist_restraint import (
 from chai_lab.data.parsing.structure.entity_type import EntityType
 from chai_lab.model.utils import get_asym_id_from_subchain_id
 from chai_lab.utils.tensor_utils import tensorcode_to_string
-from chai_lab.utils.typing import Bool, Float, Int, UInt8, typecheck
+from chai_lab.utils.typing import Float, Int, UInt8, typecheck
 
 logger = logging.getLogger(__name__)
 
@@ -126,11 +126,7 @@ class TokenPairPocketRestraint(FeatureGenerator):
 
         return dict(
             atom_gt_coords=batch["inputs"]["atom_gt_coords"],
-            atom_exists_mask=batch["inputs"]["atom_exists_mask"],
             token_asym_id=batch["inputs"]["token_asym_id"].long(),
-            token_ref_atom_index=batch["inputs"]["token_ref_atom_index"].long(),
-            token_exists_mask=batch["inputs"]["token_exists_mask"],
-            token_entity_type=batch["inputs"]["token_entity_type"].long(),
             token_residue_index=batch["inputs"]["token_residue_index"].long(),
             token_residue_names=batch["inputs"]["token_residue_name"],
             token_subchain_id=batch["inputs"]["subchain_id"],
@@ -141,16 +137,12 @@ class TokenPairPocketRestraint(FeatureGenerator):
     def _generate(
         self,
         atom_gt_coords: Float[Tensor, "b a 3"],
-        atom_exists_mask: Bool[Tensor, "b a"],
         token_asym_id: Int[Tensor, "b n"],
-        token_ref_atom_index: Int[Tensor, "b n"],
-        token_exists_mask: Bool[Tensor, "b n"],
-        token_entity_type: Int[Tensor, "b n"],
         token_residue_index: Int[Tensor, "b n"],
         token_residue_names: UInt8[Tensor, "b n 8"],
         token_subchain_id: UInt8[Tensor, "b n 4"],
         constraints: list[ConstraintGroup] | None = None,
-    ) -> Tensor:
+    ) -> Float[Tensor, "b n n 1"]:
         try:
             if constraints is not None:
                 assert atom_gt_coords.shape[0] == 1
@@ -164,48 +156,12 @@ class TokenPairPocketRestraint(FeatureGenerator):
         except Exception as e:
             logger.error(f"Error {e} generating pocket constraints: {constraints}")
 
-        return self._generate_from_batch(
-            atom_gt_coords=atom_gt_coords,
-            atom_exists_mask=atom_exists_mask,
-            token_asym_id=token_asym_id,
-            token_ref_atom_index=token_ref_atom_index,
-            token_exists_mask=token_exists_mask,
-            token_entity_type=token_entity_type,
+        # Return a null constraint matrix if constraints are not specified
+        n, device = token_asym_id.shape[1], token_asym_id.device
+        constraint_mat = torch.full(
+            (n, n), fill_value=self.ignore_idx, device=device, dtype=torch.float32
         )
-
-    @typecheck
-    def _generate_from_batch(
-        self,
-        atom_gt_coords: Float[Tensor, "b a 3"],
-        atom_exists_mask: Bool[Tensor, "b a"],
-        token_asym_id: Int[Tensor, "b n"],
-        token_ref_atom_index: Int[Tensor, "b n"],
-        token_exists_mask: Bool[Tensor, "b n"],
-        token_entity_type: Int[Tensor, "b n"],
-    ) -> Tensor:
-        contact_feat = self.distance_restraint_gen._generate_from_batch(
-            atom_gt_coords=atom_gt_coords,
-            atom_exists_mask=atom_exists_mask,
-            token_asym_id=token_asym_id,
-            token_ref_atom_index=token_ref_atom_index,
-            token_exists_mask=token_exists_mask,
-            token_entity_type=token_entity_type,
-        ).data
-        # derive the pocket from the contact feature
-        contact_feat[contact_feat == self.ignore_idx] = self.max_dist + 1
-        # determine contacting asym pairs and their respective distances
-        contact_mask = contact_feat < self.max_dist
-        # batch dim, row dim, col dim
-        bs, rs, cs = torch.where(contact_mask.squeeze(-1))
-        # determine asym ids of tokens in contact.
-        for b, r, c in zip(bs, rs, cs):
-            col_asym_mask = token_asym_id[b] == token_asym_id[b, c]
-            pocket_constraint = contact_feat[b, r, c]
-            contact_feat[b, r, col_asym_mask] = pocket_constraint
-
-        # re-mask
-        contact_feat[contact_feat > self.max_dist] = self.ignore_idx
-        return self.make_feature(contact_feat)
+        return constraint_mat
 
     @typecheck
     def generate_from_constraints(

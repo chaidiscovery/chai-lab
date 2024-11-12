@@ -157,9 +157,13 @@ class TokenPairPocketRestraint(FeatureGenerator):
             logger.error(f"Error {e} generating pocket constraints: {constraints}")
 
         # Return a null constraint matrix if constraints are not specified
-        n, device = token_asym_id.shape[1], token_asym_id.device
+        batch, n = token_asym_id.shape
+        device = token_asym_id.device
         constraint_mat = torch.full(
-            (n, n), fill_value=self.ignore_idx, device=device, dtype=torch.float32
+            (batch, n, n, 1),
+            fill_value=self.ignore_idx,
+            device=device,
+            dtype=torch.float32,
         )
         return constraint_mat
 

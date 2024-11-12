@@ -48,7 +48,7 @@ class ConstraintContext:
             pocket_constraints=self.pocket_constraints,
         )
 
-    def to_dict(self) -> dict[str, Any]:
+    def to_dict(self) -> dict[str, list[dict | Any]]:
         return dict(
             docking_constraints=[asdict(c) for c in self.docking_constraints]
             if self.docking_constraints is not None

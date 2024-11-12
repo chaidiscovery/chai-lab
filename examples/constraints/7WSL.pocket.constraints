@@ -1,3 +1,0 @@
-chainA,res_idxA,chainB,res_idxB,connection_type,confidence,min_distance_angstrom,max_distance_angstrom,comment,restraint_id
-C,,B,R57,pocket,1.0,0.0,5.5,foo,R57 within PDL1 in contact with heavy chain
-A,,B,I105,pocket,1.0,0.0,5.5,bar,I105 within PDL1 in contact with light chain

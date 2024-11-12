@@ -203,17 +203,19 @@ class TokenDistanceRestraint(FeatureGenerator):
         token_residue_names: UInt8[Tensor, "b n 8"],
         token_subchain_id: UInt8[Tensor, "b n 4"],
         constraints: list[ConstraintGroup] | None = None,
-    ) -> Tensor:
+    ) -> Float[Tensor, "b n n 1"]:
         try:
             if constraints is not None:
                 assert atom_gt_coords.shape[0] == 1
-                return self.generate_from_constraints(
+                retval = self.generate_from_constraints(
                     token_asym_id=token_asym_id,
                     token_residue_index=token_residue_index,
                     token_residue_names=token_residue_names,
                     token_subchain_id=token_subchain_id,
                     constraints=constraints,
                 )
+                print(retval.shape)
+                return retval
         except Exception as e:
             logger.error(f"Error {e} generating distance constraints: {constraints}")
 

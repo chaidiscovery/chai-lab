@@ -164,15 +164,13 @@ class TokenDistanceRestraint(FeatureGenerator):
         try:
             if constraints is not None:
                 assert atom_gt_coords.shape[0] == 1
-                retval = self.generate_from_constraints(
+                return self.generate_from_constraints(
                     token_asym_id=token_asym_id,
                     token_residue_index=token_residue_index,
                     token_residue_names=token_residue_names,
                     token_subchain_id=token_subchain_id,
                     constraints=constraints,
                 )
-                print(retval.shape)
-                return retval
         except Exception as e:
             logger.error(f"Error {e} generating distance constraints: {constraints}")
 

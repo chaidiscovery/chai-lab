@@ -25,6 +25,8 @@ from chai_lab.data.parsing.constraints import (
 )
 from chai_lab.utils.typing import typecheck
 
+logger = logging.getLogger(__name__)
+
 
 @typecheck
 @dataclass
@@ -96,7 +98,7 @@ def load_manual_constraints_for_chai1(
     contact_constraints: list[ContactConstraint] = []
     pocket_constraints: list[PocketConstraint] = []
 
-    logging.info(f"Loading {len(provided_constraints)} constraints...")
+    logger.info(f"Loading {len(provided_constraints)} constraints...")
     for constraint in provided_constraints:
         match ctype := constraint.connection_type:
             case PairwiseInteractionType.COVALENT:

@@ -21,13 +21,13 @@ fasta_path.write_text(example_fasta)
 
 output_dir = Path("/tmp/outputs")
 
-# We provide two example sets of constraints:
-# contact.constraints - species residue-residue contacts
-# pocket.constraints - species residue-chain contacts
+# We provide two example sets of restrains:
+# contact.restrains - specifies residue-residue contacts
+# pocket.restrains - specifies residue-chain contacts
 candidates = run_inference(
     fasta_file=fasta_path,
     output_dir=output_dir,
-    # constraint_path="/workspaces/chai-lab/examples/constraints/contact.constraints",
+    # constraint_path="/workspaces/chai-lab/examples/constraints/contact.restraints",
     # 'default' setup
     num_trunk_recycles=3,
     num_diffn_timesteps=200,

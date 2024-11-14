@@ -21,9 +21,9 @@ fasta_path.write_text(example_fasta)
 
 output_dir = Path("/tmp/outputs")
 
-# We provide two example sets of restrains:
-# contact.restrains - specifies residue-residue contacts
-# pocket.restrains - specifies residue-chain contacts
+# We provide two example sets of restraints:
+# contact.restraints - specifies residue-residue contacts
+# pocket.restraints - specifies residue-chain contacts
 candidates = run_inference(
     fasta_file=fasta_path,
     output_dir=output_dir,

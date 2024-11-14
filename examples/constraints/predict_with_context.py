@@ -27,7 +27,7 @@ output_dir = Path("/tmp/outputs")
 candidates = run_inference(
     fasta_file=fasta_path,
     output_dir=output_dir,
-    constraint_path="/workspaces/chai-lab/examples/constraints/contact.restraints",
+    constraint_path=Path(__file__).with_name("contact.restraints"),
     # 'default' setup
     num_trunk_recycles=3,
     num_diffn_timesteps=200,

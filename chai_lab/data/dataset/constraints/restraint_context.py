@@ -4,22 +4,22 @@
 
 import logging
 from dataclasses import asdict, dataclass
-from typing import Any, assert_never
+from typing import assert_never
 
 from torch import Tensor
 
 from chai_lab.data import residue_constants as rc
 from chai_lab.data.dataset.structure.chain import Chain
 from chai_lab.data.features.generators.docking import (
-    ConstraintGroup as DockingConstraint,
+    RestraintGroup as DockingRestraint,
 )
 from chai_lab.data.features.generators.token_dist_restraint import (
-    ConstraintGroup as ContactConstraint,
+    RestraintGroup as ContactRestraint,
 )
 from chai_lab.data.features.generators.token_pair_pocket_restraint import (
-    ConstraintGroup as PocketConstraint,
+    RestraintGroup as PocketRestraint,
 )
-from chai_lab.data.parsing.constraints import (
+from chai_lab.data.parsing.restraints import (
     PairwiseInteraction,
     PairwiseInteractionType,
 )
@@ -30,46 +30,46 @@ logger = logging.getLogger(__name__)
 
 @typecheck
 @dataclass
-class ConstraintContext:
-    docking_constraints: list[DockingConstraint] | None
-    contact_constraints: list[ContactConstraint] | None
-    pocket_constraints: list[PocketConstraint] | None
+class RestraintContext:
+    docking_restraints: list[DockingRestraint] | None
+    contact_restraints: list[ContactRestraint] | None
+    pocket_restraints: list[PocketRestraint] | None
 
     def __str__(self) -> str:
         return (
             f"{self.__class__.__name__}("
-            f"\n\tdocking_constraints {self.docking_constraints})"
-            f"\n\tcontact_constraints {self.contact_constraints}"
-            f"\n\tpocket_constraints {self.pocket_constraints}\n)"
+            f"\n\tdocking_constraints {self.docking_restraints})"
+            f"\n\tcontact_constraints {self.contact_restraints}"
+            f"\n\tpocket_constraints {self.pocket_restraints}\n)"
         )
 
-    def pad(self, *args, **kwargs) -> "ConstraintContext":
+    def pad(self, *args, **kwargs) -> "RestraintContext":
         # No-op
-        return ConstraintContext(
-            docking_constraints=self.docking_constraints,
-            contact_constraints=self.contact_constraints,
-            pocket_constraints=self.pocket_constraints,
+        return RestraintContext(
+            docking_restraints=self.docking_restraints,
+            contact_restraints=self.contact_restraints,
+            pocket_restraints=self.pocket_restraints,
         )
 
-    def to_dict(self) -> dict[str, list[dict | Any]]:
+    def to_dict(self) -> dict[str, list[dict | None]]:
         return dict(
-            docking_constraints=[asdict(c) for c in self.docking_constraints]
-            if self.docking_constraints is not None
+            docking_constraints=[asdict(c) for c in self.docking_restraints]
+            if self.docking_restraints is not None
             else [None],
-            contact_constraints=[asdict(c) for c in self.contact_constraints]
-            if self.contact_constraints is not None
+            contact_constraints=[asdict(c) for c in self.contact_restraints]
+            if self.contact_restraints is not None
             else [None],
-            pocket_constraints=[asdict(c) for c in self.pocket_constraints]
-            if self.pocket_constraints is not None
+            pocket_constraints=[asdict(c) for c in self.pocket_restraints]
+            if self.pocket_restraints is not None
             else [None],
         )
 
     @classmethod
-    def empty(cls) -> "ConstraintContext":
+    def empty(cls) -> "RestraintContext":
         return cls(
-            docking_constraints=None,
-            contact_constraints=None,
-            pocket_constraints=None,
+            docking_restraints=None,
+            contact_restraints=None,
+            pocket_restraints=None,
         )
 
 
@@ -83,20 +83,20 @@ def _is_cropped(
 
 
 @typecheck
-def load_manual_constraints_for_chai1(
+def load_manual_restraints_for_chai1(
     chains: list[Chain],
     crop_idces: list[Tensor] | None,
     provided_constraints: list[PairwiseInteraction],
-) -> ConstraintContext:
+) -> RestraintContext:
     """Load constraints from manual specification."""
     if len(chains) == 0 or len(provided_constraints) == 0:
-        return ConstraintContext.empty()
+        return RestraintContext.empty()
     assert crop_idces is None or not _is_cropped(chains, crop_idces)
 
     # For each of the constraints, add it into the constraint context
-    docking_constraints: list[DockingConstraint] = []
-    contact_constraints: list[ContactConstraint] = []
-    pocket_constraints: list[PocketConstraint] = []
+    docking_constraints: list[DockingRestraint] = []
+    contact_constraints: list[ContactRestraint] = []
+    pocket_constraints: list[PocketRestraint] = []
 
     logger.info(f"Loading {len(provided_constraints)} constraints...")
     for constraint in provided_constraints:
@@ -105,7 +105,7 @@ def load_manual_constraints_for_chai1(
                 # Covalent bonds are handled elsewhere, not as a constraint
                 pass
             case PairwiseInteractionType.CONTACT:
-                contact_parsed = ContactConstraint(
+                contact_parsed = ContactRestraint(
                     left_residue_subchain_id=constraint.chainA,
                     right_residue_subchain_id=constraint.chainB,
                     left_residue_index=constraint.res_idxA_pos,
@@ -117,7 +117,7 @@ def load_manual_constraints_for_chai1(
                 contact_constraints.append(contact_parsed)
             case PairwiseInteractionType.POCKET:
                 # Treats A as the "chain level" and B as the "token level" constraints
-                pocket_parsed = PocketConstraint(
+                pocket_parsed = PocketRestraint(
                     pocket_chain_subchain_id=constraint.chainA,
                     pocket_token_subchain_id=constraint.chainB,
                     pocket_token_residue_index=constraint.res_idxB_pos,
@@ -129,8 +129,8 @@ def load_manual_constraints_for_chai1(
                 pocket_constraints.append(pocket_parsed)
             case _:
                 assert_never(ctype)
-    return ConstraintContext(
-        docking_constraints=docking_constraints if docking_constraints else None,
-        contact_constraints=contact_constraints if contact_constraints else None,
-        pocket_constraints=pocket_constraints if pocket_constraints else None,
+    return RestraintContext(
+        docking_restraints=docking_constraints if docking_constraints else None,
+        contact_restraints=contact_constraints if contact_constraints else None,
+        pocket_restraints=pocket_constraints if pocket_constraints else None,
     )

@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 @typecheck
 @dataclass
-class ConstraintGroup:
+class RestraintGroup:
     """
     Container for a token pocket pair restraint group
     """
@@ -119,7 +119,7 @@ class TokenPairPocketRestraint(FeatureGenerator):
         # cast pocket constraints from dict back to dataclass
         maybe_constraint_dicts = batch["inputs"].get("pocket_constraints", [[None]])[0]
         pocket_constraints = batch["inputs"]["pocket_constraints"] = (
-            [ConstraintGroup(**d) for d in maybe_constraint_dicts]
+            [RestraintGroup(**d) for d in maybe_constraint_dicts]
             if isinstance(maybe_constraint_dicts[0], dict)
             else None
         )
@@ -141,17 +141,17 @@ class TokenPairPocketRestraint(FeatureGenerator):
         token_residue_index: Int[Tensor, "b n"],
         token_residue_names: UInt8[Tensor, "b n 8"],
         token_subchain_id: UInt8[Tensor, "b n 4"],
-        constraints: list[ConstraintGroup] | None = None,
+        constraints: list[RestraintGroup] | None = None,
     ) -> Float[Tensor, "b n n 1"]:
         try:
             if constraints is not None:
                 assert atom_gt_coords.shape[0] == 1
-                return self.generate_from_constraints(
+                return self.generate_from_restraints(
                     token_asym_id=token_asym_id,
                     token_residue_index=token_residue_index,
                     token_residue_names=token_residue_names,
                     token_subchain_id=token_subchain_id,
-                    constraints=constraints,
+                    restraints=constraints,
                 )
         except Exception as e:
             logger.error(f"Error {e} generating pocket constraints: {constraints}")
@@ -168,46 +168,46 @@ class TokenPairPocketRestraint(FeatureGenerator):
         return constraint_mat
 
     @typecheck
-    def generate_from_constraints(
+    def generate_from_restraints(
         self,
         # only batch size 1 is supported
         token_asym_id: Int[Tensor, "1 n"],
         token_subchain_id: UInt8[Tensor, "1 n 4"],
         token_residue_index: Int[Tensor, "1 n"],
         token_residue_names: UInt8[Tensor, "1 n 8"],
-        constraints: list[ConstraintGroup],
+        restraints: list[RestraintGroup],
     ) -> Tensor:
-        logger.info(f"Generating pocket feature from constraints: {constraints}")
+        logger.info(f"Generating pocket feature from constraints: {restraints}")
         n, device = token_asym_id.shape[1], token_asym_id.device
         constraint_mat = torch.full(
             (n, n), fill_value=self.ignore_idx, device=device, dtype=torch.float32
         )
-        for constraint_group in constraints:
+        for restraint_group in restraints:
             pocket_chain_asym_id, pocket_token_asym_id = (
-                constraint_group.get_chain_and_token_asym_ids(
+                restraint_group.get_chain_and_token_asym_ids(
                     token_subchain_id=rearrange(token_subchain_id, "1 ... -> ..."),
                     token_asym_id=rearrange(token_asym_id, "1 ... -> ..."),
                 )
             )
-            constraint_mat = self.add_pocket_constraint(
-                constraint_mat=constraint_mat,
+            constraint_mat = self.add_pocket_restraint(
+                restraint_mat=constraint_mat,
                 token_asym_id=rearrange(token_asym_id, "1 ... -> ..."),
                 token_residue_index=rearrange(token_residue_index, "1 ... -> ..."),
                 token_residue_names=rearrange(token_residue_names, "1 ... -> ..."),
                 pocket_chain_asym_id=pocket_chain_asym_id,
                 pocket_token_asym_id=pocket_token_asym_id,
-                pocket_token_residue_index=constraint_group.pocket_token_residue_index,
-                pocket_token_residue_name=constraint_group.pocket_token_residue_name,
-                pocket_distance_threshold=constraint_group.pocket_distance_threshold,
+                pocket_token_residue_index=restraint_group.pocket_token_residue_index,
+                pocket_token_residue_name=restraint_group.pocket_token_residue_name,
+                pocket_distance_threshold=restraint_group.pocket_distance_threshold,
             )
         # encode and apply mask
         constraint_mat = repeat(constraint_mat, "i j -> 1 i j 1")
         return self.make_feature(constraint_mat)
 
     @typecheck
-    def add_pocket_constraint(
+    def add_pocket_restraint(
         self,
-        constraint_mat: Float[Tensor, "n n"],
+        restraint_mat: Float[Tensor, "n n"],
         token_asym_id: Int[Tensor, "n"],
         token_residue_index: Int[Tensor, "n"],
         token_residue_names: UInt8[Tensor, "n 8"],
@@ -241,7 +241,7 @@ class TokenPairPocketRestraint(FeatureGenerator):
         # add constraints between the pocket token and all other tokens in the pocket
         # chain
         # NOTE: feature is not symmetric
-        constraint_mat[pocket_token_residue_mask, pocket_chain_asym_mask] = (
+        restraint_mat[pocket_token_residue_mask, pocket_chain_asym_mask] = (
             pocket_distance_threshold
         )
-        return constraint_mat
+        return restraint_mat

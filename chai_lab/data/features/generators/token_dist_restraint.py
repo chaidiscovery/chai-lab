@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 
 @typecheck
 @dataclass
-class ConstraintGroup:
+class RestraintGroup:
     """
     Container for a token pair distance restraint (contact)
     """
@@ -138,7 +138,7 @@ class TokenDistanceRestraint(FeatureGenerator):
     def get_input_kwargs_from_batch(self, batch) -> dict:
         maybe_constraint_dicts = batch["inputs"].get("contact_constraints", [[None]])[0]
         contact_constraints = (
-            [ConstraintGroup(**d) for d in maybe_constraint_dicts]
+            [RestraintGroup(**d) for d in maybe_constraint_dicts]
             if isinstance(maybe_constraint_dicts[0], dict)
             else None
         )
@@ -159,12 +159,12 @@ class TokenDistanceRestraint(FeatureGenerator):
         token_residue_index: Int[Tensor, "b n"],
         token_residue_names: UInt8[Tensor, "b n 8"],
         token_subchain_id: UInt8[Tensor, "b n 4"],
-        constraints: list[ConstraintGroup] | None = None,
+        constraints: list[RestraintGroup] | None = None,
     ) -> Float[Tensor, "b n n 1"]:
         try:
             if constraints is not None:
                 assert atom_gt_coords.shape[0] == 1
-                return self.generate_from_constraints(
+                return self.generate_from_restraint(
                     token_asym_id=token_asym_id,
                     token_residue_index=token_residue_index,
                     token_residue_names=token_residue_names,
@@ -185,13 +185,13 @@ class TokenDistanceRestraint(FeatureGenerator):
         return constraint_mat
 
     @typecheck
-    def generate_from_constraints(
+    def generate_from_restraint(
         self,
         token_asym_id: Int[Tensor, "1 n"],
         token_residue_index: Int[Tensor, "1 n"],
         token_residue_names: UInt8[Tensor, "1 n 8"],
         token_subchain_id: UInt8[Tensor, "1 n 4"],
-        constraints: list[ConstraintGroup],
+        constraints: list[RestraintGroup],
     ) -> Tensor:
         logger.info(f"Generating distance feature from constraints: {constraints}")
         n, device = token_asym_id.shape[1], token_asym_id.device
@@ -205,7 +205,7 @@ class TokenDistanceRestraint(FeatureGenerator):
                     token_asym_id=rearrange(token_asym_id, "1 ... -> ..."),
                 )
             )
-            constraint_mat = self.add_distance_constraint(
+            constraint_mat = self.add_distance_restraint(
                 constraint_mat=constraint_mat,
                 token_asym_id=rearrange(token_asym_id, "1 ... -> ..."),
                 token_residue_index=rearrange(token_residue_index, "1 ... -> ..."),
@@ -223,7 +223,7 @@ class TokenDistanceRestraint(FeatureGenerator):
         return self.make_feature(constraint_mat)
 
     @typecheck
-    def add_distance_constraint(
+    def add_distance_restraint(
         self,
         constraint_mat: Float[Tensor, "n n"],
         token_asym_id: Int[Tensor, "n"],

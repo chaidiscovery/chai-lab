@@ -22,9 +22,9 @@ from chai_lab.data.dataset.all_atom_feature_context import (
     MAX_NUM_TEMPLATES,
     AllAtomFeatureContext,
 )
-from chai_lab.data.dataset.constraints.constraint_context import (
-    ConstraintContext,
-    load_manual_constraints_for_chai1,
+from chai_lab.data.dataset.constraints.restraint_context import (
+    RestraintContext,
+    load_manual_restraints_for_chai1,
 )
 from chai_lab.data.dataset.embeddings.embedding_context import EmbeddingContext
 from chai_lab.data.dataset.embeddings.esm import get_esm_embedding_context
@@ -44,7 +44,7 @@ from chai_lab.data.features.generators.blocked_atom_pair_distances import (
     BlockedAtomPairDistances,
     BlockedAtomPairDistogram,
 )
-from chai_lab.data.features.generators.docking import DockingConstraintGenerator
+from chai_lab.data.features.generators.docking import DockingRestraintGenerator
 from chai_lab.data.features.generators.esm_generator import ESMEmbeddings
 from chai_lab.data.features.generators.identity import Identity
 from chai_lab.data.features.generators.is_cropped_chain import ChainIsCropped
@@ -82,7 +82,7 @@ from chai_lab.data.features.generators.token_pair_pocket_restraint import (
     TokenPairPocketRestraint,
 )
 from chai_lab.data.io.cif_utils import outputs_to_cif
-from chai_lab.data.parsing.constraints import parse_pairwise_table
+from chai_lab.data.parsing.restraints import parse_pairwise_table
 from chai_lab.model.diffusion_schedules import InferenceNoiseSchedule
 from chai_lab.model.utils import center_random_augmentation
 from chai_lab.ranking.frames import get_frames_and_mask
@@ -163,7 +163,7 @@ feature_generators = dict(
         max_dist=30.0,
         num_rbf_radii=6,
     ),
-    DockingConstraintGenerator=DockingConstraintGenerator(
+    DockingConstraintGenerator=DockingRestraintGenerator(
         include_probability=0.0,
         structure_dropout_prob=0.75,
         chain_dropout_prob=0.75,
@@ -326,13 +326,13 @@ def run_inference(
 
     # Constraints
     if constraint_path is not None:
-        constraint_context = load_manual_constraints_for_chai1(
+        restraint_context = load_manual_restraints_for_chai1(
             chains,
             crop_idces=None,
             provided_constraints=parse_pairwise_table(constraint_path),
         )
     else:
-        constraint_context = ConstraintContext.empty()
+        restraint_context = RestraintContext.empty()
 
     # Build final feature context
     feature_context = AllAtomFeatureContext(
@@ -342,7 +342,7 @@ def run_inference(
         profile_msa_context=msa_profile_context,
         template_context=template_context,
         embedding_context=embedding_context,
-        constraint_context=constraint_context,
+        restraint_context=restraint_context,
     )
 
     return run_folding_on_context(

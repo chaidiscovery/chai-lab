@@ -16,7 +16,7 @@ The first non-header row `restraint0` shows an example of a `contact` restraint.
 The second non-header row `restraint1` shows an example of a `pocket` restraint, which species that a chain is in contact with a specific residue in another chain. Note that compared to `contact` restraints, this is a "coarser" and "assymetric" restraint, as _any_ residue in the first chain can be in contact with the specified token in the second chain. The `contact` restraint, on the other hand, specifies an exact residue for both chains. 
 
 A few other notes:
-- In `res_idxA` and `res_idxB` fields, we expect a concatenation of a residue and its 0-based index; the code internally checks that the given residue at the given index matches the input sequence, and will throw an error if they do not match. This redundancy primarily helps avoid cases where we misspecify positions in constraints.
+- In `res_idxA` and `res_idxB` fields, we expect a concatenation of a residue and its 0-based index. For example, if your chain is comprised of the residues `ARNDRA` and you want to specify a contact on the `D` residue, the input should be `D3`. The code internally checks that the given residue at the given index matches the input sequence, and will throw an error if they do not match. This redundancy primarily helps avoid cases where we misspecify positions in constraints.
 - Chains `chainA` and `chainB` are assigned identifiers in alphabetical A-Z order following the order that chains are specified in the input. For example, if you wish to specify an interaction between the first and four chains in your input, you'd use the letters `A` and `D`. 
 - You may specify a mixture of `contact` and `pocket` restraints.
 - The `restraint_id` column must be unique

@@ -4,9 +4,9 @@
 
 import logging
 from dataclasses import asdict, dataclass
-from typing_extensions import assert_never
 
 from torch import Tensor
+from typing_extensions import assert_never
 
 from chai_lab.data import residue_constants as rc
 from chai_lab.data.dataset.structure.chain import Chain

@@ -4,7 +4,7 @@
 
 import logging
 from dataclasses import asdict, dataclass
-from typing import assert_never
+from typing_extensions import assert_never
 
 from torch import Tensor
 

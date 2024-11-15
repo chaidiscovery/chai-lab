@@ -180,7 +180,7 @@ def merge_multi_a3m_to_aligned_dataframe(
             a3m_path,
             src,
             insert_pairing_key=(
-                src == MSADataSource.UNIPROT
+                src in (MSADataSource.UNIPROT, MSADataSource.UNIPROT_N3)
                 if insert_keys_for_sources == "uniprot"
                 else (insert_keys_for_sources == "all")
             ),

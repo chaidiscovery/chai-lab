@@ -103,6 +103,20 @@ class MSAContext:
             mask=torch.cat([msa.mask for msa in msas], dim=dim),
         )
 
+    @typecheck
+    def apply_mask(self, mask: Bool[Tensor, "msa_depth n_tokens"]) -> "MSAContext":
+        return MSAContext(
+            tokens=self.tokens.masked_fill(
+                ~mask, residue_types_with_nucleotides_order[":"]
+            ),
+            pairing_key_hash=self.pairing_key_hash.masked_fill(~mask, NO_PAIRING_KEY),
+            deletion_matrix=self.deletion_matrix.masked_fill(~mask, 0),
+            mask=self.mask.masked_fill(~mask, False),
+            sequence_source=self.sequence_source.masked_fill(
+                ~mask, value=msa_dataset_source_to_int[MSADataSource.NONE]
+            ),
+        )
+
     @classmethod
     @typecheck
     def create_single_seq(

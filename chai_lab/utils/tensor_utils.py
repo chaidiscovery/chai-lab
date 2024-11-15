@@ -3,6 +3,7 @@
 # Agreement (LICENSE.md) found in the root directory of this source tree.
 
 import typing
+from dataclasses import asdict, is_dataclass, replace
 from functools import lru_cache
 from typing import TypeVar
 
@@ -257,6 +258,11 @@ def _move_data_to_device(x, device: torch.device):
         return [move_data_to_device(el, device) for el in x]
     elif isinstance(x, tuple):
         return tuple(move_data_to_device(el, device) for el in x)
+    if is_dataclass(x):
+        return replace(
+            x,
+            **{k: move_data_to_device(v, device) for k, v in asdict(x).items()},  # type: ignore
+        )
     else:
         raise NotImplementedError(type(x))
 

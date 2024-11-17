@@ -108,8 +108,8 @@ def load_manual_restraints_for_chai1(
                 contact_parsed = ContactRestraint(
                     left_residue_subchain_id=constraint.chainA,
                     right_residue_subchain_id=constraint.chainB,
-                    left_residue_index=constraint.res_idxA_pos,
-                    right_residue_index=constraint.res_idxB_pos,
+                    left_residue_index=constraint.res_idxA_pos - 1,  # 1 to 0-based
+                    right_residue_index=constraint.res_idxB_pos - 1,  # 1 to 0-based
                     left_residue_name=rc.restype_1to3_with_x[constraint.res_idxA_name],
                     right_residue_name=rc.restype_1to3_with_x[constraint.res_idxB_name],
                     distance_threshold=constraint.max_dist_angstrom,
@@ -120,7 +120,7 @@ def load_manual_restraints_for_chai1(
                 pocket_parsed = PocketRestraint(
                     pocket_chain_subchain_id=constraint.chainA,
                     pocket_token_subchain_id=constraint.chainB,
-                    pocket_token_residue_index=constraint.res_idxB_pos,
+                    pocket_token_residue_index=constraint.res_idxB_pos - 1,
                     pocket_token_residue_name=rc.restype_1to3_with_x[
                         constraint.res_idxB_name
                     ],

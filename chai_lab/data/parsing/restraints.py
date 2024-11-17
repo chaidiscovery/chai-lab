@@ -44,6 +44,8 @@ class PairwiseConstraintDataframeModel(pa.DataFrameModel):
 @typecheck
 @dataclass(frozen=True)
 class PairwiseInteraction:
+    """Interaction between two tokens. Indices are expected to be 1-based."""
+
     chainA: str
     res_idxA: str
     atom_nameA: str
@@ -79,20 +81,30 @@ class PairwiseInteraction:
             case _:
                 assert_never(conn)
 
+        # Check that residue indices are > 0 (1-indexed)
+        if self.res_idxA:
+            assert self.res_idxA_pos > 0
+        if self.res_idxB:
+            assert self.res_idxB_pos > 0
+
     @property
     def res_idxA_name(self) -> str:
+        """Single-char name of residue A."""
         return self.res_idxA[0]
 
     @property
     def res_idxA_pos(self) -> int:
+        """1-indexed position of residue A."""
         return int(self.res_idxA[1:])
 
     @property
     def res_idxB_name(self) -> str:
+        """Single-char name of residue B."""
         return self.res_idxB[0]
 
     @property
     def res_idxB_pos(self) -> int:
+        """1-indexed position of residue B."""
         return int(self.res_idxB[1:])
 
     def to_table_entry(self) -> dict[str, str | float]:

@@ -32,4 +32,4 @@ As an example, consider the PDB structure [7SYZ](https://www.rcsb.org/structure/
 | antibody-heavy | 0.011 | 0.274 | 0.204 | 
 | heavy-light | 0.789 | 0.712 | 0.719 |
 
-Code for running this example is given in `examples/restraints/predict_with_context.py` along with the restraint files used to produce these results. For this example, DockQ scores are obtained by evaluting the single top-ranked output from the Chai-1 model run without MSAs.
+Code for running this example is given in `examples/restraints/predict_with_restraints.py` along with the restraint files used to produce these results. For this example, DockQ scores are obtained by evaluting the single top-ranked output from the Chai-1 model run without MSAs.

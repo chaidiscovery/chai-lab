@@ -81,6 +81,12 @@ class PairwiseInteraction:
             case _:
                 assert_never(conn)
 
+        # Check that residue indices are > 0 (1-indexed)
+        if self.res_idxA:
+            assert self.res_idxA_pos > 0
+        if self.res_idxB:
+            assert self.res_idxB_pos > 0
+
     @property
     def res_idxA_name(self) -> str:
         """Single-char name of residue A."""

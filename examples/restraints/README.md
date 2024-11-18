@@ -21,7 +21,7 @@ A few other notes:
 - You may specify a mixture of `contact` and `pocket` restraints.
 - The `restraint_id` column must be unique.
 - The `comment` field is not read as an input and is included for user convenience.
-- The `confidence` and `min_distance_angstrom` fields are currently not used by the model, and are included in this format primarily for future-proofing.
+- The `confidence` and `min_distance_angstrom` fields are _currently_ not used by the model, and are included in this format for future-proofing.
 
 ## Example
 

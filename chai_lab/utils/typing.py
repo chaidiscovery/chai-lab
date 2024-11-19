@@ -28,7 +28,7 @@ Func = typing.TypeVar("Func")
 
 def typecheck(cls_or_func: Func) -> Func:
     if should_typecheck:
-        return jaxtyped(typechecker=beartype)(cls_or_func)
+        return jaxtyped(typechecker=beartype)(cls_or_func)  # type: ignore
     else:
         return cls_or_func
 

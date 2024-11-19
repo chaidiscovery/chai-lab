@@ -14,7 +14,7 @@ For more information on the model's performance and capabilities, see our [techn
 # current version (updates daily):
 pip install git+https://github.com/chaidiscovery/chai-lab.git
 # version on pypi:
-pip install chai_lab==0.2.1
+pip install chai_lab==0.3.0
 ```
 
 This Python package requires Linux, and a GPU with CUDA and bfloat16 support. We recommend using an A100 80GB or H100 80GB chip, but A10s and A30s should work for smaller complexes. Users have also reported success with consumer-grade RTX 4090.
@@ -77,7 +77,7 @@ Devcontainers work on local Linux setup, and on remote machines over an SSH conn
 Since this is an initial release, we expect to make some breaking changes to the API and are not guaranteeing backwards compatibility. We recommend pinning the current version in your requirements, i.e.:
 
 ```
-chai_lab==0.2.1
+chai_lab==0.3.0
 ```
 
 ## Citations

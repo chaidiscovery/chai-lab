@@ -3,11 +3,12 @@
 # Agreement (LICENSE.md) found in the root directory of this source tree.
 
 import itertools
+import json
 import logging
 from functools import partial
-from pathlib import Path
 from typing import Any
 
+import typer
 from DockQ.DockQ import (
     count_chain_combinations,
     format_mapping,
@@ -21,20 +22,19 @@ from parallelbar import progress_map
 
 
 def calc_dockq(
-    model: Path | str,
-    native: Path | str,
+    model: str,
+    native: str,
     mapping: str = "",
     capri_peptide: bool = False,
     small_molecule: bool = False,
     n_cpu: int = 8,
     max_chunk: int = 512,
     allowed_mismatches: int = 0,
-) -> dict[str, Any]:
+    json_out: str = "",
+) -> dict[str, Any] | None:
     """
-    Programatically run DockQ; lightly modified from the main function in the official DockQ implementation.
+    Lightly modified from the main function in the official DockQ implementation.
     """
-    model = str(model)
-    native = str(native)
 
     initial_mapping, model_chains, native_chains = format_mapping(
         mapping, small_molecule
@@ -145,4 +145,13 @@ def calc_dockq(
     info["GlobalDockQ"] = best_dockq / len(best_result)
     info["best_mapping"] = best_mapping
     info["best_mapping_str"] = f"{format_mapping_string(best_mapping)}"
+
+    if json_out:
+        with open(json_out, "w") as sink:
+            json.dump(info, sink, indent=2)
+
     return info
+
+
+if __name__ == "__main__":
+    typer.run(calc_dockq)

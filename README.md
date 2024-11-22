@@ -11,8 +11,8 @@ For more information on the model's performance and capabilities, see our [techn
 ## Installation
 
 ```shell
-# newest available version on PyPi:
-pip install --upgrade chai_lab
+# version on pypi:
+pip install chai_lab==0.3.0
 
 # newest available version (updates daily to test features that weren't released yet):
 pip install git+https://github.com/chaidiscovery/chai-lab.git

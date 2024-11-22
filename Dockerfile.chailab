@@ -63,7 +63,7 @@ ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 RUN --mount=type=cache,target=/root/.cache/uv \
   # Install uv
   curl -LsSf https://astral.sh/uv/install.sh | sh \
-  && $HOME/.cargo/bin/uv venv --python 3.11 $VIRTUAL_ENV \
+  && $HOME/.cargo/bin/uv venv --python 3.10 $VIRTUAL_ENV \
   # this is sh, not bash, so . not source
   && . $VIRTUAL_ENV/bin/activate \
   && $HOME/.cargo/bin/uv pip install uv pip -r /tmp/requirements.in

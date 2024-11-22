@@ -8,12 +8,12 @@ Parse table where each row correpsonds to a pairwise interaction
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from typing import assert_never
 
 import numpy as np
 import pandas as pd
 import pandera as pa
 from pandera.typing import Series
+from typing_extensions import assert_never
 
 from chai_lab.utils.typing import typecheck
 

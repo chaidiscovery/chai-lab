@@ -261,6 +261,22 @@ class StructureCandidates:
         assert len(self.cif_paths) == len(self.ranking_data)
         assert len(self.cif_paths) == len(self.pae)
 
+    @property
+    def candidate_aggregate_scores(self) -> Float[Tensor, "candidate"]:
+        return torch.cat([rank.aggregate_score for rank in self.ranking_data])
+
+    def sort_by_rank(self) -> "StructureCandidates":
+        idx = torch.argsort(self.candidate_aggregate_scores, descending=True)
+
+        return StructureCandidates(
+            cif_paths=[self.cif_paths[i] for i in idx.tolist()],
+            ranking_data=[self.ranking_data[i] for i in idx.tolist()],
+            msa_coverage_plot_path=self.msa_coverage_plot_path,
+            pae=self.pae[idx],
+            pde=self.pde[idx],
+            plddt=self.plddt[idx],
+        )
+
 
 @torch.no_grad()
 def run_inference(

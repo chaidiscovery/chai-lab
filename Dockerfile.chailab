@@ -33,10 +33,22 @@ RUN --mount=type=cache,target=/var/cache/apt \
   # text editors, needed by git cli
   nano vim \
   build-essential libstdc++6 \
+  # we need software-properties-common only for a single command add-apt-repository,
+  # and then we delete it and autoclean - because it pulls python and python utils from APT.
+  software-properties-common \
   # (run continues)
   # stop git from complaining about dubious ownership.
   && git config --global --add safe.directory "*" \
   #
+  # install python from deadsnakes PPA to flexibly choose python
+  && add-apt-repository -y ppa:deadsnakes/ppa \
+  && apt remove -y software-properties-common \
+  && apt-get autoremove -y \
+  && apt-get -qq update \
+  && apt-get -qq install -y python3.10 python3.10-dev \
+  && ln -s /usr/bin/python3.10 /usr/local/bin/python3 \
+  && ln -s /usr/bin/python3.10 /usr/local/bin/python \
+  && ldconfig \
   # cuda softlinking is needed in podman, but not docker
   && ln -s /lib/x86_64-linux-gnu/libcuda.so.1 /lib/x86_64-linux-gnu/libcuda.so \
   && ldconfig /lib/x86_64-linux-gnu/ \
@@ -62,8 +74,8 @@ COPY ./requirements.in /tmp/requirements.in
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 RUN --mount=type=cache,target=/root/.cache/uv \
   # Install uv
-  curl -LsSf https://astral.sh/uv/install.sh | sh \
-  && $HOME/.cargo/bin/uv venv --python 3.10 $VIRTUAL_ENV \
+  curl -LsSf https://astral.sh/uv/0.4.3/install.sh | sh \
+  && $HOME/.cargo/bin/uv venv $VIRTUAL_ENV \
   # this is sh, not bash, so . not source
   && . $VIRTUAL_ENV/bin/activate \
   && $HOME/.cargo/bin/uv pip install uv pip -r /tmp/requirements.in
@@ -76,4 +88,4 @@ RUN echo "PATH=\"$PATH\"" >> /etc/environment \
   && echo "LD_LIBRARY_PATH=\"$LD_LIBRARY_PATH\"" >> /etc/environment \
   && echo "EDITOR=\"$EDITOR\"" >> /etc/environment
 
-# no startup command. 
+# no startup command.

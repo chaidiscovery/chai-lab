@@ -276,6 +276,8 @@ def run_inference(
     seed: int | None = None,
     device: str | None = None,
 ) -> StructureCandidates:
+    torch_device = torch.device(device if device is not None else "cuda:0")
+
     # Prepare inputs
     assert fasta_file.exists(), fasta_file
     fasta_inputs = read_inputs(fasta_file, length_limit=None)
@@ -320,7 +322,7 @@ def run_inference(
 
     # Load ESM embeddings
     if use_esm_embeddings:
-        embedding_context = get_esm_embedding_context(chains, device=device)
+        embedding_context = get_esm_embedding_context(chains, device=torch_device)
     else:
         embedding_context = EmbeddingContext.empty(n_tokens=n_actual_tokens)
 
@@ -351,7 +353,7 @@ def run_inference(
         num_trunk_recycles=num_trunk_recycles,
         num_diffn_timesteps=num_diffn_timesteps,
         seed=seed,
-        device=device,
+        device=torch_device,
     )
 
 

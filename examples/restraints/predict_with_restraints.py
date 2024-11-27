@@ -1,8 +1,6 @@
 import logging
 from pathlib import Path
 
-import torch
-
 from chai_lab.chai1 import run_inference
 
 logging.basicConfig(level=logging.INFO)
@@ -32,6 +30,6 @@ candidates = run_inference(
     num_trunk_recycles=3,
     num_diffn_timesteps=200,
     seed=42,
-    device=torch.device("cuda:0"),
+    device="cuda:0",
     use_esm_embeddings=True,
 )

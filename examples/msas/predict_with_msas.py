@@ -2,7 +2,6 @@ import tempfile
 from pathlib import Path
 
 import numpy as np
-import torch
 
 from chai_lab.chai1 import run_inference
 from chai_lab.data.dataset.inference_dataset import read_inputs
@@ -45,7 +44,7 @@ candidates = run_inference(
     num_trunk_recycles=3,
     num_diffn_timesteps=200,
     seed=42,
-    device=torch.device("cuda:0"),
+    device="cuda:0",
     use_esm_embeddings=True,
     msa_directory=msa_dir,
 )

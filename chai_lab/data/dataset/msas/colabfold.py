@@ -2,17 +2,13 @@
 # Licensed under the Apache License, Version 2.0.
 # See the LICENSE file for details.
 
-"""
-N.B. this code is copied from https://github.com/sokrypton/ColabFold
-and follows the license in that repository
-"""
-
 import logging
 import os
 import random
 import tarfile
 import tempfile
 import time
+import typing
 from pathlib import Path
 
 import pandas as pd
@@ -29,6 +25,9 @@ TQDM_BAR_FORMAT = (
 )
 
 
+# N.B. this code is copied from https://github.com/sokrypton/ColabFold
+# and follows the license in that repository
+@typing.no_type_check  # Original ColabFold code was not well typed
 def _run_mmseqs2(
     x,
     prefix,

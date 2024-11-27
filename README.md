@@ -68,7 +68,6 @@ Chai-1 uniquely offers the ability to fold complexes with user-specified "restra
     <img src='assets/chailab_restraints_screenshot.png' height=400 >
 </p>
 
-
 ## 💬 Feedback
 
 Found a 🐞? Please report it in GitHub [issues](https://github.com/chaidiscovery/chai-lab/issues).

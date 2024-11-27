@@ -68,23 +68,6 @@ Chai-1 uniquely offers the ability to fold complexes with user-specified "restra
     <img src='assets/chailab_restraints_screenshot.png' height=400 >
 </p>
 
-## Benchmarks
-See our [technical report](https://www.biorxiv.org/content/10.1101/2024.10.10.615955)
-for extensive experiments and benchmarking.
-
-Below, we compare DockQ success rates (DockQ score >= 0.23) on a subset of our evaluation
-set where we were able to successfully run Boltz-1 without errors. We average DockQ
-scores per interface across 5 predictions from each model. Chai-1 uses the same MSAs as
-Boltz-1 in this analysis to facilitate comparability. Error bars represent a 95%
-confidence interval with 10,000 bootstrap samples, and horizontal bars indicate
-significant differences between models according to a Wilcoxon test on the
-non-thresholded DockQ values with Holm-Sidak correction.
-
-
-<p align="center">
-    <img src='assets/casp15_multimers_dockq_comparison.png' height=400 >
-</p>
-
 
 ## 💬 Feedback
 

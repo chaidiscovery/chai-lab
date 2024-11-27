@@ -30,7 +30,13 @@ The following script demonstrates how to provide inputs to the model, and obtain
 python examples/predict_structure.py
 ```
 
-For more advanced use cases, we also expose the `chai_lab.chai1.run_folding_on_context`, which allows users to construct an `AllAtomFeatureContext` manually. This allows users to specify their own templates, MSAs, embeddings, and constraints. We currently provide an example of how to construct an embeddings context as well as an MSA context, and will be releasing helper methods to build template contexts soon.
+To get the best performance, we recommend running the model with MSAs. The following script demonstrates how to provide MSAs to the model by calling out to an MSA server:
+
+```shell
+python examples/msas/predict_with_msas.py
+```
+
+For further instructions, see `"How can MSAs be provided to Chai-1?"` below.
 
 <details>
 <summary>Where are downloaded weights stored?</summary>
@@ -49,6 +55,15 @@ CHAI_DOWNLOADS_DIR=/tmp/downloads python ./examples/predict_structure.py
 <p markdown="1">
 
 Chai-1 supports MSAs provided as an `aligned.pqt` file. This file format is similar to an `a3m` file, but has additional columns that provide metadata like the source database and sequence pairing keys. We provide code to convert `a3m` files to `aligned.pqt` files. For more information on how to provide MSAs to Chai-1, see [this documentation](examples/msas/README.md).
+
+</p>
+</details>
+
+<details>
+<summary>How can I customize the inputs to the model further?</summary>
+<p markdown="1">
+
+For more advanced use cases, we also expose the `chai_lab.chai1.run_folding_on_context`, which allows users to construct an `AllAtomFeatureContext` manually. This allows users to specify their own templates, MSAs, embeddings, and constraints. We currently provide an example of how to construct an embeddings context as well as an MSA context, and will be releasing helper methods to build template contexts soon.
 
 </p>
 </details>

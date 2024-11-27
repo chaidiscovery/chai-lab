@@ -8,7 +8,6 @@ from collections import defaultdict
 from dataclasses import asdict, dataclass, replace
 from functools import cached_property
 from pathlib import Path
-from typing import Literal
 
 import gemmi
 from torch import Tensor
@@ -37,7 +36,7 @@ def get_pdb_chain_name(asym_id: int) -> str:
 
 @dataclass(frozen=True)
 class PDBAtom:
-    record_type: Literal["ATOM", "HETATM"]
+    het: bool
     atom_index: int
     atom_name: str
     alt_loc: str
@@ -56,8 +55,9 @@ class PDBAtom:
         self,
     ):
         # currently this works only for single-char chain tags
+        record_type = "HETATM" if self.het else "ATOM"
         atom_line = (
-            f"{self.record_type:<6}{self.atom_index:>5} {self.atom_name:<4}{self.alt_loc:>1}"
+            f"{record_type:<6}{self.atom_index:>5} {self.atom_name:<4}{self.alt_loc:>1}"
             f"{self.res_name_3:>3} {self.chain_tag:>1}"
             f"{self.residue_index:>4}{self.insertion_code:>1}   "
             f"{self.pos[0]:>8.3f}{self.pos[1]:>8.3f}{self.pos[2]:>8.3f}"
@@ -137,9 +137,12 @@ class PDBContext:
             if not self.atom_exists_mask[atom_index].item():
                 # skip missing atoms
                 continue
-
+            token_index = self.atom_token_index[atom_index]
             atom = PDBAtom(
-                record_type="ATOM" if not self.is_ligand else "HETATM",
+                het=(
+                    self.token_entity_type[token_index].item()
+                    == EntityType.LIGAND.value
+                ),
                 atom_index=atom_index,
                 atom_name=atom_names[atom_index],
                 alt_loc="",

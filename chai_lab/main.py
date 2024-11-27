@@ -11,7 +11,7 @@ from chai_lab.chai1 import run_inference
 
 def cli():
     app = typer.Typer()
-    app.command("fold")(run_inference)
+    app.command("fold", help="Run Chai1 to fold a complex.")(run_inference)
     app()
 
 

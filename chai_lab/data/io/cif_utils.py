@@ -8,11 +8,12 @@ from pathlib import Path
 import gemmi
 import modelcif
 import torch
-from ihm import ChemComp, DNAChemComp, LPeptideChemComp, RNAChemComp
+from ihm import ChemComp, DNAChemComp, LPeptideChemComp, NonPolymerChemComp, RNAChemComp
 from modelcif import Assembly, AsymUnit, Entity, dumper, model
 from torch import Tensor
 
 from chai_lab.data.io.pdb_utils import (
+    PDBAtom,
     PDBContext,
     entity_to_pdb_atoms,
     get_pdb_chain_name,
@@ -91,7 +92,7 @@ def _to_chem_component(res_name_3: str, entity_type: int):
     match entity_type:
         case EntityType.LIGAND.value:
             code = res_name_3
-            return ChemComp(res_name_3, code, code_canonical=code)
+            return NonPolymerChemComp(res_name_3)
         case EntityType.PROTEIN.value:
             code = restype_3to1.get(res_name_3, res_name_3)
             one_letter_code = gemmi.find_tabulated_residue(res_name_3).one_letter_code
@@ -142,7 +143,7 @@ def context_to_cif(context: PDBContext, outpath: Path, entity_names: dict[int, s
 
     chains_map = {r["asym_id"]: _make_chain(r) for r in records}
 
-    pdb_atoms: list[list] = entity_to_pdb_atoms(context)
+    pdb_atoms: list[list[PDBAtom]] = entity_to_pdb_atoms(context)
 
     _assembly = Assembly(chains_map.values(), name="Assembly 1")
 
@@ -158,7 +159,7 @@ def context_to_cif(context: PDBContext, outpath: Path, entity_names: dict[int, s
                         x=a.pos[0],
                         y=a.pos[1],
                         z=a.pos[2],
-                        het=False,
+                        het=a.het,
                         biso=a.b_factor,
                         occupancy=1.00,
                     )
@@ -188,7 +189,8 @@ def context_to_cif(context: PDBContext, outpath: Path, entity_names: dict[int, s
     model_group = model.ModelGroup([_model], name="pred")
     system.model_groups.append(model_group)
 
-    dumper.write(open(outpath, "w"), systems=[system])
+    with open(outpath, "w") as sink:
+        dumper.write(sink, systems=[system])
 
 
 def outputs_to_cif(

@@ -101,13 +101,6 @@ class PDBContext:
     def token_res_names_to_string(self) -> list[str]:
         return [tensorcode_to_string(x) for x in self.token_residue_names.cpu()]
 
-    @property
-    def is_ligand(self) -> bool:
-        return self.is_entity(EntityType.LIGAND)
-
-    def is_entity(self, ety: EntityType) -> bool:
-        return self.token_entity_type[0].item() == ety.value
-
     def get_chain_entity_type(self, asym_id: int) -> int:
         mask = self.token_asym_id == asym_id
         assert mask.sum() > 0
@@ -115,7 +108,7 @@ class PDBContext:
         assert isinstance(e_type, int)
         return e_type
 
-    def get_pdb_atoms(self):
+    def get_pdb_atoms(self) -> list[PDBAtom]:
         # warning: calling this on cuda tensors is extremely slow
         atom_asym_id = self.token_asym_id[self.atom_token_index]
         # atom level attributes
@@ -131,7 +124,7 @@ class PDBContext:
             _atomic_num_to_element(int(x.item())) for x in self.atom_ref_element
         ]
 
-        pdb_atoms = []
+        pdb_atoms: list[PDBAtom] = []
         num_atoms = self.atom_coords.shape[0]
         for atom_index in range(num_atoms):
             if not self.atom_exists_mask[atom_index].item():

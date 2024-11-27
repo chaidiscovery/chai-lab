@@ -408,5 +408,7 @@ def generate_colabfold_msas(protein_seqs: list[str], msa_dir: Path):
                 ),
             )
             msa_path = msa_dir / expected_basename(protein_seq)
-            assert not msa_path.exists()
-            aligned_df.to_parquet(msa_path)
+            if not msa_path.exists():
+                # If we have a homomer, we might see the same chain multiple
+                # times. The MSAs should be identical for each.
+                aligned_df.to_parquet(msa_path)

@@ -11,6 +11,7 @@ from pathlib import Path
 import numpy as np
 import torch
 import torch.export
+import typer
 from einops import einsum, rearrange, repeat
 from torch import Tensor
 from tqdm import tqdm
@@ -91,6 +92,8 @@ from chai_lab.utils.paths import chai1_component
 from chai_lab.utils.plot import plot_msa
 from chai_lab.utils.tensor_utils import move_data_to_device, set_seed, und_self
 from chai_lab.utils.typing import Float, typecheck
+
+app = typer.Typer()
 
 
 class UnsupportedInputError(RuntimeError):
@@ -262,6 +265,7 @@ class StructureCandidates:
         assert len(self.cif_paths) == len(self.pae)
 
 
+@app.command()
 @torch.no_grad()
 def run_inference(
     fasta_file: Path,
@@ -269,12 +273,12 @@ def run_inference(
     output_dir: Path,
     use_esm_embeddings: bool = True,
     msa_directory: Path | None = None,
-    constraint_path: Path | str | None = None,
+    constraint_path: Path | None = None,
     # expose some params for easy tweaking
     num_trunk_recycles: int = 3,
     num_diffn_timesteps: int = 200,
     seed: int | None = None,
-    device: torch.device | None = None,
+    device: str | None = None,
 ) -> StructureCandidates:
     # Prepare inputs
     assert fasta_file.exists(), fasta_file

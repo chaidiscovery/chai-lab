@@ -6,13 +6,13 @@
 
 import typer
 
-from chai_lab.chai1 import app as chai1_app
+from chai_lab.chai1 import run_inference
 
 
 def cli():
-    main_app = typer.Typer()
-    main_app.add_typer(chai1_app, name="fold")
-    main_app()
+    app = typer.Typer()
+    app.command("fold")(run_inference)
+    app()
 
 
 if __name__ == "__main__":

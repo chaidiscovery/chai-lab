@@ -5,9 +5,10 @@
 import logging
 import string
 from collections import defaultdict
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 from functools import cached_property
 from pathlib import Path
+from typing import Literal
 
 import gemmi
 from torch import Tensor
@@ -36,7 +37,7 @@ def get_pdb_chain_name(asym_id: int) -> str:
 
 @dataclass(frozen=True)
 class PDBAtom:
-    record_type: str
+    record_type: Literal["ATOM", "HETATM"]
     atom_index: int
     atom_name: str
     alt_loc: str
@@ -64,24 +65,6 @@ class PDBAtom:
             f"{self.element:>2}{self.charge:>2}"
         )
         return atom_line
-
-    def rename(self, atom_name: str) -> "PDBAtom":
-        return PDBAtom(
-            self.record_type,
-            self.atom_index,
-            atom_name,
-            self.alt_loc,
-            self.res_name_3,
-            self.chain_tag,
-            self.asym_id,
-            self.residue_index,
-            self.insertion_code,
-            self.pos,
-            self.occupancy,
-            self.b_factor,
-            self.element,
-            self.charge,
-        )
 
 
 def write_pdb(chain_atoms: list[list[PDBAtom]], out_path: str):
@@ -206,7 +189,7 @@ def rename_ligand_atoms(atoms: list[PDBAtom]) -> list[PDBAtom]:
         idx = atom_type_counter.get(atom.element, 1)
         atom_type_counter[atom.element] = idx + 1
         base_name = atom.atom_name
-        renumbered_atoms.append(atom.rename(f"{base_name}_{idx}"))
+        renumbered_atoms.append(replace(atom, atom_name=f"{base_name}_{idx}"))
     return renumbered_atoms
 
 

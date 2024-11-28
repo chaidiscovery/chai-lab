@@ -295,6 +295,8 @@ def run_inference(
 
     # Load structure context
     chains = load_chains_from_raw(fasta_inputs)
+    del fasta_inputs  # Do not reference inputs after creating chains from them
+
     merged_context = AllAtomStructureContext.merge(
         [c.structure_context for c in chains]
     )

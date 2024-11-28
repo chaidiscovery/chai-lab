@@ -29,6 +29,7 @@ from chai_lab.data.dataset.constraints.restraint_context import (
 from chai_lab.data.dataset.embeddings.embedding_context import EmbeddingContext
 from chai_lab.data.dataset.embeddings.esm import get_esm_embedding_context
 from chai_lab.data.dataset.inference_dataset import load_chains_from_raw, read_inputs
+from chai_lab.data.dataset.msas.colabfold import generate_colabfold_msas
 from chai_lab.data.dataset.msas.load import get_msa_contexts
 from chai_lab.data.dataset.msas.msa_context import MSAContext
 from chai_lab.data.dataset.structure.all_atom_structure_context import (
@@ -83,6 +84,7 @@ from chai_lab.data.features.generators.token_pair_pocket_restraint import (
 )
 from chai_lab.data.io.cif_utils import outputs_to_cif
 from chai_lab.data.parsing.restraints import parse_pairwise_table
+from chai_lab.data.parsing.structure.entity_type import EntityType
 from chai_lab.model.diffusion_schedules import InferenceNoiseSchedule
 from chai_lab.model.utils import center_random_augmentation
 from chai_lab.ranking.frames import get_frames_and_mask
@@ -268,6 +270,7 @@ def run_inference(
     *,
     output_dir: Path,
     use_esm_embeddings: bool = True,
+    msa_server: bool = False,
     msa_directory: Path | None = None,
     constraint_path: Path | None = None,
     # expose some params for easy tweaking
@@ -298,8 +301,21 @@ def run_inference(
     n_actual_tokens = merged_context.num_tokens
     raise_if_too_many_tokens(n_actual_tokens)
 
-    # Load MSAs
-    if msa_directory is not None:
+    # Generated and/or load MSAs
+    if msa_server:
+        assert msa_directory is None, "Cannot specify both MSA server and directory"
+        protein_sequences = [
+            chain.entity_data.sequence
+            for chain in chains
+            if chain.entity_data.entity_type == EntityType.PROTEIN
+        ]
+        msa_dir = output_dir / "mmseqs_msas"
+        msa_dir.mkdir(exist_ok=False, parents=True)
+        generate_colabfold_msas(protein_seqs=protein_sequences, msa_dir=msa_dir)
+        msa_context, msa_profile_context = get_msa_contexts(
+            chains, msa_directory=msa_dir
+        )
+    elif msa_directory is not None:
         msa_context, msa_profile_context = get_msa_contexts(
             chains, msa_directory=msa_directory
         )
@@ -310,6 +326,7 @@ def run_inference(
         msa_profile_context = MSAContext.create_empty(
             n_tokens=n_actual_tokens, depth=MAX_MSA_DEPTH
         )
+
     assert (
         msa_context.num_tokens == merged_context.num_tokens
     ), f"Discrepant tokens in input and MSA: {merged_context.num_tokens} != {msa_context.num_tokens}"

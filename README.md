@@ -22,7 +22,7 @@ This Python package requires Linux, and a GPU with CUDA and bfloat16 support. We
 
 ## Running the model
 
-### Commandline inference
+### Command line inference
 
 You can fold a FASTA file containing all the sequences (including modified residues, nucleotides, and ligands as SMILES strings) in a complex of interest by calling:
 ```shell
@@ -33,7 +33,7 @@ By default, the model generates five sample predictions, and uses embeddings wit
 
 ### Programmatic inference
 
-The main entrypoint into the Chai1 folding code is through the `chai_lab.chai1.run_inference` function. The following script demonstrates how to programmatically provide inputs to the model, and obtain a list of PDB files for downstream analysis:
+The main entrypoint into the Chai-1 folding code is through the `chai_lab.chai1.run_inference` function. The following script demonstrates how to programmatically provide inputs to the model, and obtain a list of PDB files for downstream analysis:
 
 ```shell
 python examples/predict_structure.py
@@ -65,7 +65,7 @@ CHAI_DOWNLOADS_DIR=/tmp/downloads python ./examples/predict_structure.py
 
 Chai-1 supports MSAs provided as an `aligned.pqt` file. This file format is similar to an `a3m` file, but has additional columns that provide metadata like the source database and sequence pairing keys. We provide code to convert `a3m` files to `aligned.pqt` files. For more information on how to provide MSAs to Chai-1, see [this documentation](examples/msas/README.md).
 
-For user convenience, we also support automatic MSA generation via the colabfold mmseqs server via the `--msa-server` flag. As detailed in the ColabFold [repository](https://github.com/sokrypton/ColabFold), please keep in mind that this is a shared resource. 
+For user convenience, we also support automatic MSA generation via the ColabFold mmseqs server via the `--msa-server` flag. As detailed in the ColabFold [repository](https://github.com/sokrypton/ColabFold), please keep in mind that this is a shared resource. 
 
 </p>
 </details>

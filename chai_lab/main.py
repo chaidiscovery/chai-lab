@@ -2,7 +2,7 @@
 # Licensed under the Apache License, Version 2.0.
 # See the LICENSE file for details.
 
-"""Commandline interface."""
+"""Command line interface."""
 
 import logging
 
@@ -32,7 +32,7 @@ def citation():
 
 def cli():
     app = typer.Typer()
-    app.command("fold", help="Run Chai1 to fold a complex.")(run_inference)
+    app.command("fold", help="Run Chai-1 to fold a complex.")(run_inference)
     app.command("citation", help="Print citation information")(citation)
     app()
 

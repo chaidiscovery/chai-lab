@@ -123,8 +123,7 @@ If you find Chai-1 useful in your research or use any structures produced by the
 
 ## Licence 
 
-Chai-1 is released under an Apache 2.0 License, which means it can be used for both academic
-and commerical purposes, including for drug discovery.
+Chai-1 is released under an Apache 2.0 License (both code and model weights), which means it can be used for both academic and commerical purposes, including for drug discovery.
 
 See [LICENSE](LICENSE).
 

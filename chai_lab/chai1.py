@@ -7,7 +7,6 @@ import math
 from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
-from tempfile import TemporaryDirectory
 
 import numpy as np
 import torch
@@ -280,6 +279,10 @@ def run_inference(
     seed: int | None = None,
     device: str | None = None,
 ) -> StructureCandidates:
+    if output_dir.exists():
+        assert not any(
+            output_dir.iterdir()
+        ), f"Output directory {output_dir} is not empty."
     torch_device = torch.device(device if device is not None else "cuda:0")
     assert not (
         msa_server and msa_directory
@@ -314,13 +317,11 @@ def run_inference(
             for chain in chains
             if chain.entity_data.entity_type == EntityType.PROTEIN
         ]
-        # Save MSAs to temporary directory to ensure we never clobber anything
-        with TemporaryDirectory() as tmpdir:
-            msa_dir = Path(tmpdir)
-            generate_colabfold_msas(protein_seqs=protein_sequences, msa_dir=msa_dir)
-            msa_context, msa_profile_context = get_msa_contexts(
-                chains, msa_directory=msa_dir
-            )
+        msa_dir = output_dir / "msas"
+        generate_colabfold_msas(protein_seqs=protein_sequences, msa_dir=msa_dir)
+        msa_context, msa_profile_context = get_msa_contexts(
+            chains, msa_directory=msa_dir
+        )
     elif msa_directory is not None:
         msa_context, msa_profile_context = get_msa_contexts(
             chains, msa_directory=msa_directory

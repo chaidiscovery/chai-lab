@@ -280,6 +280,9 @@ def run_inference(
     device: str | None = None,
 ) -> StructureCandidates:
     torch_device = torch.device(device if device is not None else "cuda:0")
+    assert not (
+        msa_server and msa_directory
+    ), "Cannot specify both MSA server and directory"
 
     # Prepare inputs
     assert fasta_file.exists(), fasta_file
@@ -305,7 +308,6 @@ def run_inference(
 
     # Generated and/or load MSAs
     if msa_server:
-        assert msa_directory is None, "Cannot specify both MSA server and directory"
         protein_sequences = [
             chain.entity_data.sequence
             for chain in chains

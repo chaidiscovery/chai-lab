@@ -318,6 +318,7 @@ def run_inference(
             if chain.entity_data.entity_type == EntityType.PROTEIN
         ]
         msa_dir = output_dir / "msas"
+        msa_dir.mkdir(parents=True, exist_ok=False)
         generate_colabfold_msas(protein_seqs=protein_sequences, msa_dir=msa_dir)
         msa_context, msa_profile_context = get_msa_contexts(
             chains, msa_directory=msa_dir

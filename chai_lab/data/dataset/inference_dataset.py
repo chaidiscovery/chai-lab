@@ -93,6 +93,7 @@ def _synth_subchain_id(idx: int) -> str:
 def raw_inputs_to_entitites_data(
     inputs: list[Input], identifier: str = "test"
 ) -> list[AllAtomEntityData]:
+    """Load an entity for each raw input."""
     entities = []
 
     # track unique entities
@@ -157,7 +158,7 @@ def load_chains_from_raw(
     tokenizer: AllAtomResidueTokenizer | None = None,
 ) -> list[Chain]:
     """
-    loads and tokenizes each input chain
+    Loads and tokenizes each input chain; skips over inputs that fail to tokenize.
     """
 
     if tokenizer is None:
@@ -186,12 +187,14 @@ def load_chains_from_raw(
             logger.exception(f"Failed to tokenize input {entity_data=}  {sym_id=}")
             tok = None
         structure_contexts.append(tok)
-    assert len(structure_contexts) == len(entities)
+
     # Join the untokenized entity data with the tokenized chain data, removing
     # chains we failed to tokenize
     chains = [
         Chain(entity_data=entity_data, structure_context=structure_context)
-        for entity_data, structure_context in zip(entities, structure_contexts)
+        for entity_data, structure_context in zip(
+            entities, structure_contexts, strict=True
+        )
         if structure_context is not None
     ]
 

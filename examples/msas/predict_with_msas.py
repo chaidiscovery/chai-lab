@@ -4,9 +4,6 @@ from pathlib import Path
 import numpy as np
 
 from chai_lab.chai1 import run_inference
-from chai_lab.data.dataset.inference_dataset import read_inputs
-from chai_lab.data.dataset.msas.colabfold import generate_colabfold_msas
-from chai_lab.data.parsing.structure.entity_type import EntityType
 
 tmp_dir = Path(tempfile.mkdtemp())
 
@@ -24,16 +21,6 @@ CCCCCCCCCCCCCC(=O)O
 fasta_path = tmp_dir / "example.fasta"
 fasta_path.write_text(example_fasta)
 
-# Generate MSAs
-msa_dir = tmp_dir / "msas"
-msa_dir.mkdir()
-protein_seqs = [
-    input.sequence
-    for input in read_inputs(fasta_path)
-    if input.entity_type == EntityType.PROTEIN.value
-]
-generate_colabfold_msas(protein_seqs=protein_seqs, msa_dir=msa_dir)
-
 
 # Generate structure
 output_dir = tmp_dir / "outputs"
@@ -46,7 +33,7 @@ candidates = run_inference(
     seed=42,
     device="cuda:0",
     use_esm_embeddings=True,
-    msa_directory=msa_dir,
+    msa_directory=Path(__file__).parent,
 )
 cif_paths = candidates.cif_paths
 scores = [rd.aggregate_score for rd in candidates.ranking_data]

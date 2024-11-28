@@ -352,6 +352,8 @@ def generate_colabfold_msas(protein_seqs: list[str], msa_dir: Path):
     This implementation also relies on ColabFold's chain pairing algorithm
     rather than using Chai-1's own algorithm, which could also lead to
     differences in results.
+
+    Places .aligned.pqt files in msa_dir; does not save intermediate a3m files.
     """
     assert msa_dir.is_dir(), "MSA directory must be a dir"
     assert not any(msa_dir.iterdir()), "MSA directory must be empty"

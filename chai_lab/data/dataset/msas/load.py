@@ -47,7 +47,9 @@ def get_msa_contexts(
     def get_msa_contexts_for_seq(seq) -> MSAContext:
         path = msa_directory / expected_basename(seq)
         if not path.is_file():
-            logger.warning(f"No MSA found for sequence: {seq}")
+            if seq != "X":
+                # Don't warn for the special "X" sequence
+                logger.warning(f"No MSA found for sequence: {seq}")
             [tokenized_seq] = tokenize_sequences_to_arrays([seq])[0]
             return MSAContext.create_single_seq(
                 MSADataSource.QUERY, tokens=torch.from_numpy(tokenized_seq)

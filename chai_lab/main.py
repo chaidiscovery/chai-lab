@@ -4,6 +4,8 @@
 
 """Commandline interface."""
 
+import logging
+
 import typer
 
 from chai_lab.chai1 import run_inference
@@ -36,4 +38,5 @@ def cli():
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
     cli()

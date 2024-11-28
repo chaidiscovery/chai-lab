@@ -33,7 +33,10 @@ candidates = run_inference(
     seed=42,
     device="cuda:0",
     use_esm_embeddings=True,
+    # See example .aligned.pqt files in this directory
     msa_directory=Path(__file__).parent,
+    # Exclusive with msa_directory; can be used for MMseqs2 server MSA generation
+    msa_server=False,
 )
 cif_paths = candidates.cif_paths
 scores = [rd.aggregate_score for rd in candidates.ranking_data]

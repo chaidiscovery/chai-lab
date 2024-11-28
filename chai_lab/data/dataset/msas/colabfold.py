@@ -366,7 +366,7 @@ def generate_colabfold_msas(protein_seqs: list[str], msa_dir: Path):
         a3ms_dir.mkdir()
 
         # Generate MSAs for each protein chain
-        print(f"Running MSA generation for {len(protein_seqs)} protein sequences")
+        logger.info(f"Running MSA generation for {len(protein_seqs)} protein sequences")
         msas = _run_mmseqs2(
             protein_seqs,
             mmseqs_dir,

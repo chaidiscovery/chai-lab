@@ -29,6 +29,7 @@ from chai_lab.data.dataset.constraints.restraint_context import (
 from chai_lab.data.dataset.embeddings.embedding_context import EmbeddingContext
 from chai_lab.data.dataset.embeddings.esm import get_esm_embedding_context
 from chai_lab.data.dataset.inference_dataset import load_chains_from_raw, read_inputs
+from chai_lab.data.dataset.msas.colabfold import generate_colabfold_msas
 from chai_lab.data.dataset.msas.load import get_msa_contexts
 from chai_lab.data.dataset.msas.msa_context import MSAContext
 from chai_lab.data.dataset.structure.all_atom_structure_context import (
@@ -83,6 +84,7 @@ from chai_lab.data.features.generators.token_pair_pocket_restraint import (
 )
 from chai_lab.data.io.cif_utils import outputs_to_cif
 from chai_lab.data.parsing.restraints import parse_pairwise_table
+from chai_lab.data.parsing.structure.entity_type import EntityType
 from chai_lab.model.diffusion_schedules import InferenceNoiseSchedule
 from chai_lab.model.utils import center_random_augmentation
 from chai_lab.ranking.frames import get_frames_and_mask
@@ -268,14 +270,24 @@ def run_inference(
     *,
     output_dir: Path,
     use_esm_embeddings: bool = True,
+    msa_server: bool = False,
     msa_directory: Path | None = None,
-    constraint_path: Path | str | None = None,
+    constraint_path: Path | None = None,
     # expose some params for easy tweaking
     num_trunk_recycles: int = 3,
     num_diffn_timesteps: int = 200,
     seed: int | None = None,
-    device: torch.device | None = None,
+    device: str | None = None,
 ) -> StructureCandidates:
+    if output_dir.exists():
+        assert not any(
+            output_dir.iterdir()
+        ), f"Output directory {output_dir} is not empty."
+    torch_device = torch.device(device if device is not None else "cuda:0")
+    assert not (
+        msa_server and msa_directory
+    ), "Cannot specify both MSA server and directory"
+
     # Prepare inputs
     assert fasta_file.exists(), fasta_file
     fasta_inputs = read_inputs(fasta_file, length_limit=None)
@@ -290,14 +302,28 @@ def run_inference(
 
     # Load structure context
     chains = load_chains_from_raw(fasta_inputs)
+    del fasta_inputs  # Do not reference inputs after creating chains from them
+
     merged_context = AllAtomStructureContext.merge(
         [c.structure_context for c in chains]
     )
     n_actual_tokens = merged_context.num_tokens
     raise_if_too_many_tokens(n_actual_tokens)
 
-    # Load MSAs
-    if msa_directory is not None:
+    # Generated and/or load MSAs
+    if msa_server:
+        protein_sequences = [
+            chain.entity_data.sequence
+            for chain in chains
+            if chain.entity_data.entity_type == EntityType.PROTEIN
+        ]
+        msa_dir = output_dir / "msas"
+        msa_dir.mkdir(parents=True, exist_ok=False)
+        generate_colabfold_msas(protein_seqs=protein_sequences, msa_dir=msa_dir)
+        msa_context, msa_profile_context = get_msa_contexts(
+            chains, msa_directory=msa_dir
+        )
+    elif msa_directory is not None:
         msa_context, msa_profile_context = get_msa_contexts(
             chains, msa_directory=msa_directory
         )
@@ -308,6 +334,7 @@ def run_inference(
         msa_profile_context = MSAContext.create_empty(
             n_tokens=n_actual_tokens, depth=MAX_MSA_DEPTH
         )
+
     assert (
         msa_context.num_tokens == merged_context.num_tokens
     ), f"Discrepant tokens in input and MSA: {merged_context.num_tokens} != {msa_context.num_tokens}"
@@ -320,7 +347,7 @@ def run_inference(
 
     # Load ESM embeddings
     if use_esm_embeddings:
-        embedding_context = get_esm_embedding_context(chains, device=device)
+        embedding_context = get_esm_embedding_context(chains, device=torch_device)
     else:
         embedding_context = EmbeddingContext.empty(n_tokens=n_actual_tokens)
 
@@ -351,7 +378,7 @@ def run_inference(
         num_trunk_recycles=num_trunk_recycles,
         num_diffn_timesteps=num_diffn_timesteps,
         seed=seed,
-        device=device,
+        device=torch_device,
     )
 
 

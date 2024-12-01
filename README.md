@@ -31,7 +31,7 @@ chai fold input.fasta output_folder
 
 By default, the model generates five sample predictions, and uses embeddings without MSAs or templates. For additional information about how to supply MSAs and restraints to the model, see the documentation below, or run `chai fold --help`.
 
-For example, to run the model with MSAs (which we recommended for improved performance), pass the `--use-msa-server` flag:
+For example, to run the model with MSAs (which we recommend for improved performance), pass the `--use-msa-server` flag:
 
 ```shell
 chai fold --use-msa-server input.fasta output_folder

@@ -31,6 +31,12 @@ chai fold input.fasta output_folder
 
 By default, the model generates five sample predictions, and uses embeddings without MSAs or templates. For additional information about how to supply MSAs and restraints to the model, see the documentation below, or run `chai fold --help`.
 
+For example, to run the model with MSAs (which we recommended for improved performance), pass the `--use-msa-server` flag:
+
+```shell
+chai fold --use-msa-server input.fasta output_folder
+```
+
 ### Programmatic inference
 
 The main entrypoint into the Chai-1 folding code is through the `chai_lab.chai1.run_inference` function. The following script demonstrates how to programmatically provide inputs to the model, and obtain a list of PDB files for downstream analysis:

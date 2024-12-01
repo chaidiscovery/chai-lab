@@ -194,7 +194,7 @@ def _run_mmseqs2(
                 out = submit(seqs_unique, mode, N)
                 while out["status"] in ["UNKNOWN", "RATELIMIT"]:
                     sleep_time = 5 + random.randint(0, 5)
-                    logger.error(f"Sleeping for {sleep_time}s. Reason: {out['status']}")
+                    logger.info(f"Sleeping for {sleep_time}s. Reason: {out['status']}")
                     # resubmit
                     time.sleep(sleep_time)
                     out = submit(seqs_unique, mode, N)
@@ -214,7 +214,7 @@ def _run_mmseqs2(
                 pbar.set_description(out["status"])
                 while out["status"] in ["UNKNOWN", "RUNNING", "PENDING"]:
                     t = 5 + random.randint(0, 5)
-                    logger.error(f"Sleeping for {t}s. Reason: {out['status']}")
+                    logger.info(f"Sleeping for {t}s. Reason: {out['status']}")
                     time.sleep(t)
                     out = status(ID)
                     pbar.set_description(out["status"])

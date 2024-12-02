@@ -321,7 +321,9 @@ def run_inference(
         msa_dir = output_dir / "msas"
         msa_dir.mkdir(parents=True, exist_ok=False)
         generate_colabfold_msas(
-            protein_seqs=protein_sequences, msa_dir=msa_dir, msa_server=msa_server
+            protein_seqs=protein_sequences,
+            msa_dir=msa_dir,
+            msa_server_url=msa_server_url,
         )
         msa_context, msa_profile_context = get_msa_contexts(
             chains, msa_directory=msa_dir

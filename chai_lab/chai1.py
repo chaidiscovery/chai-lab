@@ -271,7 +271,7 @@ def run_inference(
     output_dir: Path,
     use_esm_embeddings: bool = True,
     use_msa_server: bool = False,
-    msa_server: str = "https://api.colabfold.com",
+    msa_server_url: str = "https://api.colabfold.com",
     msa_directory: Path | None = None,
     constraint_path: Path | None = None,
     # expose some params for easy tweaking

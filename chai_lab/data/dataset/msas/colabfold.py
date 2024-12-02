@@ -341,7 +341,7 @@ def _run_mmseqs2(
     return (a3m_lines, template_paths) if use_templates else a3m_lines
 
 
-def generate_colabfold_msas(protein_seqs: list[str], msa_dir: Path):
+def generate_colabfold_msas(protein_seqs: list[str], msa_dir: Path, msa_server: str):
     """
     Generate MSAs using the ColabFold (https://github.com/sokrypton/ColabFold)
     server.
@@ -374,6 +374,7 @@ def generate_colabfold_msas(protein_seqs: list[str], msa_dir: Path):
             mmseqs_dir,
             # N.B. we can set this to False to disable pairing
             use_pairing=len(protein_seqs) > 1,
+            host_url=msa_server,
             user_agent="chai-lab/0.4.0 feedback@chaidiscovery.com",
         )
         assert isinstance(msas, list)

@@ -341,7 +341,11 @@ def _run_mmseqs2(
     return (a3m_lines, template_paths) if use_templates else a3m_lines
 
 
-def generate_colabfold_msas(protein_seqs: list[str], msa_dir: Path, msa_server_url: str):
+def generate_colabfold_msas(
+    protein_seqs: list[str],
+    msa_dir:
+    Path, msa_server_url: str,
+):
     """
     Generate MSAs using the ColabFold (https://github.com/sokrypton/ColabFold)
     server.

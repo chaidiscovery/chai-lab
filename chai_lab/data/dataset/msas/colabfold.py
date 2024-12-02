@@ -374,7 +374,7 @@ def generate_colabfold_msas(protein_seqs: list[str], msa_dir: Path, msa_server_u
             mmseqs_dir,
             # N.B. we can set this to False to disable pairing
             use_pairing=len(protein_seqs) > 1,
-            host_url=msa_server,
+            host_url=msa_server_url,
             user_agent="chai-lab/0.4.0 feedback@chaidiscovery.com",
         )
         assert isinstance(msas, list)

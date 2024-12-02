@@ -343,8 +343,8 @@ def _run_mmseqs2(
 
 def generate_colabfold_msas(
     protein_seqs: list[str],
-    msa_dir:
-    Path, msa_server_url: str,
+    msa_dir: Path,
+    msa_server_url: str,
 ):
     """
     Generate MSAs using the ColabFold (https://github.com/sokrypton/ColabFold)

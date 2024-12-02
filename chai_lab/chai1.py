@@ -270,7 +270,8 @@ def run_inference(
     *,
     output_dir: Path,
     use_esm_embeddings: bool = True,
-    msa_server: bool = False,
+    use_msa_server: bool = False,
+    msa_server_url: str = "https://api.colabfold.com",
     msa_directory: Path | None = None,
     constraint_path: Path | None = None,
     # expose some params for easy tweaking
@@ -285,7 +286,7 @@ def run_inference(
         ), f"Output directory {output_dir} is not empty."
     torch_device = torch.device(device if device is not None else "cuda:0")
     assert not (
-        msa_server and msa_directory
+        use_msa_server and msa_directory
     ), "Cannot specify both MSA server and directory"
 
     # Prepare inputs
@@ -311,7 +312,7 @@ def run_inference(
     raise_if_too_many_tokens(n_actual_tokens)
 
     # Generated and/or load MSAs
-    if msa_server:
+    if use_msa_server:
         protein_sequences = [
             chain.entity_data.sequence
             for chain in chains
@@ -319,7 +320,11 @@ def run_inference(
         ]
         msa_dir = output_dir / "msas"
         msa_dir.mkdir(parents=True, exist_ok=False)
-        generate_colabfold_msas(protein_seqs=protein_sequences, msa_dir=msa_dir)
+        generate_colabfold_msas(
+            protein_seqs=protein_sequences,
+            msa_dir=msa_dir,
+            msa_server_url=msa_server_url,
+        )
         msa_context, msa_profile_context = get_msa_contexts(
             chains, msa_directory=msa_dir
         )

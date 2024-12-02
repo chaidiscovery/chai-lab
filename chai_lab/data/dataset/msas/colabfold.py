@@ -15,6 +15,7 @@ import pandas as pd
 import requests
 from tqdm import tqdm
 
+from chai_lab import __version__
 from chai_lab.data.parsing.fasta import read_fasta
 from chai_lab.data.parsing.msas.aligned_pqt import expected_basename, hash_sequence
 
@@ -379,7 +380,7 @@ def generate_colabfold_msas(
             # N.B. we can set this to False to disable pairing
             use_pairing=len(protein_seqs) > 1,
             host_url=msa_server_url,
-            user_agent="chai-lab/0.4.0 feedback@chaidiscovery.com",
+            user_agent=f"chai-lab/{__version__} feedback@chaidiscovery.com",
         )
         assert isinstance(msas, list)
 

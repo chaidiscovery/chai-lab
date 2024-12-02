@@ -40,7 +40,7 @@ chai fold --use-msa-server input.fasta output_folder
 If you are hosting your own ColabFold server, additionally pass the `--msa-server` flag with your server:
 
 ```shell
-chai fold --use-msa-server --msa-server "https://api.internalcolabserver.com" input.fasta output_folder
+chai fold --use-msa-server --msa-server-url "https://api.internalcolabserver.com" input.fasta output_folder
 ```
 
 ### Programmatic inference

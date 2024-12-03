@@ -10,6 +10,8 @@ import typer
 
 from chai_lab.chai1 import run_inference
 
+logging.basicConfig(level=logging.INFO)
+
 CITATION = """
 @article{Chai-1-Technical-Report,
 	title        = {Chai-1: Decoding the molecular interactions of life},
@@ -38,5 +40,4 @@ def cli():
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
     cli()

@@ -92,6 +92,19 @@ class AllAtomStructureContext:
     def residue_names(self) -> list[str]:
         return batch_tensorcode_to_string(self.token_residue_name)
 
+    def report_bonds(self) -> None:
+        """Print information about covalent bonds."""
+        for i, (cov_a, cov_b) in enumerate(zip(*self.atom_covalent_bond_indices)):
+            asym_a = self.token_asym_id[cov_a]
+            asym_b = self.token_asym_id[cov_b]
+            res_idx_a = self.token_residue_index[cov_a]
+            res_idx_b = self.token_residue_index[cov_b]
+            resname_a = tensorcode_to_string(self.token_residue_name[cov_a])
+            resname_b = tensorcode_to_string(self.token_residue_name[cov_b])
+            print(
+                f"Bond {i}: {asym_a} {res_idx_a} {resname_a} <> {asym_b} {res_idx_b} {resname_b}"
+            )
+
     def pad(
         self,
         n_tokens: int,

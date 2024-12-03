@@ -449,6 +449,7 @@ def run_folding_on_context(
     raise_if_too_many_templates(feature_context.template_context.num_templates)
     raise_if_msa_too_deep(feature_context.msa_context.depth)
     # NOTE profile MSA used only for statistics; no depth check
+    feature_context.structure_context.report_bonds()
 
     ##
     ## Prepare batch

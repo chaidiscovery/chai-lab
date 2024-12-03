@@ -17,7 +17,6 @@ candidates = run_inference(
     fasta_file=Path(__file__).with_name("1ac5.fasta"),
     output_dir=output_dir,
     constraint_path=Path(__file__).with_name("bonds.restraints"),
-    # 'default' setup
     num_trunk_recycles=3,
     num_diffn_timesteps=200,
     seed=42,

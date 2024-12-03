@@ -98,7 +98,7 @@ def load_manual_restraints_for_chai1(
     contact_constraints: list[ContactRestraint] = []
     pocket_constraints: list[PocketRestraint] = []
 
-    logger.info(f"Loading {len(provided_constraints)} constraints...")
+    logger.info(f"Loading {len(provided_constraints)} restraints...")
     for constraint in provided_constraints:
         match ctype := constraint.connection_type:
             case PairwiseInteractionType.COVALENT:

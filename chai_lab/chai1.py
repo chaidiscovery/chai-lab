@@ -373,6 +373,7 @@ def run_inference(
         cov_a, cov_b = get_atom_covalent_bond_pairs_from_constraints(
             provided_constraints=pairs,
             token_residue_index=merged_context.token_residue_index,
+            token_residue_name=merged_context.token_residue_name,
             token_subchain_id=merged_context.subchain_id,
             token_asym_id=merged_context.token_asym_id,
             atom_token_index=merged_context.atom_token_index,

@@ -90,7 +90,7 @@ class PairwiseInteraction:
     @property
     def res_idxA_name(self) -> str:
         """Single-char name of residue A."""
-        return self.res_idxA[0]
+        return self.res_idxA[0] if self.res_idxA else ""
 
     @property
     def res_idxA_pos(self) -> int:
@@ -101,7 +101,7 @@ class PairwiseInteraction:
     @property
     def res_idxB_name(self) -> str:
         """Single-char name of residue B."""
-        return self.res_idxB[0]
+        return self.res_idxB[0] if self.res_idxB else ""
 
     @property
     def res_idxB_pos(self) -> int:

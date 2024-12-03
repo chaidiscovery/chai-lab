@@ -3,14 +3,17 @@
 # See the LICENSE file for details.
 
 import torch
+from einops import rearrange
 from torch import Tensor
 
+from chai_lab.data import residue_constants as rc
 from chai_lab.data.parsing.glycans import _glycan_string_to_sugars_and_bonds
 from chai_lab.data.parsing.restraints import (
     PairwiseInteraction,
     PairwiseInteractionType,
 )
 from chai_lab.model.utils import get_asym_id_from_subchain_id
+from chai_lab.utils.tensor_utils import string_to_tensorcode
 from chai_lab.utils.typing import Int, UInt8, typecheck
 
 
@@ -18,11 +21,13 @@ from chai_lab.utils.typing import Int, UInt8, typecheck
 def get_atom_covalent_bond_pairs_from_constraints(
     provided_constraints: list[PairwiseInteraction],
     token_residue_index: Int[Tensor, "n_tokens"],
+    token_residue_name: UInt8[Tensor, "n_tokens 8"],
     token_subchain_id: UInt8[Tensor, "n_tokens 4"],
     token_asym_id: Int[Tensor, "n_tokens"],
     atom_token_index: Int[Tensor, "n_atoms"],
     atom_ref_name: list[str],
 ) -> tuple[Int[Tensor, "n_bonds"], Int[Tensor, "n_bonds"]]:
+    """Determine bond pairs, which are returned as atom indices that are bonded."""
     ret_a: list[int] = []
     ret_b: list[int] = []
     for constraint in provided_constraints:
@@ -55,8 +60,29 @@ def get_atom_covalent_bond_pairs_from_constraints(
                     right_token_index_mask
                 )
 
+                # Combine these to get the specific residue specified
                 left_residue_mask = left_token_asym_mask & left_token_index_mask
+                if constraint.res_idxA_name:
+                    three_letter = string_to_tensorcode(
+                        rc.restype_1to3.get(constraint.res_idxA_name, "UNK"),
+                        pad_to_length=token_residue_name.shape[-1],
+                    )
+                    resname_matches = (
+                        token_residue_name == rearrange(three_letter, "d -> 1 d")
+                    ).all(dim=-1)
+                    assert resname_matches.shape == left_residue_mask.shape
+                    left_residue_mask &= resname_matches
                 right_residue_mask = right_token_asym_mask & right_token_index_mask
+                if constraint.res_idxB_name:
+                    three_letter = string_to_tensorcode(
+                        rc.restype_1to3.get(constraint.res_idxB_name, "UNK"),
+                        pad_to_length=token_residue_name.shape[-1],
+                    )
+                    resname_matches = (
+                        token_residue_name == rearrange(three_letter, "d -> 1 d")
+                    ).all(dim=-1)
+                    assert resname_matches.shape == right_residue_mask.shape
+                    right_residue_mask &= resname_matches
                 # NOTE there are multiple residues in these residue masks due to
                 # per-atom tokenization of glycans
                 # These indices do not reset for new chains (matching atom_token_index)

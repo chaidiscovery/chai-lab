@@ -260,8 +260,20 @@ class StructureCandidates:
     plddt: Float[Tensor, "candidate num_tokens"]
 
     def __post_init__(self):
-        assert len(self.cif_paths) == len(self.ranking_data)
-        assert len(self.cif_paths) == len(self.pae)
+        assert len(self.cif_paths) == len(self.ranking_data) == self.pae.shape[0]
+
+    def sorted(self) -> "StructureCandidates":
+        """Sort by aggregate score from most to least confident."""
+        agg_scores = torch.concatenate([rd.aggregate_score for rd in self.ranking_data])
+        idx = torch.argsort(agg_scores, descending=True)  # Higher scores are better
+        return StructureCandidates(
+            cif_paths=[self.cif_paths[i] for i in idx],
+            ranking_data=[self.ranking_data[i] for i in idx],
+            msa_coverage_plot_path=self.msa_coverage_plot_path,
+            pae=self.pae[idx],
+            pde=self.pde[idx],
+            plddt=self.plddt[idx],
+        )
 
 
 @torch.no_grad()
@@ -765,7 +777,7 @@ def run_folding_on_context(
 
         cif_out_path = output_dir.joinpath(f"pred.model_idx_{idx}.cif")
         aggregate_score = ranking_outputs.aggregate_score.item()
-        print(f"Score={aggregate_score:.3f}, writing output to {cif_out_path}   ")
+        print(f"Score={aggregate_score:.4f}, writing output to {cif_out_path}")
 
         # use 0-100 scale for pLDDT in pdb outputs
         scaled_plddt_scores_per_atom = 100 * plddt_scores_atom[idx : idx + 1]
@@ -793,4 +805,4 @@ def run_folding_on_context(
         pae=pae_scores,
         pde=pde_scores,
         plddt=plddt_scores,
-    )
+    ).sorted()

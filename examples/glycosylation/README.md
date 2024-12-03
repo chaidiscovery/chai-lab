@@ -26,7 +26,7 @@ chainA|res_idxA|chainB|res_idxB|connection_type|confidence|min_distance_angstrom
 |---|---|---|---|---|---|---|---|---|---|
 A|N436@N|B|@C4|covalent|1.0|0.0|0.0|protein-glycan|bond1
 
-Breaking this down, this specifies that the within chain A (the first entry in the fasta), the "N" residue at the 436-th position (1-indexed) as indicated by the "N436" prefix is bound, via its nitrogen "N" atom as indicated by the "@N" suffix, to the C4 atom in the first glycan ("@C4"). Ring numbering follows standard glycan ring number schemas. For other ligands, you will need check how the specific version of `rdkit` that we use in `chai-lab` (run `uv pip list | grep rdkit` for version) assigns atom names and use the same atom names to specify your bonds.
+Breaking this down, this specifies that the within chain A (the first entry in the fasta), the "N" residue at the 436-th position (1-indexed) as indicated by the "N436" prefix is bound, via its nitrogen "N" atom as indicated by the "@N" suffix, to the C4 atom in the first glycan ("@C4"). Ring numbering follows standard glycan ring number schemas. For other ligands, you will need check how the specific version of `rdkit` that we use in `chai-lab` (run `uv pip list | grep rdkit` for version) assigns atom names and use the same atom names to specify your bonds. In addition, note that the min and max distance fields are ignored, as is the confidence field. 
 
 
 ### Multi-ring glycan

@@ -19,6 +19,7 @@ from chai_lab.data.dataset.structure.all_atom_structure_context import (
 )
 from chai_lab.data.dataset.structure.chain import Chain
 from chai_lab.data.parsing.fasta import get_residue_name, read_fasta
+from chai_lab.data.parsing.glycans import glycan_string_residues
 from chai_lab.data.parsing.input_validation import (
     constituents_of_modified_fasta,
     identify_potential_entity_types,
@@ -118,6 +119,8 @@ def raw_inputs_to_entitites_data(
                     for r in parsed_sequence
                 ]
                 residues = get_polymer_residues(expanded_sequence, entity_type)
+            case EntityType.MANUAL_GLYCAN:
+                residues = glycan_string_residues(glycan_string=input.sequence)
             case _:
                 raise NotImplementedError
         assert residues is not None
@@ -233,6 +236,8 @@ def read_inputs(fasta_file: str | Path, length_limit: int | None = None) -> list
                 entity_type = EntityType.RNA
             case "dna":
                 entity_type = EntityType.DNA
+            case "glycan":
+                entity_type = EntityType.MANUAL_GLYCAN
             case _:
                 raise ValueError(f"{entity_str} is not a valid entity type")
 

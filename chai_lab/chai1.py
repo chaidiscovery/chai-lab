@@ -35,6 +35,9 @@ from chai_lab.data.dataset.msas.msa_context import MSAContext
 from chai_lab.data.dataset.structure.all_atom_structure_context import (
     AllAtomStructureContext,
 )
+from chai_lab.data.dataset.structure.bond_utils import (
+    get_atom_covalent_bond_pairs_from_constraints,
+)
 from chai_lab.data.dataset.templates.context import TemplateContext
 from chai_lab.data.features.feature_factory import FeatureFactory
 from chai_lab.data.features.feature_type import FeatureType
@@ -359,11 +362,31 @@ def run_inference(
 
     # Constraints
     if constraint_path is not None:
+        # Handles contact and pocket restraints
+        pairs = parse_pairwise_table(constraint_path)
         restraint_context = load_manual_restraints_for_chai1(
             chains,
             crop_idces=None,
-            provided_constraints=parse_pairwise_table(constraint_path),
+            provided_constraints=pairs,
         )
+        # Handle covalent bond restraints
+        cov_a, cov_b = get_atom_covalent_bond_pairs_from_constraints(
+            provided_constraints=pairs,
+            token_residue_index=merged_context.token_residue_index,
+            token_subchain_id=merged_context.subchain_id,
+            token_asym_id=merged_context.token_asym_id,
+            atom_token_index=merged_context.atom_token_index,
+            atom_ref_name=merged_context.atom_ref_name,
+        )
+        if cov_a.numel() > 0 and cov_b.numel() > 0:
+            orig_a, orig_b = merged_context.atom_covalent_bond_indices
+            if orig_a.numel() == orig_b.numel() == 0:
+                merged_context.atom_covalent_bond_indices = (orig_a, orig_b)
+            else:
+                merged_context.atom_covalent_bond_indices = (
+                    torch.concatenate([orig_a, cov_a]),
+                    torch.concatenate([orig_b, cov_b]),
+                )
     else:
         restraint_context = RestraintContext.empty()
 

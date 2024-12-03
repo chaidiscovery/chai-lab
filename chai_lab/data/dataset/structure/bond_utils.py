@@ -6,7 +6,96 @@ import torch
 from torch import Tensor
 
 from chai_lab.data.parsing.glycans import _glycan_string_to_sugars_and_bonds
-from chai_lab.utils.typing import Int, typecheck
+from chai_lab.data.parsing.restraints import (
+    PairwiseInteraction,
+    PairwiseInteractionType,
+)
+from chai_lab.model.utils import get_asym_id_from_subchain_id
+from chai_lab.utils.typing import Int, UInt8, typecheck
+
+
+def get_atom_covalent_bond_pairs_from_constraints(
+    provided_constraints: list[PairwiseInteraction],
+    token_residue_index: Int[Tensor, "n_tokens"],
+    token_subchain_id: UInt8[Tensor, "n_tokens 4"],
+    token_asym_id: Int[Tensor, "n_tokens"],
+    atom_token_index: Int[Tensor, "n_atoms"],
+    atom_ref_name: list[str],
+) -> tuple[Int[Tensor, "n_bonds"], Int[Tensor, "n_bonds"]]:
+    ret_a: list[int] = []
+    ret_b: list[int] = []
+    for constraint in provided_constraints:
+        match ctype := constraint.connection_type:
+            case PairwiseInteractionType.COVALENT:
+                assert (
+                    constraint.atom_nameA and constraint.atom_nameB
+                ), "Atoms must be provided for covalent bonds"
+                # Figure out the asym id that we care about
+                left_asym_id = get_asym_id_from_subchain_id(
+                    subchain_id=constraint.chainA,
+                    source_pdb_chain_id=token_subchain_id,
+                    token_asym_id=token_asym_id,
+                )
+                left_token_asym_mask = token_asym_id == left_asym_id
+                right_asym_id = get_asym_id_from_subchain_id(
+                    subchain_id=constraint.chainB,
+                    source_pdb_chain_id=token_subchain_id,
+                    token_asym_id=token_asym_id,
+                )
+                right_token_asym_mask = token_asym_id == right_asym_id
+                assert torch.any(left_token_asym_mask) and torch.any(
+                    right_token_asym_mask
+                )
+
+                # Get the token index that we want
+                left_token_index_mask = token_residue_index == constraint.res_idxA_pos
+                right_token_index_mask = token_residue_index == constraint.res_idxB_pos
+                assert torch.any(left_token_index_mask) and torch.any(
+                    right_token_index_mask
+                )
+
+                left_residue_mask = left_token_asym_mask & left_token_index_mask
+                right_residue_mask = right_token_asym_mask & right_token_index_mask
+                # NOTE there are multiple residues in these residue masks due to
+                # per-atom tokenization of glycans
+                # These indices do not reset for new chains (matching atom_token_index)
+                left_residue_idx = torch.where(left_residue_mask)[0]
+                right_residue_idx = torch.where(right_residue_mask)[0]
+                assert left_residue_idx.numel() > 0 and right_residue_idx.numel() > 0
+
+                # Find the atoms belonging to this residue
+                left_atoms_mask = torch.isin(
+                    atom_token_index, test_elements=left_residue_idx
+                )
+                right_atoms_mask = torch.isin(
+                    atom_token_index, test_elements=right_residue_idx
+                )
+                assert torch.any(left_atoms_mask) and torch.any(right_atoms_mask)
+
+                # Find atoms matching by name
+                left_name_mask = torch.tensor(
+                    [n == constraint.atom_nameA for n in atom_ref_name],
+                    dtype=torch.bool,
+                )
+                right_name_mask = torch.tensor(
+                    [n == constraint.atom_nameB for n in atom_ref_name],
+                    dtype=torch.bool,
+                )
+
+                left_atom_mask = left_atoms_mask & left_name_mask
+                right_atom_mask = right_atoms_mask & right_name_mask
+                assert (
+                    torch.sum(left_atom_mask) == torch.sum(right_atom_mask) == 1
+                ), f"Expect single atoms, got {torch.sum(left_atom_mask)}, {torch.sum(right_atom_mask)}"
+                ret_a.append(torch.where(left_atom_mask)[0].item())  # type: ignore
+                ret_b.append(torch.where(right_atom_mask)[0].item())  # type: ignore
+
+            case PairwiseInteractionType.CONTACT | PairwiseInteractionType.POCKET:
+                # These are handled as constraints, not as bonds
+                pass
+            case _:
+                raise ValueError(f"Unrecognized pariwise interaction: {ctype}")
+    return torch.tensor(ret_a, dtype=torch.int), torch.tensor(ret_b, dtype=torch.int)
 
 
 @typecheck

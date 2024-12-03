@@ -94,8 +94,11 @@ class PairwiseInteraction:
 
     @property
     def res_idxA_pos(self) -> int:
-        """1-indexed position of residue A."""
-        return int(self.res_idxA[1:])
+        """1-indexed position of residue A; 0 indicates not given."""
+        s = self.res_idxA[1:]
+        if len(s) == 0:
+            return 0
+        return int(s)
 
     @property
     def res_idxB_name(self) -> str:
@@ -103,9 +106,12 @@ class PairwiseInteraction:
         return self.res_idxB[0]
 
     @property
-    def res_idxB_pos(self) -> int:
-        """1-indexed position of residue B."""
-        return int(self.res_idxB[1:])
+    def res_idxB_pos(self) -> int | None:
+        """1-indexed position of residue B; 0 indicates not given."""
+        s = self.res_idxB[1:]
+        if len(s) == 0:
+            return 0
+        return int(s)
 
     def to_table_entry(self) -> dict[str, str | float]:
         """Format as table entry, sans leading restraint_id column."""

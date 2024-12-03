@@ -28,7 +28,7 @@ class SampleRanking:
     """
 
     asym_ids: Int[Tensor, "chain"]
-    aggregate_score: Float[Tensor, "..."]
+    aggregate_score: Float[Tensor, "1"]
     ptm_scores: ptm.PTMScores
     clash_scores: clashes.ClashScores
     plddt_scores: plddt.PLDDTScores

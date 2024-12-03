@@ -40,7 +40,7 @@ candidates = run_inference(
 )
 
 cif_paths = candidates.cif_paths
-scores = [rd.aggregate_score for rd in candidates.ranking_data]
+agg_scores = [rd.aggregate_score.item() for rd in candidates.ranking_data]
 
 
 # Load pTM, ipTM, pLDDTs and clash scores for sample 2

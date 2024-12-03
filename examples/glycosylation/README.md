@@ -1,6 +1,6 @@
 # Working with bond restraints
 
-Chai-1 supports specifying covalent bonds as input, which specify covalent linkages between atoms in the folded complex. This is particularly useful for specifying glycosylation events, which we demonstrate below, but can be generally used to specify "non-canonical" bonds in a structure.
+Chai-1 supports specifying covalent bonds as input, which specify covalent linkages between atoms in the folded complex. This is useful for specifying covalent modifications such as glycosylation events, which we demonstrate below, but can be generally used to specify arbitrary "non-canonical" bonds in a structure. 
 
 A few notes:
 - Chai-1 was not trained on disulfide bonds, and we have not evaluated whether specifying such bond information yields expected behaviors. 
@@ -26,7 +26,7 @@ chainA|res_idxA|chainB|res_idxB|connection_type|confidence|min_distance_angstrom
 |---|---|---|---|---|---|---|---|---|---|
 A|N436@N|B|@C4|covalent|1.0|0.0|0.0|protein-glycan|bond1
 
-Breaking this down, this specifies that the within chain A (the first entry in the fasta), the "N" residue at the 436-th position (1-indexed) as indicated by the "N436" prefix is bound, via its nitrogen "N" atom as indicated by the "@N" suffix, to the C4 atom in the first glycan ("@C4"). Ring numbering follows standard glycan ring number schemas. For other glycans, you will need check how the specific version of `gemmi` that we use in `chai-lab` assigns atom names and use the same atom names to specify your bonds.
+Breaking this down, this specifies that the within chain A (the first entry in the fasta), the "N" residue at the 436-th position (1-indexed) as indicated by the "N436" prefix is bound, via its nitrogen "N" atom as indicated by the "@N" suffix, to the C4 atom in the first glycan ("@C4"). Ring numbering follows standard glycan ring number schemas. For other ligands, you will need check how the specific version of `gemmi` that we use in `chai-lab` (run `uv pip list | grep gemmi` for version) assigns atom names and use the same atom names to specify your bonds.
 
 
 ### Multi-ring glycan

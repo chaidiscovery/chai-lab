@@ -805,4 +805,4 @@ def run_folding_on_context(
         pae=pae_scores,
         pde=pde_scores,
         plddt=plddt_scores,
-    ).sorted()
+    )

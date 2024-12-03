@@ -54,8 +54,12 @@ def get_atom_covalent_bond_pairs_from_constraints(
                 )
 
                 # Get the token index that we want
-                left_token_index_mask = token_residue_index == constraint.res_idxA_pos
-                right_token_index_mask = token_residue_index == constraint.res_idxB_pos
+                left_token_index_mask = (
+                    token_residue_index == constraint.res_idxA_pos - 1
+                )
+                right_token_index_mask = (
+                    token_residue_index == constraint.res_idxB_pos - 1
+                )
                 assert torch.any(left_token_index_mask) and torch.any(
                     right_token_index_mask
                 )

@@ -1,2 +1,2 @@
 chainA,res_idxA,chainB,res_idxB,connection_type,confidence,min_distance_angstrom,max_distance_angstrom,comment,restraint_id
-A,N437@N,B,@C4,covalent,1.0,0.0,6.0,protein-glycan,restraint_1
+A,N436@N,B,@C4,covalent,1.0,0.0,6.0,protein-glycan,restraint_1

@@ -27,7 +27,7 @@ class TokenBondRestraint(FeatureGenerator):
     def get_input_kwargs_from_batch(self, batch: dict[str, Any]) -> dict:
         return dict(
             token_exists_mask=batch["inputs"]["token_exists_mask"],
-            # atom_token_index=batch["inputs"]["atom_token_index"].long(),
+            atom_token_index=batch["inputs"]["atom_token_index"].long(),
             atom_covalent_bond_indices=batch["inputs"]["atom_covalent_bond_indices"],
         )
 
@@ -40,7 +40,7 @@ class TokenBondRestraint(FeatureGenerator):
     def _generate(
         self,
         token_exists_mask: Bool[Tensor, "b n"],
-        # atom_token_index: Int[Tensor, "b a"],
+        atom_token_index: Int[Tensor, "b a"],
         atom_covalent_bond_indices: list[
             tuple[Int[Tensor, "bonds"], Int[Tensor, "bonds"]]
         ],
@@ -51,14 +51,13 @@ class TokenBondRestraint(FeatureGenerator):
         for batch_idx, (left_indices, right_indices) in enumerate(
             atom_covalent_bond_indices
         ):
-            bond_feature[batch_idx][left_indices, right_indices] = 1
-            # left_token_indices = torch.gather(
-            #     atom_token_index[batch_idx], dim=0, index=left_indices
-            # )
-            # right_token_indices = torch.gather(
-            #     atom_token_index[batch_idx], dim=0, index=right_indices
-            # )
-            # print(left_token_indices, right_token_indices)
-            # bond_feature[batch_idx][left_token_indices, right_token_indices] = 1
+            # convert from atom index to token index
+            left_token_indices = torch.gather(
+                atom_token_index[batch_idx], dim=0, index=left_indices
+            )
+            right_token_indices = torch.gather(
+                atom_token_index[batch_idx], dim=0, index=right_indices
+            )
+            bond_feature[batch_idx][left_token_indices, right_token_indices] = 1
 
         return self.make_feature(bond_feature.unsqueeze(-1))

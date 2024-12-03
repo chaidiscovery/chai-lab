@@ -89,13 +89,10 @@ def get_atom_covalent_bond_pairs_from_constraints(
                     torch.sum(left_atom_mask) == torch.sum(right_atom_mask) == 1
                 ), f"Expect single atoms, got {torch.sum(left_atom_mask)}, {torch.sum(right_atom_mask)}"
 
-                left_atom_idx = torch.where(left_atom_mask)[0]
-                right_atom_idx = torch.where(right_atom_mask)[0]
-                left_token_idx = atom_token_index[left_atom_idx]
-                right_token_idx = atom_token_index[right_atom_idx]
-
-                ret_a.append(left_token_idx.item())  # type: ignore
-                ret_b.append(right_token_idx.item())  # type: ignore
+                (left_atom_idx,) = torch.where(left_atom_mask)
+                (right_atom_idx,) = torch.where(right_atom_mask)
+                ret_a.append(left_atom_idx.item())  # type: ignore
+                ret_b.append(right_atom_idx.item())  # type: ignore
 
             case PairwiseInteractionType.CONTACT | PairwiseInteractionType.POCKET:
                 # These are handled as constraints, not as bonds

@@ -65,7 +65,7 @@ class AllAtomStructureContext:
     is_distillation: Bool[Tensor, "1"]
     # symmetric atom swap indices
     symmetries: Int[Tensor, "n_atoms n_symmetries"]
-    # token bond feature
+    # atom-wise bond feature; corresponding lists of atoms that are covalently bound
     atom_covalent_bond_indices: tuple[Int[Tensor, "n_bonds"], Int[Tensor, "n_bonds"]]
 
     def __post_init__(self):
@@ -84,25 +84,27 @@ class AllAtomStructureContext:
             pdb_id = tensorcode_to_string(self.pdb_id[0])
             logger.error(f"Incompatible masks for {pdb_id}")
 
-        # Check that bonds are in token space, NOT atom space
-        assert torch.all(self.atom_covalent_bond_indices[0] < self.num_tokens)
-        assert torch.all(self.atom_covalent_bond_indices[1] < self.num_tokens)
+        # Check that bonds are specified in atom space
+        assert torch.all(self.atom_covalent_bond_indices[0] < self.num_atoms)
+        assert torch.all(self.atom_covalent_bond_indices[1] < self.num_atoms)
 
     @cached_property
     def residue_names(self) -> list[str]:
         return batch_tensorcode_to_string(self.token_residue_name)
 
     def report_bonds(self) -> None:
-        """Print information about covalent bonds."""
-        for i, (cov_a, cov_b) in enumerate(zip(*self.atom_covalent_bond_indices)):
-            asym_a = self.token_asym_id[cov_a]
-            asym_b = self.token_asym_id[cov_b]
-            res_idx_a = self.token_residue_index[cov_a]
-            res_idx_b = self.token_residue_index[cov_b]
-            resname_a = tensorcode_to_string(self.token_residue_name[cov_a])
-            resname_b = tensorcode_to_string(self.token_residue_name[cov_b])
-            print(
-                f"Bond {i}: {asym_a} {res_idx_a} {resname_a} <> {asym_b} {res_idx_b} {resname_b}"
+        """Log information about covalent bonds."""
+        for i, (atom_a, atom_b) in enumerate(zip(*self.atom_covalent_bond_indices)):
+            tok_a = self.atom_token_index[atom_a]
+            tok_b = self.atom_token_index[atom_b]
+            asym_a = self.token_asym_id[tok_a]
+            asym_b = self.token_asym_id[tok_b]
+            res_idx_a = self.token_residue_index[tok_a]
+            res_idx_b = self.token_residue_index[tok_b]
+            resname_a = tensorcode_to_string(self.token_residue_name[tok_a])
+            resname_b = tensorcode_to_string(self.token_residue_name[tok_b])
+            logging.info(
+                f"Bond {i} (asym res_idx resname): {asym_a} {res_idx_a} {resname_a} <> {asym_b} {res_idx_b} {resname_b}"
             )
 
     def pad(
@@ -200,7 +202,7 @@ class AllAtomStructureContext:
         # Merge and offset bond indices, which are indexed by *token*
         atom_covalent_bond_indices_manual_a = []
         atom_covalent_bond_indices_manual_b = []
-        for ctx, count in zip(contexts, token_offsets):
+        for ctx, count in zip(contexts, atom_offsets):
             if ctx.atom_covalent_bond_indices is None:
                 continue
             a, b = ctx.atom_covalent_bond_indices

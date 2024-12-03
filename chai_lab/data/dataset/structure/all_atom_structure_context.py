@@ -65,6 +65,13 @@ class AllAtomStructureContext:
     is_distillation: Bool[Tensor, "1"]
     # symmetric atom swap indices
     symmetries: Int[Tensor, "n_atoms n_symmetries"]
+    # token bond feature
+    atom_covalent_bond_indices: tuple[
+        Int[Tensor, "n_bonds"], Int[Tensor, "n_bonds"]
+    ] = (
+        torch.empty(0, dtype=torch.long),
+        torch.empty(0, dtype=torch.long),
+    )
 
     def __post_init__(self):
         # Resolved residues filter should eliminate PDBs with missing residues, but that

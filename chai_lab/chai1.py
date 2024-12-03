@@ -76,6 +76,7 @@ from chai_lab.data.features.generators.templates import (
     TemplateResTypeGenerator,
     TemplateUnitVectorGenerator,
 )
+from chai_lab.data.features.generators.token_bond import TokenBondRestraint
 from chai_lab.data.features.generators.token_dist_restraint import (
     TokenDistanceRestraint,
 )
@@ -468,6 +469,7 @@ def run_folding_on_context(
     assert model_size in AVAILABLE_MODEL_SIZES
 
     feature_embedding = load_exported("feature_embedding.pt", device)
+    bond_loss_input_proj = load_exported("bond_loss_input_proj.pt", device)
     token_input_embedder = load_exported("token_embedder.pt", device)
     trunk = load_exported("trunk.pt", device)
     diffusion_module = load_exported("diffusion_module.pt", device)
@@ -490,6 +492,18 @@ def run_folding_on_context(
     )
     template_input_feats = embedded_features["TEMPLATES"]
     msa_input_feats = embedded_features["MSA"]
+
+    ##
+    ## Bond feature generator
+    ## Separate from other feature embeddings due to export limitations
+    ##
+    bond_ft_gen = TokenBondRestraint()
+    bond_ft = bond_ft_gen.generate(batch=batch).data
+    trunk_bond_feat, structure_bond_feat = bond_loss_input_proj.forward(
+        crop_size=model_size, input=bond_ft
+    ).chunk(2, dim=-1)
+    token_pair_input_feats += trunk_bond_feat
+    token_pair_structure_input_feats += structure_bond_feat
 
     ##
     ## Run the inputs through the token input embedder

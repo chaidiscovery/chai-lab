@@ -4,7 +4,7 @@ Chai-1 supports specifying covalent bonds as input, which specify covalent linka
 
 A few notes:
 - Chai-1 was not trained on disulfide bonds, and we have not evaluated whether specifying such bond information yields expected behaviors. 
-- These bond restraints should not be used to specify modified amino acids that already have an associated CCD code; for these examples, specify the modified residue's CCD code in parentheses directly in the sequence, e.g., `RKDES(MSE)EES` to specify a selenomethionine.
+- These bond restraints should not be used to specify modified amino acids that already have an associated CCD code; for these examples, include the modified residue's CCD code in parentheses directly in the sequence in place of its canonical residue, e.g., `RKDES(MSE)EES` to specify a selenomethionine at the 6th position.
 
 ## Glycans
 

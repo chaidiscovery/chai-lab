@@ -6,18 +6,6 @@ from chai_lab.chai1 import run_inference
 
 logging.basicConfig(level=logging.INFO)
 
-glycosylated_fasta = """
->protein|1AC5
-LPSSEEYKVAYELLPGLSEVPDPSNIPQMHAGHIPLRSEDADEQDSSDLEYFFWKFTNNDSNGNVDRPLIIWLNGGPGCSSMDGALVESGPFRVNSDGKLYLNEGSWISKGDLLFIDQPTGTGFSVEQNKDEGKIDKNKFDEDLEDVTKHFMDFLENYFKIFPEDLTRKIILSGESYAGQYIPFFANAILNHNKFSKIDGDTYDLKALLIGNGWIDPNTQSLSYLPFAMEKKLIDESNPNFKHLTNAHENCQNLINSASTDEAAHFSYQECENILNLLLSYTRESSQKGTADCLNMYNFNLKDSYPSCGMNWPKDISFVSKFFSTPGVIDSLHLDSDKIDHWKECTNSVGTKLSNPISKPSIHLLPGLLESGIEIVLFNGDKDLICNNKGVLDTIDNLKWGGIKGFSDDAVSFDWIHKSKSTDDSEEFSGYVKYDRNLTFVSVYNASHMVPFDKSLVSRGIVDIYSNDVMIIDNNGKNVMITT
->glycan|two-sugar
-NAG(1-4 NAG)
->glycan|one-sugar
-NAG
-"""
-
-fasta_path = Path("/tmp/example.fasta")
-fasta_path.write_text(glycosylated_fasta)
-
 # Inference expects an empty directory; enforce this
 output_dir = Path("/workspaces/chai-lab/tmp/outputs")
 if output_dir.exists():
@@ -26,7 +14,7 @@ if output_dir.exists():
 output_dir.mkdir(exist_ok=True, parents=True)
 
 candidates = run_inference(
-    fasta_file=fasta_path,
+    fasta_file=Path(__file__).with_name("1ac5.fasta"),
     output_dir=output_dir,
     constraint_path=Path(__file__).with_name("bonds.restraints"),
     # 'default' setup

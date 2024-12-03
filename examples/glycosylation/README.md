@@ -55,7 +55,7 @@ NAG(1-4 NAG(1-4 NAG(1-4 NAG)))
 >glycan|branched-glycan
 NAG(1-4 NAG(1-4 NAG))(3-4 MAN)
 ```
-This branched example has a root `NAG` ring with a branch with two more `NAG` rings and a branch with a single `MAN` ring. 
+This branched example has a root `NAG` ring with a branch with two more `NAG` rings and a branch with a single `MAN` ring. For additional examples, please refer to the examples tested in the `tests/test_glycans.py` test file.
 
 ### Example
 

@@ -390,33 +390,36 @@ def generate_colabfold_msas(
             a3m_path = a3ms_dir / f"{hash_sequence(protein_seq.upper())}.a3m"
             a3m_path.write_text(msa)
 
-            # Convert the A3M file into aligned parquet files
-            msa_fasta = read_fasta(a3m_path)
-            headers, msa_seqs = zip(*msa_fasta)
+            convert_a3m_to_parquet(a3m_path, msa_dir, protein_seq)
 
-            # This shouldn't have much of an effect on the model, but we make
-            # a best effort to synthesize a source database anyway
-            source_databases = ["query"] + [
-                "uniref90" if h.startswith("UniRef") else "bfd_uniclust"
-                for h in headers[1:]
-            ]
+def convert_a3m_to_parquet(a3m_path: Path, msa_dir: Path, protein_seq: str):
+    msa_fasta = read_fasta(a3m_path)
+    headers, msa_seqs = zip(*msa_fasta)
 
-            # Map the MSAs to our internal format
-            aligned_df = pd.DataFrame(
-                data=dict(
-                    sequence=msa_seqs,
-                    source_database=source_databases,
-                    # ColabFold does not return taxonomies from its API, so we
-                    # can't rely on our internal chain pairing logic. As an
-                    # alternative, we could disable ColabFold pairing and rely
-                    # on a mapping from sequence ~> taxonomy, which would allow
-                    # us to use our internal pairing logic.
-                    pairing_key="",
-                    comment="",
-                ),
-            )
-            msa_path = msa_dir / expected_basename(protein_seq)
-            if not msa_path.exists():
-                # If we have a homomer, we might see the same chain multiple
-                # times. The MSAs should be identical for each.
-                aligned_df.to_parquet(msa_path)
+    # This shouldn't have much of an effect on the model, but we make
+    # a best effort to synthesize a source database anyway
+    source_databases = ["query"] + [
+        "uniref90" if h.startswith("UniRef") else "bfd_uniclust"
+        for h in headers[1:]
+    ]
+
+    # Map the MSAs to our internal format
+    aligned_df = pd.DataFrame(
+        data=dict(
+            sequence=msa_seqs,
+            source_database=source_databases,
+            # ColabFold does not return taxonomies from its API, so we
+            # can't rely on our internal chain pairing logic. As an
+            # alternative, we could disable ColabFold pairing and rely
+            # on a mapping from sequence ~> taxonomy, which would allow
+            # us to use our internal pairing logic.
+            pairing_key="",
+            comment="",
+        ),
+    )
+
+    msa_path = msa_dir / expected_basename(protein_seq)
+    if not msa_path.exists():
+        # If we have a homomer, we might see the same chain multiple
+        # times. The MSAs should be identical for each.
+        aligned_df.to_parquet(msa_path)

@@ -1,12 +1,11 @@
 # Copyright (c) 2024 Chai Discovery, Inc.
 # Licensed under the Apache License, Version 2.0.
 # See the LICENSE file for details.
-
-
 import math
 from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Optional
 
 import numpy as np
 import torch
@@ -29,7 +28,7 @@ from chai_lab.data.dataset.constraints.restraint_context import (
 from chai_lab.data.dataset.embeddings.embedding_context import EmbeddingContext
 from chai_lab.data.dataset.embeddings.esm import get_esm_embedding_context
 from chai_lab.data.dataset.inference_dataset import load_chains_from_raw, read_inputs
-from chai_lab.data.dataset.msas.colabfold import generate_colabfold_msas
+from chai_lab.data.dataset.msas.colabfold import generate_colabfold_msas, convert_a3m_to_parquet
 from chai_lab.data.dataset.msas.load import get_msa_contexts
 from chai_lab.data.dataset.msas.msa_context import MSAContext
 from chai_lab.data.dataset.structure.all_atom_structure_context import (
@@ -284,13 +283,14 @@ def run_inference(
     use_esm_embeddings: bool = True,
     use_msa_server: bool = False,
     msa_server_url: str = "https://api.colabfold.com",
-    msa_directory: Path | None = None,
-    constraint_path: Path | None = None,
+    msa_directory: Optional[Path] = None,
+    parse_a3m_files: bool = False,
+    constraint_path: Optional[Path] = None,
     # expose some params for easy tweaking
     num_trunk_recycles: int = 3,
     num_diffn_timesteps: int = 200,
-    seed: int | None = None,
-    device: str | None = None,
+    seed: Optional[int] = None,
+    device: Optional[int] = None,
 ) -> StructureCandidates:
     if output_dir.exists():
         assert not any(
@@ -323,13 +323,13 @@ def run_inference(
     n_actual_tokens = merged_context.num_tokens
     raise_if_too_many_tokens(n_actual_tokens)
 
+    protein_sequences = [
+        chain.entity_data.sequence
+        for chain in chains
+        if chain.entity_data.entity_type == EntityType.PROTEIN
+    ]
     # Generated and/or load MSAs
     if use_msa_server:
-        protein_sequences = [
-            chain.entity_data.sequence
-            for chain in chains
-            if chain.entity_data.entity_type == EntityType.PROTEIN
-        ]
         msa_dir = output_dir / "msas"
         msa_dir.mkdir(parents=True, exist_ok=False)
         generate_colabfold_msas(
@@ -341,6 +341,10 @@ def run_inference(
             chains, msa_directory=msa_dir
         )
     elif msa_directory is not None:
+        if parse_a3m_files:
+            for protein_seq, a3m_file in zip(protein_sequences, msa_directory.glob("*.a3m"), strict=True):
+                convert_a3m_to_parquet(a3m_file, msa_directory, protein_seq)
+
         msa_context, msa_profile_context = get_msa_contexts(
             chains, msa_directory=msa_directory
         )

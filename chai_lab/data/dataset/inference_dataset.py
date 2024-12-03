@@ -145,6 +145,7 @@ def raw_inputs_to_entitites_data(
                 method="none",
                 entity_type=entity_type,
                 subchain_id=_synth_subchain_id(i),
+                original_record=input.sequence,
             )
         )
 

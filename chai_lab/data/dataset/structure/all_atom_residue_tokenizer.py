@@ -14,6 +14,9 @@ from chai_lab.data.dataset.structure import utils
 from chai_lab.data.dataset.structure.all_atom_structure_context import (
     AllAtomStructureContext,
 )
+from chai_lab.data.dataset.structure.bond_utils import (
+    get_atom_covalent_bond_pairs_from_glycan_string,
+)
 from chai_lab.data.dataset.structure.utils import (
     backbone_atoms_all_present,
     backbone_atoms_indices,
@@ -510,6 +513,15 @@ class AllAtomResidueTokenizer:
                 dtype=torch.bool,
             ),
             symmetries=tokens.symmetries,
+            atom_covalent_bond_indices=get_atom_covalent_bond_pairs_from_glycan_string(
+                glycan_string=(
+                    entity_data.original_record
+                    if entity_data.entity_type == EntityType.MANUAL_GLYCAN
+                    else ""
+                ),
+                token_residue_index=tokens.residue_index,
+                atom_ref_name=tokens.atom_names,
+            ),
         )
 
     def _get_ref_conformer_data(self, residue: Residue) -> ConformerData:

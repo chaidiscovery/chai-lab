@@ -66,12 +66,7 @@ class AllAtomStructureContext:
     # symmetric atom swap indices
     symmetries: Int[Tensor, "n_atoms n_symmetries"]
     # token bond feature
-    atom_covalent_bond_indices: tuple[
-        Int[Tensor, "n_bonds"], Int[Tensor, "n_bonds"]
-    ] = (
-        torch.empty(0, dtype=torch.long),
-        torch.empty(0, dtype=torch.long),
-    )
+    atom_covalent_bond_indices: tuple[Int[Tensor, "n_bonds"], Int[Tensor, "n_bonds"]]
 
     def __post_init__(self):
         # Resolved residues filter should eliminate PDBs with missing residues, but that
@@ -149,6 +144,7 @@ class AllAtomStructureContext:
             resolution=self.resolution,
             is_distillation=self.is_distillation,
             symmetries=pad_atoms_func(self.symmetries, pad_value=-1),
+            atom_covalent_bond_indices=self.atom_covalent_bond_indices,
         )
 
     @typecheck
@@ -183,6 +179,30 @@ class AllAtomStructureContext:
 
         n_tokens = sum(x.num_tokens for x in contexts)
         token_index = torch.arange(n_tokens, dtype=torch.int)
+
+        # Merge and offset bond indices
+        atom_covalent_bond_indices_manual_a = []
+        atom_covalent_bond_indices_manual_b = []
+        for ctx, count in zip(contexts, atom_offsets):
+            if ctx.atom_covalent_bond_indices is None:
+                continue
+            a, b = ctx.atom_covalent_bond_indices
+            atom_covalent_bond_indices_manual_a.append(a + count)
+            atom_covalent_bond_indices_manual_b.append(b + count)
+        assert len(atom_covalent_bond_indices_manual_a) == len(
+            atom_covalent_bond_indices_manual_b
+        )
+        atom_covalent_bond_indices = (
+            (
+                torch.concatenate(atom_covalent_bond_indices_manual_a),
+                torch.concatenate(atom_covalent_bond_indices_manual_b),
+            )
+            if atom_covalent_bond_indices_manual_a
+            else (
+                torch.zeros(0, dtype=torch.long),
+                torch.zeros(0, dtype=torch.long),
+            )
+        )
 
         # re-index the reference space from 0..n_tokens-1.
         zero_indexed_ref_uids = [
@@ -262,6 +282,7 @@ class AllAtomStructureContext:
                 torch.stack([x.is_distillation for x in contexts]), 0
             ).values,
             symmetries=symmetries,
+            atom_covalent_bond_indices=atom_covalent_bond_indices,
         )
 
     def to(self, device: torch.device | str) -> "AllAtomStructureContext":

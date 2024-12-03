@@ -2,7 +2,9 @@
 
 Chai-1 supports specifying covalent bonds as input, which specify covalent linkages between atoms in the folded complex. This is particularly useful for specifying glycosylation events, which we demonstrate below, but can be generally used to specify "non-canonical" bonds in a structure.
 
-NOTE: Chai-1 was not trained on disulfide bonds, and we have not evaluated whether specifying such bond information yields expected behaviors. 
+A few notes:
+- Chai-1 was not trained on disulfide bonds, and we have not evaluated whether specifying such bond information yields expected behaviors. 
+- These bond restraints should not be used to specify modified amino acids that already have an associated CCD code; for these examples, specify the modified residue's CCD code in parentheses directly in the sequence, e.g., `RKDES(MSE)EES` to specify a selenomethionine.
 
 ## Glycans
 

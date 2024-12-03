@@ -14,6 +14,7 @@ from chai_lab.model.utils import get_asym_id_from_subchain_id
 from chai_lab.utils.typing import Int, UInt8, typecheck
 
 
+@typecheck
 def get_atom_covalent_bond_pairs_from_constraints(
     provided_constraints: list[PairwiseInteraction],
     token_residue_index: Int[Tensor, "n_tokens"],
@@ -87,8 +88,14 @@ def get_atom_covalent_bond_pairs_from_constraints(
                 assert (
                     torch.sum(left_atom_mask) == torch.sum(right_atom_mask) == 1
                 ), f"Expect single atoms, got {torch.sum(left_atom_mask)}, {torch.sum(right_atom_mask)}"
-                ret_a.append(torch.where(left_atom_mask)[0].item())  # type: ignore
-                ret_b.append(torch.where(right_atom_mask)[0].item())  # type: ignore
+
+                left_atom_idx = torch.where(left_atom_mask)[0]
+                right_atom_idx = torch.where(right_atom_mask)[0]
+                left_token_idx = atom_token_index[left_atom_idx]
+                right_token_idx = atom_token_index[right_atom_idx]
+
+                ret_a.append(left_token_idx.item())  # type: ignore
+                ret_b.append(right_token_idx.item())  # type: ignore
 
             case PairwiseInteractionType.CONTACT | PairwiseInteractionType.POCKET:
                 # These are handled as constraints, not as bonds

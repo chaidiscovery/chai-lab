@@ -84,6 +84,10 @@ class AllAtomStructureContext:
             pdb_id = tensorcode_to_string(self.pdb_id[0])
             logger.error(f"Incompatible masks for {pdb_id}")
 
+        # Check that bonds are in token space, NOT atom space
+        assert torch.all(self.atom_covalent_bond_indices[0] < self.num_tokens)
+        assert torch.all(self.atom_covalent_bond_indices[1] < self.num_tokens)
+
     @cached_property
     def residue_names(self) -> list[str]:
         return batch_tensorcode_to_string(self.token_residue_name)
@@ -180,10 +184,10 @@ class AllAtomStructureContext:
         n_tokens = sum(x.num_tokens for x in contexts)
         token_index = torch.arange(n_tokens, dtype=torch.int)
 
-        # Merge and offset bond indices
+        # Merge and offset bond indices, which are indexed by *token*
         atom_covalent_bond_indices_manual_a = []
         atom_covalent_bond_indices_manual_b = []
-        for ctx, count in zip(contexts, atom_offsets):
+        for ctx, count in zip(contexts, token_offsets):
             if ctx.atom_covalent_bond_indices is None:
                 continue
             a, b = ctx.atom_covalent_bond_indices

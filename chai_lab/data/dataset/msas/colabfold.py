@@ -26,7 +26,7 @@ TQDM_BAR_FORMAT = (
 )
 
 
-# N.B. this code is copied from https://github.com/sokrypton/ColabFold
+# N.B. this function (and this function only) is copied from https://github.com/sokrypton/ColabFold
 # and follows the license in that repository
 @typing.no_type_check  # Original ColabFold code was not well typed
 def _run_mmseqs2(

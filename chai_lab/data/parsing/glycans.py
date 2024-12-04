@@ -81,7 +81,7 @@ def _glycan_string_to_sugars_and_bonds(
 
 def glycan_string_residues(glycan_string: str) -> list[Residue]:
     sugars, _bonds = _glycan_string_to_sugars_and_bonds(glycan_string)
-    retval = [
+    return [
         Residue(
             name=sugar,
             label_seq=i + 1,
@@ -94,4 +94,3 @@ def glycan_string_residues(glycan_string: str) -> list[Residue]:
         )
         for i, sugar in enumerate(sugars)
     ]
-    return retval

@@ -522,6 +522,7 @@ def run_folding_on_context(
     ## Bond feature generator
     ## Separate from other feature embeddings due to export limitations
     ##
+
     bond_ft_gen = TokenBondRestraint()
     bond_ft = bond_ft_gen.generate(batch=batch).data
     trunk_bond_feat, structure_bond_feat = bond_loss_input_proj.forward(

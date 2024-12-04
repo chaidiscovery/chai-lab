@@ -1,3 +1,5 @@
+import logging
+import shutil
 from pathlib import Path
 
 import numpy as np
@@ -26,7 +28,12 @@ CCCCCCCCCCCCCC(=O)O
 fasta_path = Path("/tmp/example.fasta")
 fasta_path.write_text(example_fasta)
 
+# Inference expects an empty directory; enforce this
 output_dir = Path("/tmp/outputs")
+if output_dir.exists():
+    logging.warning(f"Removing old output directory: {output_dir}")
+    shutil.rmtree(output_dir)
+output_dir.mkdir(exist_ok=True)
 
 candidates = run_inference(
     fasta_file=fasta_path,

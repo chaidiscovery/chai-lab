@@ -16,3 +16,4 @@ class EntityType(Enum):
     POLYMER_HYBRID = 4
     WATER = 5
     UNKNOWN = 6
+    MANUAL_GLYCAN = 7  # NOTE glycan parsing

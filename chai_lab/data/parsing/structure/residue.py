@@ -77,6 +77,7 @@ class Residue:
     b_factor_or_plddt: float
     conformer_data: ConformerData | None
     smiles: str | None = None
+    is_covalent_bonded: bool = False
 
 
 def get_restype(

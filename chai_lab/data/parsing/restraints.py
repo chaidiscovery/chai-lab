@@ -90,22 +90,25 @@ class PairwiseInteraction:
     @property
     def res_idxA_name(self) -> str:
         """Single-char name of residue A."""
-        return self.res_idxA[0]
+        return self.res_idxA[0] if self.res_idxA else ""
 
     @property
     def res_idxA_pos(self) -> int:
-        """1-indexed position of residue A."""
-        return int(self.res_idxA[1:])
+        """1-indexed position of residue A; defaults to 1 if not given."""
+        # NOTE 1 default is because 1 is the minimum index under 1-indexing
+        s = self.res_idxA[1:]
+        return int(s) if s else 1
 
     @property
     def res_idxB_name(self) -> str:
         """Single-char name of residue B."""
-        return self.res_idxB[0]
+        return self.res_idxB[0] if self.res_idxB else ""
 
     @property
     def res_idxB_pos(self) -> int:
-        """1-indexed position of residue B."""
-        return int(self.res_idxB[1:])
+        """1-indexed position of residue B; defaults to 1 if not given."""
+        s = self.res_idxB[1:]
+        return int(s) if s else 1
 
     def to_table_entry(self) -> dict[str, str | float]:
         """Format as table entry, sans leading restraint_id column."""

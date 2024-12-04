@@ -34,6 +34,7 @@ class AllAtomEntityData:
     entity_type: EntityType
     subchain_id: str
     is_d_polypeptide: bool = False  # NOTE (mostly) exists for eval set construction
+    original_record: str = ""  # NOTE for glycan parsing
 
     def __post_init__(self):
         assert (

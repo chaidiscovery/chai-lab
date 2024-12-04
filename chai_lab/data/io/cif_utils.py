@@ -8,7 +8,14 @@ from pathlib import Path
 import gemmi
 import modelcif
 import torch
-from ihm import ChemComp, DNAChemComp, LPeptideChemComp, NonPolymerChemComp, RNAChemComp
+from ihm import (
+    ChemComp,
+    DNAChemComp,
+    LPeptideChemComp,
+    NonPolymerChemComp,
+    RNAChemComp,
+    SaccharideChemComp,
+)
 from modelcif import Assembly, AsymUnit, Entity, dumper, model
 from torch import Tensor
 
@@ -93,6 +100,8 @@ def _to_chem_component(res_name_3: str, entity_type: int):
         case EntityType.LIGAND.value:
             code = res_name_3
             return NonPolymerChemComp(res_name_3)
+        case EntityType.MANUAL_GLYCAN.value:
+            return SaccharideChemComp(id=res_name_3, name=res_name_3)
         case EntityType.PROTEIN.value:
             code = restype_3to1.get(res_name_3, res_name_3)
             one_letter_code = gemmi.find_tabulated_residue(res_name_3).one_letter_code
@@ -105,7 +114,7 @@ def _to_chem_component(res_name_3: str, entity_type: int):
             code = res_name_3
             return RNAChemComp(res_name_3, code, code_canonical=code)
         case _:
-            raise NotImplementedError
+            raise NotImplementedError(f"Cannot handle entity type: {entity_type}")
 
 
 def sequence_to_chem_comps(sequence: list[str], entity_type: int) -> list[ChemComp]:

@@ -363,6 +363,10 @@ def generate_colabfold_msas(
     assert msa_dir.is_dir(), "MSA directory must be a dir"
     assert not any(msa_dir.iterdir()), "MSA directory must be empty"
 
+    if not protein_seqs:
+        logger.warning("No protein sequences for MSA generation; this is a no-op.")
+        return
+
     with tempfile.TemporaryDirectory() as tmp_dir_path:
         tmp_dir = Path(tmp_dir_path)
 

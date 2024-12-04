@@ -459,7 +459,7 @@ def generate_colabfold_msas(
             # NOTE we already dropped the query row from the single MSAs so no need to slice
             source_databases = ["query"] + [
                 "uniref90" if h.startswith("UniRef") else "bfd_uniclust"
-                for h in paired_headers[1:] + single_headers
+                for h in (paired_headers + single_headers)[1:]
             ]
 
             # Combine information across paired and single hits

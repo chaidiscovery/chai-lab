@@ -52,3 +52,4 @@ def test_ions_parsing(tokenizer: AllAtomResidueTokenizer):
     chain = chains[0]
     assert chain.structure_context.num_atoms == 1
     assert chain.structure_context.atom_ref_charge == 2
+    assert chain.structure_context.atom_ref_element.item() == 12

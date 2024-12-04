@@ -349,7 +349,7 @@ def generate_colabfold_msas(
 ):
     """
     Generate MSAs using the ColabFold (https://github.com/sokrypton/ColabFold)
-    server.
+    server. No-op if no protein sequences are given.
 
     N.B. the MSAs in our technical report were generated using jackhmmer, not
     ColabFold, so we would expect some difference in results.
@@ -362,6 +362,9 @@ def generate_colabfold_msas(
     """
     assert msa_dir.is_dir(), "MSA directory must be a dir"
     assert not any(msa_dir.iterdir()), "MSA directory must be empty"
+    if not protein_seqs:
+        logger.warning("No protein sequences for MSA generation; this is a no-op.")
+        return
 
     with tempfile.TemporaryDirectory() as tmp_dir_path:
         tmp_dir = Path(tmp_dir_path)

@@ -18,6 +18,7 @@ from tqdm import tqdm
 from chai_lab import __version__
 from chai_lab.data.parsing.fasta import read_fasta
 from chai_lab.data.parsing.msas.aligned_pqt import expected_basename, hash_sequence
+from chai_lab.data.parsing.msas.data_source import MSADataSource
 
 logger = logging.getLogger(__name__)
 
@@ -458,7 +459,11 @@ def generate_colabfold_msas(
             # a best effort to synthesize a source database anyway
             # NOTE we already dropped the query row from the single MSAs so no need to slice
             source_databases = ["query"] + [
-                "uniref90" if h.startswith("UniRef") else "bfd_uniclust"
+                (
+                    MSADataSource.UNIREF90.value
+                    if h.startswith("UniRef")
+                    else MSADataSource.BFD_UNICLUST.value
+                )
                 for h in (paired_headers + single_headers)[1:]
             ]
 

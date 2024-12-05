@@ -16,7 +16,7 @@ import requests
 from tqdm import tqdm
 
 from chai_lab import __version__
-from chai_lab.data.parsing.fasta import read_fasta
+from chai_lab.data.parsing.fasta import Fasta, read_fasta
 from chai_lab.data.parsing.msas.aligned_pqt import expected_basename, hash_sequence
 from chai_lab.data.parsing.msas.data_source import MSADataSource
 
@@ -393,6 +393,7 @@ def generate_colabfold_msas(
         # In paired mode, mmseqs2 returns paired a3ms where all a3ms have the same number of rows
         # and each row is already paired to have the same species. As such, we insert pairing key
         # as the i-th index of the sequence so long as it isn't a padding sequence (all -)
+        paired_msas: list[str]
         if len(protein_seqs) > 1:
             paired_msas = _run_mmseqs2(
                 protein_seqs,
@@ -403,8 +404,7 @@ def generate_colabfold_msas(
             )
         else:
             # If we only have a single protein chain, there are no paired MSAs by definition
-            paired_msas = ["" for _ in protein_seqs]
-        assert isinstance(paired_msas, list)
+            paired_msas = [""] * len(protein_seqs)
 
         # MSAs without pairing logic attached; may include sequences not contained in the paired MSA
         # Needs a second call as the colabfold server returns either paired or unpaired, not both
@@ -430,30 +430,30 @@ def generate_colabfold_msas(
             ## Convert the A3M file into aligned parquet files
             # Set the pairing key as the ith-index in the sequences, skip over sequences that have
             # been inserted as padding as our internal pairing logic will match on pairing key.
-            paired_fasta: list[tuple[int, str, str]] = [
-                (pairkey, record.header, record.sequence)
+            paired_fasta: list[tuple[str, str, str]] = [
+                (str(pairkey), record.header, record.sequence)
                 for pairkey, record in enumerate(read_fasta(pair_a3m_path))
                 if not _is_padding_msa_row(record.sequence)
             ]
             pairing_key, paired_headers, paired_msa_seqs = (
                 zip(*paired_fasta) if paired_fasta else ((), (), ())
             )
+            unique_paired_msa_seqs = set(paired_msa_seqs)
 
             # Non-paired MSA sequences that weren't already covered in the paired MSA; skip header
-            single_fasta: list[tuple[str, str]] = [
-                (record.header, record.sequence)
+            single_fasta: list[Fasta] = [
+                record
                 for i, record in enumerate(read_fasta(single_a3m_path))
                 if (
                     i > 0
                     and not _is_padding_msa_row(record.sequence)
-                    and record.sequence not in set(paired_msa_seqs)
+                    and record.sequence not in unique_paired_msa_seqs
                 )
             ]
-            single_headers, single_msa_seqs = (
-                zip(*single_fasta) if single_fasta else ((), ())
-            )
+            single_headers = [record.header for record in single_fasta]
+            single_msa_seqs = [record.sequence for record in single_fasta]
             # Create null pairing keys for each of the entries in the single MSA seq
-            single_null_pair_keys = ["" for _ in range(len(single_msa_seqs))]
+            single_null_pair_keys = [""] * len(single_msa_seqs)
 
             # This shouldn't have much of an effect on the model, but we make
             # a best effort to synthesize a source database anyway
@@ -464,12 +464,12 @@ def generate_colabfold_msas(
                     if h.startswith("UniRef")
                     else MSADataSource.BFD_UNICLUST.value
                 )
-                for h in (paired_headers + single_headers)[1:]
+                for h in (list(paired_headers) + single_headers)[1:]
             ]
 
             # Combine information across paired and single hits
-            all_sequences = paired_msa_seqs + single_msa_seqs
-            all_pairing_keys = [str(k) for k in pairing_key] + single_null_pair_keys
+            all_sequences = list(paired_msa_seqs) + single_msa_seqs
+            all_pairing_keys = list(pairing_key) + single_null_pair_keys
             assert (
                 len(all_sequences) == len(all_pairing_keys) == len(source_databases)
             ), f"Mismatched lengths: {len(all_sequences)=} {len(all_pairing_keys)=} {len(source_databases)=}"

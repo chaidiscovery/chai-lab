@@ -12,7 +12,7 @@ For more information on the model's performance and capabilities, see our [techn
 
 ```shell
 # version on pypi:
-pip install chai_lab==0.4.4
+pip install chai_lab==0.5.0
 
 # newest available version (updates daily to test features that weren't released yet):
 pip install git+https://github.com/chaidiscovery/chai-lab.git
@@ -123,7 +123,7 @@ Devcontainers work on local Linux setup, and on remote machines over an SSH conn
 Since this is an initial release, we expect to make some breaking changes to the API and are not guaranteeing backwards compatibility. We recommend pinning the current version in your requirements, i.e.:
 
 ```
-chai_lab==0.4.4
+chai_lab==0.5.0
 ```
 
 ## Citations

@@ -17,6 +17,7 @@ FULL_DEPTH = 16_384
 _UKEY_FOR_QUERY = (-999, -999)
 
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 
 def merge_main_msas_by_chain(msas: list[MSAContext]) -> MSAContext:
@@ -120,7 +121,7 @@ def pair_and_merge_msas(msas: list[MSAContext]) -> MSAContext:
         selected_msa = msa.take_rows_with_padding(all_rowids)
 
         logger.info(
-            f"Loaded (paired in includes query sequence): "
+            f"Loaded (paired includes query sequence): "
             f"{n_paired_msa=} {n_unpaired_msa=} out of {msa.depth=} "
         )
 

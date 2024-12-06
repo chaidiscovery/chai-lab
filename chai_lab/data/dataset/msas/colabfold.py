@@ -390,6 +390,9 @@ def generate_colabfold_msas(
         # Generate MSAs for each protein chain
         logger.info(f"Running MSA generation for {len(protein_seqs)} protein sequences")
 
+        # Identify ourselves to the ColabFold server
+        user_agent = f"chai-lab/{__version__} feedback@chaidiscovery.com"
+
         # In paired mode, mmseqs2 returns paired a3ms where all a3ms have the same number of rows
         # and each row is already paired to have the same species. As such, we insert pairing key
         # as the i-th index of the sequence so long as it isn't a padding sequence (all -)
@@ -400,7 +403,7 @@ def generate_colabfold_msas(
                 mmseqs_paired_dir,
                 use_pairing=True,
                 host_url=msa_server_url,
-                user_agent=f"chai-lab/{__version__} feedback@chaidiscovery.com",
+                user_agent=user_agent,
             )
         else:
             # If we only have a single protein chain, there are no paired MSAs by definition
@@ -413,7 +416,7 @@ def generate_colabfold_msas(
             mmseqs_dir,
             use_pairing=False,
             host_url=msa_server_url,
-            user_agent=f"chai-lab/{__version__} feedback@chaidiscovery.com",
+            user_agent=user_agent,
         )
 
         # Process the MSAs into our internal format

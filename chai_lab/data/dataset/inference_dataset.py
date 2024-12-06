@@ -187,8 +187,12 @@ def load_chains_from_raw(
                 chain_id=chain_index,
                 sym_id=sym_id,
             )
-        except Exception:
-            logger.exception(f"Failed to tokenize input {entity_data=}  {sym_id=}")
+            if tok is None:
+                logger.exception(f"Failed to tokenize input {entity_data=}  {sym_id=}")
+        except Exception as e:
+            logger.exception(
+                f"Failed to tokenize input {entity_data=}  {sym_id=}", exc_info=e
+            )
             tok = None
         structure_contexts.append(tok)
 

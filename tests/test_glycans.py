@@ -1,7 +1,16 @@
 # Copyright (c) 2024 Chai Discovery, Inc.
 # Licensed under the Apache License, Version 2.0.
 # See the LICENSE file for details.
+import pytest
+
 from chai_lab.data.parsing.glycans import _glycan_string_to_sugars_and_bonds
+
+
+@pytest.mark.parametrize("ccd_code", ["MAN", "99K", "FUC"])
+def test_parsing_ccd_codes(ccd_code: str):
+    """Test that various single CCD codes are parsed correctly."""
+    res, _ = _glycan_string_to_sugars_and_bonds(ccd_code)
+    assert len(res) == 1
 
 
 def test_complex_parsing():

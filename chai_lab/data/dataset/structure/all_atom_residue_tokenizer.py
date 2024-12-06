@@ -183,6 +183,7 @@ class AllAtomResidueTokenizer:
             if (
                 residue.name in standard_residue_pdb_codes
                 and entity_type != EntityType.LIGAND
+                and entity_type != EntityType.MANUAL_GLYCAN
             )
             else self._tokenize_per_atom
         )
@@ -388,6 +389,9 @@ class AllAtomResidueTokenizer:
 
         valid_residues = [x for x in tokenized_residues if x is not None]
         if len(valid_residues) == 0:
+            logger.warning(
+                f"Got no residues for entity {entity_data.entity_id} with residues {entity_data.residues}"
+            )
             return None
 
         tokens = TokenSpan.concatenate(valid_residues)

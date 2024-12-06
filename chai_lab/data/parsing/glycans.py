@@ -67,7 +67,10 @@ def _glycan_string_to_sugars_and_bonds(
             continue
         # Not a bracket or a space - should be either bond info or CCD
         chunk = glycan_string[i : i + 3]
-        if re.match(r"[1-6]{1}-[1-6]{1}", chunk):
+        if re.match(r"[0-9A-Z]{3}", chunk):  # Match CCD codes (3 char, alphanumeric)
+            sugars.append(chunk)
+            parent_sugar_idx.append(len(sugars) - 1)  # latest sugar
+        elif re.match(r"[1-6]{1}-[1-6]{1}", chunk):
             s, d = chunk.split("-")
             assert parent_sugar_idx
             bonds.append(
@@ -91,6 +94,8 @@ def _glycan_string_to_sugars_and_bonds(
 
 def glycan_string_residues(glycan_string: str) -> list[Residue]:
     sugars, _bonds = _glycan_string_to_sugars_and_bonds(glycan_string)
+    if not sugars:
+        raise ValueError(f"No residues parsed from {glycan_string=}")
     return [
         Residue(
             name=sugar,

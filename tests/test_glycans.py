@@ -14,7 +14,7 @@ def test_parsing_ccd_codes(ccd_code: str):
 
 
 def test_complex_parsing():
-    glycan = "MAN(6-1 FUC)(4-1 MAN(6-1 MAN(6-1 MAN)))"
+    glycan = "MAN(6-1 FUC)(4-1 MAN(6-1 MAN(6-1 MAN)))".replace(" ", "")
     sugars, bonds = _glycan_string_to_sugars_and_bonds(glycan)
     assert len(sugars) == 5
 
@@ -32,8 +32,8 @@ def test_complex_parsing():
 
 
 def test_complex_parsing_2():
-    glycan = (
-        "MAN(4-1 FUC(4-1 MAN)(6-1 FUC(4-1 MAN)))(6-1 MAN(6-1 MAN(4-1 MAN)(6-1 FUC)))"
+    glycan = "MAN(4-1 FUC(4-1 MAN)(6-1 FUC(4-1 MAN)))(6-1 MAN(6-1 MAN(4-1 MAN)(6-1 FUC)))".replace(
+        " ", ""
     )
     sugars, bonds = _glycan_string_to_sugars_and_bonds(glycan)
     assert len(sugars) == 9

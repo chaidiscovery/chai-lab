@@ -45,26 +45,29 @@ def _glycan_string_to_sugars_and_bonds(
     glycan_string: str,
 ) -> tuple[list[str], list[GlycosidicBond]]:
     """Parses the glycan string to its constituent sugars and bonds."""
+    glycan_string = glycan_string.strip()  # Remove leading/trailing spaces
     sugars: list[str] = []  # Tracks all sugars
     parent_sugar_idx: list[int] = []  # Tracks the parent sugar for bond formation
     bonds: list[GlycosidicBond] = []
     open_count, closed_count = 0, 0
-    for i in range(len(glycan_string)):
+    i = 0  # We increment unevenly so manually handle
+    while i < len(glycan_string):
         char = glycan_string[i]
-        if char == " ":
+        if char == " ":  # Space; skip
+            i += 1
             continue
-        if char == "(":
+        if char == "(":  # Open bracket
+            i += 1
             open_count += 1
             continue
-        if char == ")":
+        if char == ")":  # Close bracket
             closed_count += 1
             parent_sugar_idx.pop()  # Remove
+            i += 1
             continue
+        # Not a bracket or a space - should be either bond info or CCD
         chunk = glycan_string[i : i + 3]
-        if re.match(r"[0-9A-Z]{3}", chunk):  # Match CCD codes (3 char, alphanumeric)
-            sugars.append(chunk)
-            parent_sugar_idx.append(len(sugars) - 1)  # latest sugar
-        elif re.match(r"[1-6]{1}-[1-6]{1}", chunk):
+        if re.match(r"[1-6]{1}-[1-6]{1}", chunk):
             s, d = chunk.split("-")
             assert parent_sugar_idx
             bonds.append(
@@ -75,6 +78,13 @@ def _glycan_string_to_sugars_and_bonds(
                     dst_atom=int(d),
                 )
             )
+            i += 3
+        elif re.match(r"[0-9A-Z]{3}", chunk):
+            sugars.append(chunk)
+            parent_sugar_idx.append(len(sugars) - 1)  # latest sugar
+            i += 3
+        else:
+            raise ValueError(f"Invalid glycan string: {glycan_string}")
     assert open_count == closed_count
     return sugars, bonds
 

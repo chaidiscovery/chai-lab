@@ -178,7 +178,7 @@ class AllAtomStructureContext:
                 b_bond = bonds_b.pop()
                 self.atom_exists_mask[b_bond] = False
                 logger.info(
-                    f"B: Dropping latter atom in bond {atom_b} elem {self.atom_ref_element[atom_b]} -> {b_bond} elem {self.atom_ref_element[b_bond]}"
+                    f"Bond {i} right: Dropping latter atom in bond {self.atom_residue_index[atom_b]} {self.atom_ref_name[atom_b]} -> {self.atom_residue_index[b_bond]} {self.atom_ref_name[b_bond]}"
                 )
                 continue  # Only identify one leaving atom per bond
 
@@ -202,7 +202,7 @@ class AllAtomStructureContext:
                 a_bond = bonds_a.pop()
                 self.atom_exists_mask[a_bond] = False
                 logger.info(
-                    f"A: Dropping latter atom in bond {atom_a} elem {self.atom_ref_element[atom_a]} -> {a_bond} elem {self.atom_ref_element[a_bond]}"
+                    f"Bond {i} left: Dropping latter atom in bond {self.atom_residue_index[atom_a]} {self.atom_ref_element[atom_a]} -> {self.atom_residue_index[a_bond]} {self.atom_ref_element[a_bond]}"
                 )
 
     def pad(

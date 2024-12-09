@@ -27,13 +27,20 @@ def test_complex_parsing():
 
     assert bond1.src_sugar_index == 0
     assert bond1.dst_sugar_index == 1
+    assert bond1.src_atom == 6
+    assert bond1.dst_atom == 1
     assert bond2.src_sugar_index == 0
     assert bond2.dst_sugar_index == 2
-    assert bond3.src_sugar_index == 2
+    assert bond2.src_atom == 4
+    assert bond2.dst_atom == 1
     assert bond3.src_sugar_index == 2
     assert bond3.dst_sugar_index == 3
+    assert bond3.src_atom == 6
+    assert bond3.dst_atom == 1
     assert bond4.src_sugar_index == 3
     assert bond4.dst_sugar_index == 4
+    assert bond4.src_atom == 6
+    assert bond4.dst_atom == 1
 
 
 def test_complex_parsing_2():

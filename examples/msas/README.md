@@ -66,7 +66,7 @@ Multiple strategies can be used for generating MSAs. In our [technical report](h
 ```python
 candidates = run_inference(
     ...
-    msa_sever=True,
+    msa_server=True,
     ...
 )
 ```

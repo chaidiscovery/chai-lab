@@ -9,7 +9,7 @@ import hashlib
 import logging
 from functools import lru_cache
 from pathlib import Path
-from typing import Literal, Mapping
+from typing import Literal, Mapping, Optional
 
 import pandas as pd
 import pandera as pa
@@ -174,7 +174,7 @@ def merge_multi_a3m_to_aligned_dataframe(
     msa_a3m_files: Mapping[Path, MSADataSource],
     insert_keys_for_sources: Literal["all", "none", "uniprot"] = "uniprot",
 ) -> pd.DataFrame:
-    """Merge multiple a3m files into a single aligned parquet file."""
+    """Merge multiple a3ms from the same query sequence into a single aligned parquet."""
     dfs = {
         src: a3m_to_aligned_dataframe(
             a3m_path,
@@ -198,10 +198,10 @@ def merge_multi_a3m_to_aligned_dataframe(
     return pd.concat(chunks, ignore_index=True).reset_index(drop=True)
 
 
-def _merge_files_in_directory(directory: str):
+def merge_a3m_in_directory(directory: str, output_directory: Optional[str] = None):
     """Finds .a3m files in a directory and combine them into a single aligned.pqt file.
     Files are expected to be named like hits_uniref90.a3m (uniref90 is the source database).
-    All files in the directoroy are assumed to be derived from the same query sequence.
+    All files in the directory are assumed to be derived from the same query sequence.
 
     Provided as a example commandline interface to merge files.
     """
@@ -226,7 +226,10 @@ def _merge_files_in_directory(directory: str):
     )
     # Get the query sequence and use it to determine where we save the file.
     query_seq: str = df.iloc[0]["sequence"]
-    df.to_parquet(dir_path / expected_basename(query_seq))
+    # Default to writing into the same directory if output directory isn't specified
+    outdir = Path(output_directory) if output_directory is not None else dir_path
+    outdir.mkdir(exist_ok=True, parents=True)
+    df.to_parquet(outdir / expected_basename(query_seq))
 
 
 if __name__ == "__main__":
@@ -234,4 +237,4 @@ if __name__ == "__main__":
 
     logging.basicConfig(level=logging.INFO)
 
-    typer.run(_merge_files_in_directory)
+    typer.run(merge_a3m_in_directory)

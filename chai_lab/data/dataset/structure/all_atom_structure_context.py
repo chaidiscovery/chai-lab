@@ -9,8 +9,10 @@ from functools import cached_property, partial
 import torch
 from torch import Tensor
 
+from chai_lab.data.parsing.structure.entity_type import EntityType
 from chai_lab.utils.tensor_utils import (
     batch_tensorcode_to_string,
+    cdist,
     tensorcode_to_string,
 )
 from chai_lab.utils.typing import Bool, Float, Int, UInt8, typecheck
@@ -106,6 +108,92 @@ class AllAtomStructureContext:
             logging.info(
                 f"Bond {i} (asym res_idx resname): {asym_a} {res_idx_a} {resname_a} <> {asym_b} {res_idx_b} {resname_b}"
             )
+
+    @typecheck
+    def _infer_co_bonds_within_conformer(
+        self,
+        atom_idx: int,
+        allowed_elements: list[int] | None = None,
+        exclude_polymers: bool = True,
+    ) -> Bool[Tensor, "{self.num_atoms}"]:
+        """Infer C-O bond indices that atom_idx participates in.
+
+        If exclude_polymers is True, then always return no bonds for polymer entities
+        """
+        tok = self.atom_token_index[atom_idx]
+        res = self.token_residue_index[tok]
+        asym = self.token_asym_id[tok]
+
+        if exclude_polymers and self.token_residue_type[tok] in (
+            EntityType.PROTEIN.value,
+            EntityType.DNA.value,
+            EntityType.RNA.value,
+            EntityType.POLYMER_HYBRID.value,
+        ):
+            return torch.zeros(self.num_atoms, dtype=torch.bool)
+
+        mask = (
+            (self.atom_residue_index == res)
+            & (self.atom_asym_id == asym)
+            & self.atom_exists_mask
+        )
+
+        distances = cdist(self.atom_gt_coords)
+        assert distances.shape == (self.num_atoms, self.num_atoms)
+        distances[torch.arange(self.num_atoms), torch.arange(self.num_atoms)] = (
+            torch.inf
+        )
+
+        is_allowed_element = (
+            torch.isin(
+                self.atom_ref_element, test_elements=torch.tensor(allowed_elements)
+            )
+            if allowed_elements is not None
+            else torch.ones_like(mask)
+        )
+        bond_candidates = (distances[atom_idx] < 1.5) & mask & is_allowed_element
+        return bond_candidates
+
+    def drop_leaving_atoms(self) -> None:
+        """Drop atoms that leave upon bond formation by setting atom_exists_mask."""
+        # For each of the bonds, identify the atoms within bond radius
+        for i, (atom_a, atom_b) in enumerate(zip(*self.atom_covalent_bond_indices)):
+            # Find the C-O bonds
+            (bond_candidates_b,) = torch.where(
+                self._infer_co_bonds_within_conformer(atom_b.item())
+            )
+            # Filter to bonds that link to terminal atoms
+            bonds_b = [
+                candidate
+                for candidate in bond_candidates_b.tolist()
+                if self._infer_co_bonds_within_conformer(candidate).sum() == 1
+            ]
+            # If there are multiple such bonds, we can't infer which to drop
+            if len(bonds_b) == 1:
+                b_bond = bonds_b.pop()
+                self.atom_exists_mask[b_bond] = False
+                logger.info(
+                    f"B: Dropping latter atom in bond {atom_b} elem {self.atom_ref_element[atom_b]} -> {b_bond} elem {self.atom_ref_element[b_bond]}"
+                )
+                continue  # Only identify one leaving atom per bond
+
+            # Repeat the above for atom_a
+            (bond_candidates_a,) = torch.where(
+                self._infer_co_bonds_within_conformer(atom_a.item())
+            )
+            # Filter to bonds that link to terminal atoms
+            bonds_a = [
+                candidate
+                for candidate in bond_candidates_a.tolist()
+                if self._infer_co_bonds_within_conformer(candidate).sum() == 1
+            ]
+            # If there are multiple such bonds, we can't infer which to drop
+            if len(bonds_a) == 1:
+                a_bond = bonds_a.pop()
+                self.atom_exists_mask[a_bond] = False
+                logger.info(
+                    f"A: Dropping latter atom in bond {atom_a} elem {self.atom_ref_element[atom_a]} -> {a_bond} elem {self.atom_ref_element[a_bond]}"
+                )
 
     def pad(
         self,
@@ -320,6 +408,14 @@ class AllAtomStructureContext:
     def num_atoms(self) -> int:
         (n_atoms,) = self.atom_token_index.shape
         return n_atoms
+
+    @property
+    def atom_residue_index(self) -> Int[Tensor, "n_atoms"]:
+        return self.token_residue_index[self.atom_token_index]
+
+    @property
+    def atom_asym_id(self) -> Int[Tensor, "n_atoms"]:
+        return self.token_asym_id[self.atom_token_index]
 
     def to_dict(self) -> dict[str, torch.Tensor]:
         return asdict(self)

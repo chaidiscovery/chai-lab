@@ -403,6 +403,9 @@ def run_inference(
     else:
         restraint_context = RestraintContext.empty()
 
+    # Handles leaving atoms for bonds in-place
+    merged_context.drop_leaving_atoms()
+
     # Build final feature context
     feature_context = AllAtomFeatureContext(
         chains=chains,

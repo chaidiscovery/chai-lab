@@ -140,6 +140,7 @@ def _to_chem_component(res_name_3: str, entity_type: int):
         case _:
             raise NotImplementedError(f"Cannot handle entity type: {entity_type}")
 
+
 def save_to_cif(
     coords: Float[Tensor, "1 n_atoms 3"],
     output_batch: dict,

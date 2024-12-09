@@ -83,7 +83,7 @@ def test_glycan_tokenization_with_bond():
         )
 
     # Each NAG component is C8 H15 N O6 -> 8 + 1 + 6 = 15 heavy atoms
-    # The bond between them displaces one oxygen, leaving 2 * 5 - 1 = 29 atoms
+    # The bond between them displaces one oxygen, leaving 2 * 15 - 1 = 29 atoms
     assert feature_context.structure_context.atom_exists_mask.sum() == 29
     # We originally constructed all atoms in dropped the atoms that leave
     assert feature_context.structure_context.atom_exists_mask.numel() == 30

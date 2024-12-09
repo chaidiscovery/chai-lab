@@ -1,6 +1,6 @@
 # Copyright (c) 2024 Chai Discovery, Inc.
-# This source code is licensed under the Chai Discovery Community License
-# Agreement (LICENSE.md) found in the root directory of this source tree.
+# Licensed under the Apache License, Version 2.0.
+# See the LICENSE file for details.
 
 import logging
 from dataclasses import asdict, dataclass
@@ -98,7 +98,7 @@ def load_manual_restraints_for_chai1(
     contact_constraints: list[ContactRestraint] = []
     pocket_constraints: list[PocketRestraint] = []
 
-    logger.info(f"Loading {len(provided_constraints)} constraints...")
+    logger.info(f"Loading {len(provided_constraints)} restraints...")
     for constraint in provided_constraints:
         match ctype := constraint.connection_type:
             case PairwiseInteractionType.COVALENT:

@@ -1,6 +1,6 @@
 # Copyright (c) 2024 Chai Discovery, Inc.
-# This source code is licensed under the Chai Discovery Community License
-# Agreement (LICENSE.md) found in the root directory of this source tree.
+# Licensed under the Apache License, Version 2.0.
+# See the LICENSE file for details.
 
 import logging
 import string
@@ -12,9 +12,24 @@ import modelcif
 import torch
 from einops import rearrange
 from ihm import ChemComp, DNAChemComp, LPeptideChemComp, RNAChemComp
+from ihm import (
+    ChemComp,
+    DNAChemComp,
+    LPeptideChemComp,
+    NonPolymerChemComp,
+    RNAChemComp,
+    SaccharideChemComp,
+)
 from modelcif import Assembly, AsymUnit, Entity, dumper, model
 from torch import Tensor
 
+from chai_lab.data.io.pdb_utils import (
+    PDBAtom,
+    PDBContext,
+    entity_to_pdb_atoms,
+    get_pdb_chain_name,
+    pdb_context_from_batch,
+)
 from chai_lab.data.io.pdb_utils import PDBContext, pdb_context_from_batch
 from chai_lab.data.parsing.structure.entity_type import EntityType
 from chai_lab.data.residue_constants import restype_3to1
@@ -117,7 +132,9 @@ def _to_chem_component(res_name_3: str, entity_type: int):
     match entity_type:
         case EntityType.LIGAND.value:
             code = res_name_3
-            return ChemComp(res_name_3, code, code_canonical=code)
+            return NonPolymerChemComp(res_name_3)
+        case EntityType.MANUAL_GLYCAN.value:
+            return SaccharideChemComp(id=res_name_3, name=res_name_3)
         case EntityType.PROTEIN.value:
             code = restype_3to1.get(res_name_3, res_name_3)
             one_letter_code = gemmi.find_tabulated_residue(res_name_3).one_letter_code
@@ -130,8 +147,7 @@ def _to_chem_component(res_name_3: str, entity_type: int):
             code = res_name_3
             return RNAChemComp(res_name_3, code, code_canonical=code)
         case _:
-            raise NotImplementedError()
-
+            raise NotImplementedError(f"Cannot handle entity type: {entity_type}")
 
 def save_to_cif(
     coords: Float[Tensor, "1 n_atoms 3"],

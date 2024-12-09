@@ -1,6 +1,6 @@
 # Copyright (c) 2024 Chai Discovery, Inc.
-# This source code is licensed under the Chai Discovery Community License
-# Agreement (LICENSE.md) found in the root directory of this source tree.
+# Licensed under the Apache License, Version 2.0.
+# See the LICENSE file for details.
 
 import logging
 from enum import Enum
@@ -16,3 +16,4 @@ class EntityType(Enum):
     POLYMER_HYBRID = 4
     WATER = 5
     UNKNOWN = 6
+    MANUAL_GLYCAN = 7  # NOTE glycan parsing

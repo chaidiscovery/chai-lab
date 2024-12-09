@@ -1,6 +1,6 @@
 # Copyright (c) 2024 Chai Discovery, Inc.
-# This source code is licensed under the Chai Discovery Community License
-# Agreement (LICENSE.md) found in the root directory of this source tree.
+# Licensed under the Apache License, Version 2.0.
+# See the LICENSE file for details.
 
 import typing
 
@@ -28,7 +28,7 @@ Func = typing.TypeVar("Func")
 
 def typecheck(cls_or_func: Func) -> Func:
     if should_typecheck:
-        return jaxtyped(typechecker=beartype)(cls_or_func)
+        return jaxtyped(typechecker=beartype)(cls_or_func)  # type: ignore
     else:
         return cls_or_func
 

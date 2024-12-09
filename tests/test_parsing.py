@@ -1,7 +1,11 @@
 # Copyright (c) 2024 Chai Discovery, Inc.
-# This source code is licensed under the Chai Discovery Community License
-# Agreement (LICENSE.md) found in the root directory of this source tree.
+# Licensed under the Apache License, Version 2.0.
+# See the LICENSE file for details.
 
+from pathlib import Path
+from tempfile import TemporaryDirectory
+
+from chai_lab.data.parsing.fasta import read_fasta
 from chai_lab.data.parsing.input_validation import (
     constituents_of_modified_fasta,
     identify_potential_entity_types,
@@ -50,3 +54,17 @@ def test_parsing():
 
     for rna in example_rna:
         assert EntityType.RNA in identify_potential_entity_types(rna)
+
+
+def test_fasta_parsing():
+    test_string = """>foo\nRKDES\n>bar\nKEDESRRR"""
+    with TemporaryDirectory() as tmpdir:
+        fa_file = Path(tmpdir) / "test.fasta"
+        fa_file.write_text(test_string)
+        records = read_fasta(fa_file)
+
+    assert len(records) == 2
+    assert records[0].header == "foo"
+    assert records[0].sequence == "RKDES"
+    assert records[1].header == "bar"
+    assert records[1].sequence == "KEDESRRR"

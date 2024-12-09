@@ -1,6 +1,6 @@
 # Copyright (c) 2024 Chai Discovery, Inc.
-# This source code is licensed under the Chai Discovery Community License
-# Agreement (LICENSE.md) found in the root directory of this source tree.
+# Licensed under the Apache License, Version 2.0.
+# See the LICENSE file for details.
 
 """
 Simple heuristics that can help with identification of EntityType
@@ -74,5 +74,5 @@ def identify_potential_entity_types(sequence: str) -> list[EntityType]:
 
     ascii_symbols = string.ascii_letters + string.digits + ".-+=#$%:/\\[]()<>@"
     if set.issubset(set(sequence.upper()), set(ascii_symbols)):
-        possible_entity_types.append(EntityType.LIGAND)
+        possible_entity_types.extend([EntityType.LIGAND, EntityType.MANUAL_GLYCAN])
     return possible_entity_types

@@ -24,7 +24,7 @@ See the following for a toy example of what this table might look like:
 | RKSES... | uniprot         | Mus musculus | A mouse sequence from uniprot |
 | ...      |
 
-We additionally provide example code to parse `a3m` files into this format; see `merge_multi_a3m_to_aligned_dataframe` in `chai_lab/data/parsing/msas/aligned_pqt.py`. This file can also be run as a commandline script; run `python chai_lab/data/parsing/msas/aligned_pqt.py --help` for details. Note, however, that this code defaults to only parsing pairing keys based on species annotation in UniProt files; this follows the logic described in both AlphaFold3 and AlphaFold2 multimer. To specify pairing keys for different data sources, or to use something other than species as the pairing key, we encourage users to build their own parsing logic to create `.aligned.pqt` files.
+We additionally provide example code to parse `a3m` files into this format; see `merge_multi_a3m_to_aligned_dataframe` in `chai_lab/data/parsing/msas/aligned_pqt.py`. This can also be run through commandline interface; run `chai a3m-to-pqt --help` for details. Note, however, that this code defaults to only parsing pairing keys based on species annotation in UniProt files; this follows the logic described in both AlphaFold3 and AlphaFold2 multimer. To specify pairing keys for different data sources, or to use something other than species as the pairing key, we encourage users to build their own parsing logic to create `.aligned.pqt` files.
 
 ### TLDR
 
@@ -57,3 +57,20 @@ import pandas as pd
 aligned_pqt = pd.read_parquet("examples/msas/703adc2c74b8d7e613549b6efcf37126da7963522dc33852ad3c691eef1da06f.aligned.pqt")
 aligned_pqt.head()
 ```
+
+
+## Additional MSA generation strategies
+
+Multiple strategies can be used for generating MSAs. In our [technical report](https://chaiassets.com/chai-1/paper/technical_report_v1.pdf), we generated MSAs using [jackhmmer](https://github.com/EddyRivasLab/hmmer). Other algorithms such as [MMseqs2](https://github.com/soedinglab/MMseqs2) can also be used. In this vein, we provide support for automatic MSA generation via the [ColabFold](https://github.com/sokrypton/ColabFold) server using `chai fold input.fasta output_directory --msa-server` or by invoking `run_inference` as follows:
+
+```python
+candidates = run_inference(
+    ...
+    msa_server=True,
+    ...
+)
+```
+
+Please note that performance will vary depending on the input MSA databases and search algorithms used.
+
+In addition, people have found that tweaking MSA inputs can be a fruitful path to improving folding results -- we such exploration of this for Chai-1 as well!

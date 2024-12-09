@@ -110,13 +110,13 @@ class AllAtomStructureContext:
             )
 
     @typecheck
-    def _infer_co_bonds_within_conformer(
+    def _infer_bonds_within_conformer(
         self,
         atom_idx: int,
         allowed_elements: list[int] | None = None,
         exclude_polymers: bool = True,
     ) -> Bool[Tensor, "{self.num_atoms}"]:
-        """Infer C-O bond indices that atom_idx participates in.
+        """Infer bond indices that atom_idx participates in.
 
         If exclude_polymers is True, then always return no bonds for polymer entities
         """
@@ -155,18 +155,23 @@ class AllAtomStructureContext:
         return bond_candidates
 
     def drop_leaving_atoms(self) -> None:
-        """Drop atoms that leave upon bond formation by setting atom_exists_mask."""
+        """Drop OH groups that leave upon bond formation by setting atom_exists_mask."""
         # For each of the bonds, identify the atoms within bond radius
         for i, (atom_a, atom_b) in enumerate(zip(*self.atom_covalent_bond_indices)):
             # Find the C-O bonds
             (bond_candidates_b,) = torch.where(
-                self._infer_co_bonds_within_conformer(atom_b.item())
+                self._infer_bonds_within_conformer(
+                    atom_b.item(), allowed_elements=[8], exclude_polymers=True
+                )
             )
             # Filter to bonds that link to terminal atoms
             bonds_b = [
                 candidate
                 for candidate in bond_candidates_b.tolist()
-                if self._infer_co_bonds_within_conformer(candidate).sum() == 1
+                if self._infer_bonds_within_conformer(
+                    candidate, exclude_polymers=True
+                ).sum()
+                == 1
             ]
             # If there are multiple such bonds, we can't infer which to drop
             if len(bonds_b) == 1:
@@ -177,15 +182,20 @@ class AllAtomStructureContext:
                 )
                 continue  # Only identify one leaving atom per bond
 
-            # Repeat the above for atom_a
+            # Repeat the above for atom_a if we didn't find anything for atom B
             (bond_candidates_a,) = torch.where(
-                self._infer_co_bonds_within_conformer(atom_a.item())
+                self._infer_bonds_within_conformer(
+                    atom_a.item(), allowed_elements=[8], exclude_polymers=True
+                )
             )
             # Filter to bonds that link to terminal atoms
             bonds_a = [
                 candidate
                 for candidate in bond_candidates_a.tolist()
-                if self._infer_co_bonds_within_conformer(candidate).sum() == 1
+                if self._infer_bonds_within_conformer(
+                    candidate, exclude_polymers=True
+                ).sum()
+                == 1
             ]
             # If there are multiple such bonds, we can't infer which to drop
             if len(bonds_a) == 1:

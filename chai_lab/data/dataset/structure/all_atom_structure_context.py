@@ -171,10 +171,12 @@ class AllAtomStructureContext:
             bonds_b = [
                 candidate
                 for candidate in bond_candidates_b.tolist()
-                if self._infer_bonds_within_conformer(
-                    candidate, exclude_polymers=True
-                ).sum()
-                == 1
+                if (
+                    self._infer_bonds_within_conformer(
+                        candidate, exclude_polymers=True
+                    ).sum()
+                    == 1
+                )
             ]
             # If there are multiple such bonds, we can't infer which to drop
             if len(bonds_b) == 1:
@@ -195,10 +197,12 @@ class AllAtomStructureContext:
             bonds_a = [
                 candidate
                 for candidate in bond_candidates_a.tolist()
-                if self._infer_bonds_within_conformer(
-                    candidate, exclude_polymers=True
-                ).sum()
-                == 1
+                if (
+                    self._infer_bonds_within_conformer(
+                        candidate, exclude_polymers=True
+                    ).sum()
+                    == 1
+                )
             ]
             # If there are multiple such bonds, we can't infer which to drop
             if len(bonds_a) == 1:

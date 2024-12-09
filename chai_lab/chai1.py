@@ -310,7 +310,7 @@ def run_inference(
     num_trunk_recycles: int = 3,
     num_diffn_timesteps: int = 200,
     seed: int | None = None,
-    device: str | None = None,
+    device: str | torch.device | None = None,
     low_memory: bool = True,
 ) -> StructureCandidates:
     if output_dir.exists():
@@ -563,7 +563,10 @@ def run_folding_on_context(
     bond_ft_gen = TokenBondRestraint()
     bond_ft = bond_ft_gen.generate(batch=batch).data
     trunk_bond_feat, structure_bond_feat = bond_loss_input_proj.forward(
-        crop_size=model_size, input=bond_ft
+        return_on_cpu=low_memory,
+        move_to_device=device,
+        crop_size=model_size,
+        input=bond_ft,
     ).chunk(2, dim=-1)
     token_pair_input_feats += trunk_bond_feat
     token_pair_structure_input_feats += structure_bond_feat

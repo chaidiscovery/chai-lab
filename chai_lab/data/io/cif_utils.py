@@ -11,9 +11,7 @@ import gemmi
 import modelcif
 import torch
 from einops import rearrange
-from ihm import ChemComp, DNAChemComp, LPeptideChemComp, RNAChemComp
 from ihm import (
-    ChemComp,
     DNAChemComp,
     LPeptideChemComp,
     NonPolymerChemComp,
@@ -23,13 +21,6 @@ from ihm import (
 from modelcif import Assembly, AsymUnit, Entity, dumper, model
 from torch import Tensor
 
-from chai_lab.data.io.pdb_utils import (
-    PDBAtom,
-    PDBContext,
-    entity_to_pdb_atoms,
-    get_pdb_chain_name,
-    pdb_context_from_batch,
-)
 from chai_lab.data.io.pdb_utils import PDBContext, pdb_context_from_batch
 from chai_lab.data.parsing.structure.entity_type import EntityType
 from chai_lab.data.residue_constants import restype_3to1

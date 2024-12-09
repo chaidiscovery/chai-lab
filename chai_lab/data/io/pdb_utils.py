@@ -3,17 +3,11 @@
 # See the LICENSE file for details.
 
 import logging
-import string
-from collections import defaultdict
-from dataclasses import asdict, dataclass, replace
 from dataclasses import asdict, dataclass
 from functools import cached_property
 
 from torch import Tensor
 
-from chai_lab.data.parsing.structure.entity_type import EntityType
-from chai_lab.utils.tensor_utils import tensorcode_to_string
-from chai_lab.utils.typing import Bool, Float, Int, UInt8, typecheck
 from chai_lab.utils.tensor_utils import tensorcode_to_string
 from chai_lab.utils.typing import Bool, Int, UInt8, typecheck
 

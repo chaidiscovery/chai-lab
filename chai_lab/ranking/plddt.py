@@ -1,9 +1,13 @@
+# Copyright (c) 2024 Chai Discovery, Inc.
+# This source code is licensed under the Chai Discovery Community License
+# Agreement (LICENSE.md) found in the root directory of this source tree.
+
 from dataclasses import dataclass
 
 from einops import repeat
 from torch import Tensor
 
-import chai_lab.ranking.utils as rutils
+import chai_lab.ranking.utils as rank_utils
 from chai_lab.utils.tensor_utils import masked_mean
 from chai_lab.utils.typing import Bool, Float, Int, typecheck
 
@@ -29,7 +33,7 @@ def plddt(
     bin_centers: Float[Tensor, "bins"],
     per_residue: bool = False,
 ) -> Float[Tensor, "..."] | Float[Tensor, "... a"]:
-    expectations = rutils.expectation(logits, bin_centers)
+    expectations = rank_utils.expectation(logits, bin_centers)
     if per_residue:
         return expectations
     else:
@@ -43,7 +47,7 @@ def per_chain_plddt(
     asym_id: Int[Tensor, "... a"],
     bin_centers: Float[Tensor, "bins"],
 ) -> Float[Tensor, "... c"]:
-    chain_masks, _ = rutils.get_chain_masks_and_asyms(asym_id, atom_mask)
+    chain_masks, _ = rank_utils.get_chain_masks_and_asyms(asym_id, atom_mask)
     logits = repeat(logits, "... a b -> ... c a b", c=chain_masks.shape[-2])
     return plddt(logits, chain_masks, bin_centers, per_residue=False)
 

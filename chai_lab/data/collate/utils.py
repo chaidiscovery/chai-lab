@@ -1,3 +1,7 @@
+# Copyright (c) 2024 Chai Discovery, Inc.
+# This source code is licensed under the Chai Discovery Community License
+# Agreement (LICENSE.md) found in the root directory of this source tree.
+
 from dataclasses import dataclass
 
 from chai_lab.data.dataset.structure.all_atom_structure_context import (
@@ -6,7 +10,7 @@ from chai_lab.data.dataset.structure.all_atom_structure_context import (
 
 # static graph is exported for different n_tokens,
 #  we pad to the closest one
-AVAILABLE_MODEL_SIZES = [256, 384, 512, 768, 1024, 2048]
+AVAILABLE_MODEL_SIZES = [256, 384, 512, 768, 1024, 1536, 2048]
 
 
 @dataclass(frozen=True)
@@ -30,5 +34,6 @@ def get_pad_sizes(contexts: list[AllAtomStructureContext]) -> PadSizes:
     max_n_atoms = max(context.num_atoms for context in contexts)
     n_atoms = 23 * n_tokens
     assert max_n_atoms <= n_atoms
+    assert n_atoms % 32 == 0
 
     return PadSizes(n_tokens=n_tokens, n_atoms=n_atoms)

@@ -3,10 +3,10 @@
 Chai-1 is a multi-modal foundation model for molecular structure prediction that performs at the state-of-the-art across a variety of benchmarks. Chai-1 enables unified prediction of proteins, small molecules, DNA, RNA, glycosylations, and more.
 
 <p align="center">
-    <img src='https://github.com/chaidiscovery/chai-lab/blob/main/assets/performance_barplot.png' height=400 >
+    <img src='https://github.com/chaidiscovery/chai-lab/blob/main/assets/performance_barplot.png' >
 </p>
 
-For more information on the model's performance and capabilities, see our [technical report](https://chaiassets.com/chai-1/paper/technical_report_v1.pdf).
+For more information on the model's performance and capabilities, see our [technical report](https://www.biorxiv.org/content/10.1101/2024.10.10.615955).
 
 ## Installation
 
@@ -14,13 +14,10 @@ For more information on the model's performance and capabilities, see our [techn
 # current version (updates daily):
 pip install git+https://github.com/chaidiscovery/chai-lab.git
 # version on pypi:
-pip install chai_lab==0.0.1
+pip install chai_lab==0.2.1
 ```
 
-This Python package requires Linux, and a GPU with CUDA and bfloat16 support 
-
-(we recommend A100/H100, but A10, A30 should work for smaller complexes. Users reported success with consumer-grade RTX 4090).
-
+This Python package requires Linux, and a GPU with CUDA and bfloat16 support. We recommend using an A100 80GB or H100 80GB chip, but A10s and A30s should work for smaller complexes. Users have also reported success with consumer-grade RTX 4090.
 
 ## Running the model
 
@@ -32,7 +29,28 @@ The following script demonstrates how to provide inputs to the model, and obtain
 python examples/predict_structure.py
 ```
 
-For more advanced use cases, we also expose the `chai_lab.chai1.run_folding_on_context`, which allows users to construct an `AllAtomFeatureContext` manually. This allows users to specify their own templates, MSAs, embeddings, and constraints. We currently provide an example of how to construct an embeddings context, and will be releasing helper methods to build MSA and templates contexts soon.
+For more advanced use cases, we also expose the `chai_lab.chai1.run_folding_on_context`, which allows users to construct an `AllAtomFeatureContext` manually. This allows users to specify their own templates, MSAs, embeddings, and constraints. We currently provide an example of how to construct an embeddings context as well as an MSA context, and will be releasing helper methods to build template contexts soon.
+
+<details>
+<summary>Where are downloaded weights stored?</summary>
+<p markdown="1">
+By default, weights are automatically downloaded and stored in <package_root>/downloads (usually that's within site-packages).
+In cases where you want to control the download location (e.g. on a mounted drive in Docker), you can use the CHAI_DOWNLOADS_DIR envvar to control the download location. For example:
+
+```bash
+CHAI_DOWNLOADS_DIR=/tmp/downloads python ./examples/predict_structure.py 
+```
+</p>
+</details>
+
+<details>
+<summary>How can MSAs be provided to Chai-1?</summary>
+<p markdown="1">
+
+Chai-1 supports MSAs provided as an `aligned.pqt` file. This file format is similar to an `a3m` file, but has additional columns that provide metadata like the source database and sequence pairing keys. We provide code to convert `a3m` files to `aligned.pqt` files. For more information on how to provide MSAs to Chai-1, see [this documentation](examples/msas/README.md).
+
+</p>
+</details>
 
 ## ⚡ Try it online
 
@@ -59,7 +77,25 @@ Devcontainers work on local Linux setup, and on remote machines over an SSH conn
 Since this is an initial release, we expect to make some breaking changes to the API and are not guaranteeing backwards compatibility. We recommend pinning the current version in your requirements, i.e.:
 
 ```
-chai_lab==0.0.1
+chai_lab==0.2.1
+```
+
+## Citations
+
+If you find Chai-1 useful in your research or use any structures produced by the model, we ask that you cite our technical report:
+
+```
+@article{Chai-1-Technical-Report,
+	title        = {Chai-1: Decoding the molecular interactions of life},
+	author       = {{Chai Discovery}},
+	year         = 2024,
+	journal      = {bioRxiv},
+	publisher    = {Cold Spring Harbor Laboratory},
+	doi          = {10.1101/2024.10.10.615955},
+	url          = {https://www.biorxiv.org/content/early/2024/10/11/2024.10.10.615955},
+	elocation-id = {2024.10.10.615955},
+	eprint       = {https://www.biorxiv.org/content/early/2024/10/11/2024.10.10.615955.full.pdf}
+}
 ```
 
 ## Licence 

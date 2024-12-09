@@ -31,11 +31,18 @@ esm_cache_folder = downloads_path.joinpath("esm")
 def esm_model(model_name: str, device):
     """Context transiently keeps ESM model on specified device."""
     from transformers import EsmModel
+    from transformers.utils.import_utils import is_torch_bf16_gpu_available
 
     if len(_esm_model) == 0:
         # lazy loading of the model
         _esm_model.append(
-            EsmModel.from_pretrained(model_name, cache_dir=esm_cache_folder)
+            EsmModel.from_pretrained(
+                model_name,
+                cache_dir=esm_cache_folder,
+                torch_dtype=(
+                    torch.float16 if is_torch_bf16_gpu_available() else torch.bfloat16
+                ),
+            )
         )
 
     [model] = _esm_model

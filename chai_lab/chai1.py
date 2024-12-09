@@ -86,7 +86,7 @@ from chai_lab.data.features.generators.token_dist_restraint import (
 from chai_lab.data.features.generators.token_pair_pocket_restraint import (
     TokenPairPocketRestraint,
 )
-from chai_lab.data.io.cif_utils import outputs_to_cif
+from chai_lab.data.io.cif_utils import save_to_cif
 from chai_lab.data.parsing.restraints import parse_pairwise_table
 from chai_lab.data.parsing.structure.entity_type import EntityType
 from chai_lab.model.diffusion_schedules import InferenceNoiseSchedule
@@ -863,7 +863,7 @@ def run_folding_on_context(
         # use 0-100 scale for pLDDT in pdb outputs
         scaled_plddt_scores_per_atom = 100 * plddt_scores_atom[idx : idx + 1]
 
-        outputs_to_cif(
+        save_to_cif(
             coords=atom_pos[idx : idx + 1],
             bfactors=scaled_plddt_scores_per_atom,
             output_batch=inputs,

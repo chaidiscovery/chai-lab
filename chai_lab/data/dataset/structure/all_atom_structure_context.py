@@ -138,9 +138,8 @@ class AllAtomStructureContext:
             & self.atom_exists_mask
         )
 
-        # While there are no valid "ground truth" coordinates here, this fields does contain
-        # reference conformers for each residue; pairwise distances are therefore valid within
-        # each residue
+        # This field contains reference conformers for each residue
+        # Pairwise distances are therefore valid within each residue
         distances = cdist(self.atom_gt_coords)
         assert distances.shape == (self.num_atoms, self.num_atoms)
         distances[torch.arange(self.num_atoms), torch.arange(self.num_atoms)] = (

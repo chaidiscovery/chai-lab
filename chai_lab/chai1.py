@@ -310,7 +310,7 @@ def run_inference(
     num_trunk_recycles: int = 3,
     num_diffn_timesteps: int = 200,
     seed: int | None = None,
-    device: str | torch.device | None = None,
+    device: str | None = None,
     low_memory: bool = True,
 ) -> StructureCandidates:
     if output_dir.exists():

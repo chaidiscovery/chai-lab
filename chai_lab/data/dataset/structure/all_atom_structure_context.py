@@ -116,7 +116,7 @@ class AllAtomStructureContext:
         allowed_elements: list[int] | None = None,
         exclude_polymers: bool = True,
     ) -> Bool[Tensor, "{self.num_atoms}"]:
-        """Infer bond indices that atom_idx participates in.
+        """Return mask for atoms that atom_idx might bond to based on distances.
 
         If exclude_polymers is True, then always return no bonds for polymer entities
         """
@@ -153,6 +153,7 @@ class AllAtomStructureContext:
             if allowed_elements is not None
             else torch.ones_like(mask)
         )
+        # Canonical bond length for C-O is 1.43 angstroms; add a bit of headroom
         bond_candidates = (distances[atom_idx] < 1.5) & mask & is_allowed_element
         return bond_candidates
 

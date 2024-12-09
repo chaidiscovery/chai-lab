@@ -3,13 +3,15 @@
 # See the LICENSE file for details.
 
 import logging
+import string
+from collections import defaultdict
 from pathlib import Path
 
 import gemmi
 import modelcif
 import torch
+from einops import rearrange
 from ihm import (
-    ChemComp,
     DNAChemComp,
     LPeptideChemComp,
     NonPolymerChemComp,
@@ -19,16 +21,10 @@ from ihm import (
 from modelcif import Assembly, AsymUnit, Entity, dumper, model
 from torch import Tensor
 
-from chai_lab.data.io.pdb_utils import (
-    PDBAtom,
-    PDBContext,
-    entity_to_pdb_atoms,
-    get_pdb_chain_name,
-    pdb_context_from_batch,
-)
+from chai_lab.data.io.pdb_utils import PDBContext, pdb_context_from_batch
 from chai_lab.data.parsing.structure.entity_type import EntityType
 from chai_lab.data.residue_constants import restype_3to1
-from chai_lab.utils.typing import Float
+from chai_lab.utils.typing import Float, Int, UInt8, typecheck
 
 logger = logging.getLogger(__name__)
 
@@ -39,11 +35,33 @@ class _LocalPLDDT(modelcif.qa_metric.Local, modelcif.qa_metric.PLDDT):
     description = "Predicted lddt"
 
 
+_CHAIN_VOCAB = [*string.ascii_uppercase, *string.ascii_lowercase]
+# single-letter, then double-letter
+_CHAIN_VOCAB = _CHAIN_VOCAB + [x + y for x in _CHAIN_VOCAB for y in _CHAIN_VOCAB]
+
+
+def _get_chain_letter(asym_id: int) -> str:
+    vocab_index = asym_id - 1  # 1 -> A, 2 -> B
+    return _CHAIN_VOCAB[vocab_index]
+
+
+@typecheck
+def _tensor_to_atom_names(
+    tensor: Int[Tensor, "n 4"] | UInt8[Tensor, "n 4"],
+) -> list[str]:
+    return [
+        "".join([chr(ord_val + 32) for ord_val in ords_atom]).rstrip()
+        for ords_atom in tensor
+    ]
+
+
+@typecheck
 def token_centre_plddts(
     context: PDBContext,
+    plddts: Float[Tensor, "n"],
     asym_id: int,
 ) -> tuple[list[float], list[int]]:
-    assert context.atom_bfactor_or_plddt is not None
+    assert plddts is not None
     mask = context.token_asym_id == asym_id
 
     atom_idces = context.token_centre_atom_index[mask]
@@ -51,48 +69,53 @@ def token_centre_plddts(
     # residue indices for tokens
     residue_indices = context.token_residue_index[mask]
 
-    return context.atom_bfactor_or_plddt[atom_idces].tolist(), residue_indices.tolist()
+    return plddts[atom_idces].tolist(), residue_indices.tolist()
 
 
-def get_chains_metadata(context: PDBContext) -> list[dict]:
+def get_chains_metadata(context: PDBContext, entity_names) -> dict[int, AsymUnit]:
     # for each chain, get chain id, entity id, full sequence
     token_res_names = context.token_res_names_to_string
 
-    records = []
+    asym_id2asym_unit = {}
 
-    for asym_id in torch.unique(context.token_asym_id):
-        if asym_id == 0:  # padding
-            continue
+    for asym_id, entity_type in context.asym_id2entity_type.items():
+        assert asym_id != 0, "zero is padding for asym_id"
 
-        token_indices = torch.where(context.token_asym_id == asym_id)[0]
+        [token_indices] = torch.where(context.token_asym_id == asym_id)
         chain_token_res_names = [token_res_names[i] for i in token_indices]
 
         residue_indices = context.token_residue_index[token_indices]
 
         # check no missing residues
-        max_res = torch.max(residue_indices).item()
-        tokens_in_residue = (
-            residue_indices == torch.arange(max_res + 1)[..., None]
-        )  # (residues, tokens)
-        assert tokens_in_residue.any(dim=-1).all()
+        max_res = int(torch.max(residue_indices).item())
 
-        first_token_in_resi = torch.argmax(tokens_in_residue.int(), dim=-1)
+        any_token_in_resi = residue_indices.new_zeros([max_res + 1]) - 99
 
-        sequence = [chain_token_res_names[i] for i in first_token_in_resi]
-        entity_id = context.token_entity_id[token_indices][0]
-
-        entity_type: int = context.get_chain_entity_type(asym_id)
-
-        records.append(
-            {
-                "sequence": sequence,
-                "entity_id": entity_id.item(),
-                "asym_id": asym_id.item(),
-                "entity_type": entity_type,
-            }
+        any_token_in_resi[residue_indices] = torch.arange(
+            len(residue_indices),
+            dtype=residue_indices.dtype,
+            device=residue_indices.device,
         )
 
-    return records
+        assert any_token_in_resi.min() >= 0
+
+        sequence = [chain_token_res_names[i] for i in any_token_in_resi]
+
+        entity_id = context.token_entity_id[token_indices[0]]
+
+        chain_id_str = _get_chain_letter(asym_id)
+
+        asym_id2asym_unit[asym_id] = AsymUnit(
+            entity=Entity(
+                # sequence is a list of ChemComponents for aminoacids/bases
+                sequence=[_to_chem_component(resi, entity_type) for resi in sequence],
+                description=entity_names[int(entity_id)],
+            ),
+            details=f"Chain {chain_id_str}",
+            id=chain_id_str,
+        )
+
+    return asym_id2asym_unit
 
 
 def _to_chem_component(res_name_3: str, entity_type: int):
@@ -117,99 +140,103 @@ def _to_chem_component(res_name_3: str, entity_type: int):
             raise NotImplementedError(f"Cannot handle entity type: {entity_type}")
 
 
-def sequence_to_chem_comps(sequence: list[str], entity_type: int) -> list[ChemComp]:
-    return [_to_chem_component(resi, entity_type) for resi in sequence]
-
-
-def context_to_cif(context: PDBContext, outpath: Path, entity_names: dict[int, str]):
-    records = get_chains_metadata(context)
-
-    entities_map = {}
-    for record in records:
-        entity_id = record["entity_id"]
-        if entity_id in entities_map:
-            continue
-
-        chem_components = sequence_to_chem_comps(
-            record["sequence"], record["entity_type"]
-        )
-        cif_entity = Entity(chem_components, description=entity_names[entity_id])
-
-        entities_map[entity_id] = cif_entity
-
-    chains_map = {}
-
-    def _make_chain(record: dict) -> AsymUnit:
-        asym_id = record["asym_id"]
-        chain_id_str = get_pdb_chain_name(asym_id)
-        entity_id = record["entity_id"]
-
-        return AsymUnit(
-            entities_map[entity_id],
-            details=f"Chain {chain_id_str}",
-            id=chain_id_str,
-        )
-
-    chains_map = {r["asym_id"]: _make_chain(r) for r in records}
-
-    pdb_atoms: list[list[PDBAtom]] = entity_to_pdb_atoms(context)
-
-    _assembly = Assembly(chains_map.values(), name="Assembly 1")
-
-    class PredModel(model.AbInitioModel):
-        def get_atoms(self):
-            for atoms_list in pdb_atoms:
-                for a in atoms_list:
-                    yield model.Atom(
-                        asym_unit=chains_map[a.asym_id],
-                        type_symbol=a.element,
-                        seq_id=int(a.residue_index),
-                        atom_id=a.atom_name,
-                        x=a.pos[0],
-                        y=a.pos[1],
-                        z=a.pos[2],
-                        het=a.het,
-                        biso=a.b_factor,
-                        occupancy=1.00,
-                    )
-
-    _model = PredModel(_assembly, name="pred_model_1")
-
-    for asym_id, cif_asym_unit in chains_map.items():
-        entity_type = context.get_chain_entity_type(asym_id)
-
-        if entity_type != EntityType.LIGAND.value:
-            # token centres are Ca or C1' for nucleic acids
-            chain_plddts, residue_indices = token_centre_plddts(
-                context,
-                asym_id,
-            )
-
-            for residue_idx, plddt in zip(
-                residue_indices,
-                chain_plddts,
-            ):
-                _model.qa_metrics.append(
-                    _LocalPLDDT(cif_asym_unit.residue(residue_idx + 1), plddt)
-                )
-
-    system = modelcif.System(title="Chai-1 predicted structure")
-    system.authors = ["Chai team"]
-    model_group = model.ModelGroup([_model], name="pred")
-    system.model_groups.append(model_group)
-
-    with open(outpath, "w") as sink:
-        dumper.write(sink, systems=[system])
-
-
-def outputs_to_cif(
+def save_to_cif(
     coords: Float[Tensor, "1 n_atoms 3"],
     output_batch: dict,
     write_path: Path,
     entity_names: dict[int, str],
     bfactors: Float[Tensor, "1 n_atoms"] | None = None,
 ):
-    context = pdb_context_from_batch(output_batch, coords, plddt=bfactors)
     write_path.parent.mkdir(parents=True, exist_ok=True)
-    context_to_cif(context, write_path, entity_names)
+    new_context_to_cif_atoms(
+        # all inputs to function are on CPU
+        coords=rearrange(coords, "1 n c -> n c", c=3).cpu(),
+        plddts=None if bfactors is None else rearrange(bfactors, "1 n -> n").cpu(),
+        context=pdb_context_from_batch(output_batch),
+        entity_names=entity_names,
+        out_path=write_path,
+    )
     logger.info(f"saved cif file to {write_path}")
+
+
+@typecheck
+def new_context_to_cif_atoms(
+    coords: Float[Tensor, "n_atoms 3"],
+    plddts: Float[Tensor, "n_atoms"] | None,
+    context: PDBContext,
+    entity_names: dict[int, str],
+    out_path: Path,
+):
+    asym_id2asym_unit = get_chains_metadata(context, entity_names=entity_names)
+
+    atom_asym_id = context.token_asym_id[context.atom_token_index]
+    # atom level attributes
+    atom_names = _tensor_to_atom_names(context.atom_ref_name_chars)
+
+    # allows to disambiguate between atoms in logands
+    asym_id_atom_name2count: dict = defaultdict(int)
+
+    mc_assembly = Assembly(elements=asym_id2asym_unit.values(), name="Assembly 1")
+    mc_model = model.AbInitioModel(mc_assembly, name="pred_model_1")
+
+    for atom_index, token_index in enumerate(context.atom_token_index):
+        if not context.atom_exists_mask[atom_index].item():
+            # skip missing atoms
+            continue
+
+        x, y, z = coords[atom_index].tolist()
+        asym_id = int(atom_asym_id[atom_index].item())
+        atom_name = atom_names[atom_index]  # CA, CB, etc
+
+        is_ligand = context.asym_id2entity_type[asym_id] == EntityType.LIGAND.value
+
+        atom_id = atom_names[atom_index]
+        if is_ligand:
+            # need unique names for atoms, e.g. two carbon atoms
+            asym_id_atom_name2count[asym_id, atom_name] += 1
+            counter = asym_id_atom_name2count[asym_id, atom_name]
+            atom_id = atom_id + f"_{counter}"
+
+        atomic_num = context.atom_ref_element[atom_index].item()
+        assert isinstance(atomic_num, int)
+
+        mc_model.add_atom(
+            model.Atom(
+                asym_unit=asym_id2asym_unit[asym_id],
+                type_symbol=gemmi.Element(atomic_num).name,  # e.g. H, C, O, N
+                # enumerate residues from 1 in output.
+                seq_id=int(context.token_residue_index[token_index].item()) + 1,
+                atom_id=atom_id,
+                x=x,
+                y=y,
+                z=z,
+                het=is_ligand,
+                biso=(None if plddts is None else plddts[atom_index].item()),
+                occupancy=1.00,
+            )
+        )
+
+    if plddts is not None:
+        for asym_id, cif_asym_unit in asym_id2asym_unit.items():
+            entity_type = context.asym_id2entity_type[asym_id]
+
+            if entity_type != EntityType.LIGAND.value:
+                # token centres are Ca for proteins, C1' for nucleic acids
+                chain_plddts, residue_indices = token_centre_plddts(
+                    context, plddts, asym_id
+                )
+
+                for residue_idx, plddt in zip(
+                    residue_indices, chain_plddts, strict=True
+                ):
+                    mc_model.qa_metrics.append(
+                        _LocalPLDDT(cif_asym_unit.residue(residue_idx + 1), plddt)
+                    )
+
+    model_group = model.ModelGroup([mc_model], name="pred")
+
+    system = modelcif.System(title="Chai-1 predicted structure")
+    system.authors = ["Chai Discovery team"]
+    system.model_groups.append(model_group)
+
+    dumper.write(open(out_path, "w"), systems=[system])

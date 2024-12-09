@@ -101,7 +101,6 @@ def get_chains_metadata(context: PDBContext, entity_names) -> dict[int, AsymUnit
 
         sequence = [chain_token_res_names[i] for i in any_token_in_resi]
 
-        # TODO confirm we want to use entity_id not asym_id.
         entity_id = context.token_entity_id[token_indices[0]]
 
         chain_id_str = _get_chain_letter(asym_id)

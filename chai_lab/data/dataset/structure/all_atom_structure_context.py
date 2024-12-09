@@ -138,6 +138,9 @@ class AllAtomStructureContext:
             & self.atom_exists_mask
         )
 
+        # While there are no valid "ground truth" coordinates here, this fields does contain
+        # reference conformers for each residue; pairwise distances are therefore valid within
+        # each residue
         distances = cdist(self.atom_gt_coords)
         assert distances.shape == (self.num_atoms, self.num_atoms)
         distances[torch.arange(self.num_atoms), torch.arange(self.num_atoms)] = (
@@ -156,7 +159,7 @@ class AllAtomStructureContext:
 
     def drop_leaving_atoms(self) -> None:
         """Drop OH groups that leave upon bond formation by setting atom_exists_mask."""
-        # For each of the bonds, identify the atoms within bond radius
+        # For each of the bonds, identify the atoms within bond radius and guess which are leaving
         for i, (atom_a, atom_b) in enumerate(zip(*self.atom_covalent_bond_indices)):
             # Find the C-O bonds
             (bond_candidates_b,) = torch.where(

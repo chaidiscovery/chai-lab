@@ -1,6 +1,6 @@
 # Copyright (c) 2024 Chai Discovery, Inc.
-# This source code is licensed under the Chai Discovery Community License
-# Agreement (LICENSE.md) found in the root directory of this source tree.
+# Licensed under the Apache License, Version 2.0.
+# See the LICENSE file for details.
 
 
 import math
@@ -29,10 +29,14 @@ from chai_lab.data.dataset.constraints.restraint_context import (
 from chai_lab.data.dataset.embeddings.embedding_context import EmbeddingContext
 from chai_lab.data.dataset.embeddings.esm import get_esm_embedding_context
 from chai_lab.data.dataset.inference_dataset import load_chains_from_raw, read_inputs
+from chai_lab.data.dataset.msas.colabfold import generate_colabfold_msas
 from chai_lab.data.dataset.msas.load import get_msa_contexts
 from chai_lab.data.dataset.msas.msa_context import MSAContext
 from chai_lab.data.dataset.structure.all_atom_structure_context import (
     AllAtomStructureContext,
+)
+from chai_lab.data.dataset.structure.bond_utils import (
+    get_atom_covalent_bond_pairs_from_constraints,
 )
 from chai_lab.data.dataset.templates.context import TemplateContext
 from chai_lab.data.features.feature_factory import FeatureFactory
@@ -75,6 +79,7 @@ from chai_lab.data.features.generators.templates import (
     TemplateResTypeGenerator,
     TemplateUnitVectorGenerator,
 )
+from chai_lab.data.features.generators.token_bond import TokenBondRestraint
 from chai_lab.data.features.generators.token_dist_restraint import (
     TokenDistanceRestraint,
 )
@@ -83,6 +88,7 @@ from chai_lab.data.features.generators.token_pair_pocket_restraint import (
 )
 from chai_lab.data.io.cif_utils import outputs_to_cif
 from chai_lab.data.parsing.restraints import parse_pairwise_table
+from chai_lab.data.parsing.structure.entity_type import EntityType
 from chai_lab.model.diffusion_schedules import InferenceNoiseSchedule
 from chai_lab.model.utils import center_random_augmentation
 from chai_lab.ranking.frames import get_frames_and_mask
@@ -274,8 +280,20 @@ class StructureCandidates:
     plddt: Float[Tensor, "candidate num_tokens"]
 
     def __post_init__(self):
-        assert len(self.cif_paths) == len(self.ranking_data)
-        assert len(self.cif_paths) == len(self.pae)
+        assert len(self.cif_paths) == len(self.ranking_data) == self.pae.shape[0]
+
+    def sorted(self) -> "StructureCandidates":
+        """Sort by aggregate score from most to least confident."""
+        agg_scores = torch.concatenate([rd.aggregate_score for rd in self.ranking_data])
+        idx = torch.argsort(agg_scores, descending=True)  # Higher scores are better
+        return StructureCandidates(
+            cif_paths=[self.cif_paths[i] for i in idx],
+            ranking_data=[self.ranking_data[i] for i in idx],
+            msa_coverage_plot_path=self.msa_coverage_plot_path,
+            pae=self.pae[idx],
+            pde=self.pde[idx],
+            plddt=self.plddt[idx],
+        )
 
 
 @torch.no_grad()
@@ -284,15 +302,26 @@ def run_inference(
     *,
     output_dir: Path,
     use_esm_embeddings: bool = True,
+    use_msa_server: bool = False,
+    msa_server_url: str = "https://api.colabfold.com",
     msa_directory: Path | None = None,
-    constraint_path: Path | str | None = None,
+    constraint_path: Path | None = None,
     # expose some params for easy tweaking
     num_trunk_recycles: int = 3,
     num_diffn_timesteps: int = 200,
     seed: int | None = None,
-    device: torch.device | None = None,
+    device: str | None = None,
     low_memory: bool = True,
 ) -> StructureCandidates:
+    if output_dir.exists():
+        assert not any(
+            output_dir.iterdir()
+        ), f"Output directory {output_dir} is not empty."
+    torch_device = torch.device(device if device is not None else "cuda:0")
+    assert not (
+        use_msa_server and msa_directory
+    ), "Cannot specify both MSA server and directory"
+
     # Prepare inputs
     assert fasta_file.exists(), fasta_file
     fasta_inputs = read_inputs(fasta_file, length_limit=None)
@@ -307,14 +336,32 @@ def run_inference(
 
     # Load structure context
     chains = load_chains_from_raw(fasta_inputs)
+    del fasta_inputs  # Do not reference inputs after creating chains from them
+
     merged_context = AllAtomStructureContext.merge(
         [c.structure_context for c in chains]
     )
     n_actual_tokens = merged_context.num_tokens
     raise_if_too_many_tokens(n_actual_tokens)
 
-    # Load MSAs
-    if msa_directory is not None:
+    # Generated and/or load MSAs
+    if use_msa_server:
+        protein_sequences = [
+            chain.entity_data.sequence
+            for chain in chains
+            if chain.entity_data.entity_type == EntityType.PROTEIN
+        ]
+        msa_dir = output_dir / "msas"
+        msa_dir.mkdir(parents=True, exist_ok=False)
+        generate_colabfold_msas(
+            protein_seqs=protein_sequences,
+            msa_dir=msa_dir,
+            msa_server_url=msa_server_url,
+        )
+        msa_context, msa_profile_context = get_msa_contexts(
+            chains, msa_directory=msa_dir
+        )
+    elif msa_directory is not None:
         msa_context, msa_profile_context = get_msa_contexts(
             chains, msa_directory=msa_directory
         )
@@ -325,6 +372,7 @@ def run_inference(
         msa_profile_context = MSAContext.create_empty(
             n_tokens=n_actual_tokens, depth=MAX_MSA_DEPTH
         )
+
     assert (
         msa_context.num_tokens == merged_context.num_tokens
     ), f"Discrepant tokens in input and MSA: {merged_context.num_tokens} != {msa_context.num_tokens}"
@@ -337,17 +385,38 @@ def run_inference(
 
     # Load ESM embeddings
     if use_esm_embeddings:
-        embedding_context = get_esm_embedding_context(chains, device=device)
+        embedding_context = get_esm_embedding_context(chains, device=torch_device)
     else:
         embedding_context = EmbeddingContext.empty(n_tokens=n_actual_tokens)
 
     # Constraints
     if constraint_path is not None:
+        # Handles contact and pocket restraints
+        pairs = parse_pairwise_table(constraint_path)
         restraint_context = load_manual_restraints_for_chai1(
             chains,
             crop_idces=None,
-            provided_constraints=parse_pairwise_table(constraint_path),
+            provided_constraints=pairs,
         )
+        # Handle covalent bond restraints
+        cov_a, cov_b = get_atom_covalent_bond_pairs_from_constraints(
+            provided_constraints=pairs,
+            token_residue_index=merged_context.token_residue_index,
+            token_residue_name=merged_context.token_residue_name,
+            token_subchain_id=merged_context.subchain_id,
+            token_asym_id=merged_context.token_asym_id,
+            atom_token_index=merged_context.atom_token_index,
+            atom_ref_name=merged_context.atom_ref_name,
+        )
+        if cov_a.numel() > 0 and cov_b.numel() > 0:
+            orig_a, orig_b = merged_context.atom_covalent_bond_indices
+            if orig_a.numel() == orig_b.numel() == 0:
+                merged_context.atom_covalent_bond_indices = (orig_a, orig_b)
+            else:
+                merged_context.atom_covalent_bond_indices = (
+                    torch.concatenate([orig_a, cov_a]),
+                    torch.concatenate([orig_b, cov_b]),
+                )
     else:
         restraint_context = RestraintContext.empty()
 
@@ -368,7 +437,7 @@ def run_inference(
         num_trunk_recycles=num_trunk_recycles,
         num_diffn_timesteps=num_diffn_timesteps,
         seed=seed,
-        device=device,
+        device=torch_device,
         low_memory=low_memory,
     )
 
@@ -412,6 +481,7 @@ def run_folding_on_context(
     raise_if_too_many_templates(feature_context.template_context.num_templates)
     raise_if_msa_too_deep(feature_context.msa_context.depth)
     # NOTE profile MSA used only for statistics; no depth check
+    feature_context.structure_context.report_bonds()
 
     ##
     ## Prepare batch
@@ -456,6 +526,7 @@ def run_folding_on_context(
     assert model_size in AVAILABLE_MODEL_SIZES
 
     feature_embedding = load_exported("feature_embedding.pt", device)
+    bond_loss_input_proj = load_exported("bond_loss_input_proj.pt", device)
     token_input_embedder = load_exported("token_embedder.pt", device)
     trunk = load_exported("trunk.pt", device)
     diffusion_module = load_exported("diffusion_module.pt", device)
@@ -483,6 +554,19 @@ def run_folding_on_context(
     )
     template_input_feats = embedded_features["TEMPLATES"]
     msa_input_feats = embedded_features["MSA"]
+
+    ##
+    ## Bond feature generator
+    ## Separate from other feature embeddings due to export limitations
+    ##
+
+    bond_ft_gen = TokenBondRestraint()
+    bond_ft = bond_ft_gen.generate(batch=batch).data
+    trunk_bond_feat, structure_bond_feat = bond_loss_input_proj.forward(
+        crop_size=model_size, input=bond_ft
+    ).chunk(2, dim=-1)
+    token_pair_input_feats += trunk_bond_feat
+    token_pair_structure_input_feats += structure_bond_feat
 
     ##
     ## Run the inputs through the token input embedder
@@ -771,7 +855,7 @@ def run_folding_on_context(
 
         cif_out_path = output_dir.joinpath(f"pred.model_idx_{idx}.cif")
         aggregate_score = ranking_outputs.aggregate_score.item()
-        print(f"Score={aggregate_score:.3f}, writing output to {cif_out_path}   ")
+        print(f"Score={aggregate_score:.4f}, writing output to {cif_out_path}")
 
         # use 0-100 scale for pLDDT in pdb outputs
         scaled_plddt_scores_per_atom = 100 * plddt_scores_atom[idx : idx + 1]

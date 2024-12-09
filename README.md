@@ -12,7 +12,7 @@ For more information on the model's performance and capabilities, see our [techn
 
 ```shell
 # version on pypi:
-pip install chai_lab==0.3.1
+pip install chai_lab==0.5.1
 
 # newest available version (updates daily to test features that weren't released yet):
 pip install git+https://github.com/chaidiscovery/chai-lab.git
@@ -22,15 +22,42 @@ This Python package requires Linux, and a GPU with CUDA and bfloat16 support. We
 
 ## Running the model
 
-The model accepts inputs in the FASTA file format, and allows you to specify the number of trunk recycles and diffusion timesteps via the `chai_lab.chai1.run_inference` function. By default, the model generates five sample predictions, and uses embeddings without MSAs or templates.
+### Command line inference
 
-The following script demonstrates how to provide inputs to the model, and obtain a list of PDB files for downstream analysis:
+You can fold a FASTA file containing all the sequences (including modified residues, nucleotides, and ligands as SMILES strings) in a complex of interest by calling:
+```shell
+chai fold input.fasta output_folder
+```
+
+By default, the model generates five sample predictions, and uses embeddings without MSAs or templates. For additional information about how to supply MSAs and restraints to the model, see the documentation below, or run `chai fold --help`.
+
+For example, to run the model with MSAs (which we recommend for improved performance), pass the `--use-msa-server` flag:
+
+```shell
+chai fold --use-msa-server input.fasta output_folder
+```
+
+If you are hosting your own ColabFold server, additionally pass the `--msa-server` flag with your server:
+
+```shell
+chai fold --use-msa-server --msa-server-url "https://api.internalcolabserver.com" input.fasta output_folder
+```
+
+### Programmatic inference
+
+The main entrypoint into the Chai-1 folding code is through the `chai_lab.chai1.run_inference` function. The following script demonstrates how to programmatically provide inputs to the model, and obtain a list of PDB files for downstream analysis:
 
 ```shell
 python examples/predict_structure.py
 ```
 
-For more advanced use cases, we also expose the `chai_lab.chai1.run_folding_on_context`, which allows users to construct an `AllAtomFeatureContext` manually. This allows users to specify their own templates, MSAs, embeddings, and constraints. We currently provide an example of how to construct an embeddings context as well as an MSA context, and will be releasing helper methods to build template contexts soon.
+To get the best performance, we recommend running the model with MSAs. The following script demonstrates how to provide MSAs to the model by calling out to an MSA server:
+
+```shell
+python examples/msas/predict_with_msas.py
+```
+
+For further instructions, see `"How can MSAs be provided to Chai-1?"` below.
 
 <details>
 <summary>Where are downloaded weights stored?</summary>
@@ -49,6 +76,17 @@ CHAI_DOWNLOADS_DIR=/tmp/downloads python ./examples/predict_structure.py
 <p markdown="1">
 
 Chai-1 supports MSAs provided as an `aligned.pqt` file. This file format is similar to an `a3m` file, but has additional columns that provide metadata like the source database and sequence pairing keys. We provide code to convert `a3m` files to `aligned.pqt` files. For more information on how to provide MSAs to Chai-1, see [this documentation](examples/msas/README.md).
+
+For user convenience, we also support automatic MSA generation via the ColabFold [MMseqs2](https://github.com/soedinglab/MMseqs2) server via the `--use-msa-server` flag. As detailed in the ColabFold [repository](https://github.com/sokrypton/ColabFold), please keep in mind that this is a shared resource. Note that the results reported in our preprint and the webserver use a different MSA search strategy than MMseqs2, though we expect results to be broadly similar.
+
+</p>
+</details>
+
+<details>
+<summary>How can I customize the inputs to the model further?</summary>
+<p markdown="1">
+
+For more advanced use cases, we also expose the `chai_lab.chai1.run_folding_on_context`, which allows users to construct an `AllAtomFeatureContext` manually. This allows users to specify their own templates, MSAs, embeddings, and constraints, including support for specifying covalent bonds (for example, for specifying branched ligands). We currently provide examples of how to construct an embeddings context, an MSA context, restraint contexts, and covalent bonds. We will be releasing helper methods to build template contexts soon.
 
 </p>
 </details>
@@ -85,7 +123,7 @@ Devcontainers work on local Linux setup, and on remote machines over an SSH conn
 Since this is an initial release, we expect to make some breaking changes to the API and are not guaranteeing backwards compatibility. We recommend pinning the current version in your requirements, i.e.:
 
 ```
-chai_lab==0.3.1
+chai_lab==0.5.1
 ```
 
 ## Citations
@@ -106,8 +144,24 @@ If you find Chai-1 useful in your research or use any structures produced by the
 }
 ```
 
+You can also access this information by running `chai citation`.
+
+Additionally, if you use the automatic MMseqs2 MSA generation described above, please also cite:
+
+```
+@article{mirdita2022colabfold,
+  title={ColabFold: making protein folding accessible to all},
+  author={Mirdita, Milot and Sch{\"u}tze, Konstantin and Moriwaki, Yoshitaka and Heo, Lim and Ovchinnikov, Sergey and Steinegger, Martin},
+  journal={Nature methods},
+  year={2022},
+}
+```
+
+
 ## Licence 
 
-See [LICENSE.md](LICENSE.md).
+Chai-1 is released under an Apache 2.0 License (both code and model weights), which means it can be used for both academic and commerical purposes, including for drug discovery.
 
-To discuss commercial use of our models, reach us [via email](mailto:partnerships@chaidiscovery.com).
+See [LICENSE](LICENSE).
+
+To discuss partnership and access to new internal capabilities, reach us [via email](mailto:partnerships@chaidiscovery.com).

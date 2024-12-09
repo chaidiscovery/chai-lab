@@ -1,11 +1,11 @@
 # Copyright (c) 2024 Chai Discovery, Inc.
-# This source code is licensed under the Chai Discovery Community License
-# Agreement (LICENSE.md) found in the root directory of this source tree.
+# Licensed under the Apache License, Version 2.0.
+# See the LICENSE file for details.
 
 import logging
 import string
 from collections import defaultdict
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 from functools import cached_property
 from pathlib import Path
 
@@ -36,7 +36,7 @@ def get_pdb_chain_name(asym_id: int) -> str:
 
 @dataclass(frozen=True)
 class PDBAtom:
-    record_type: str
+    het: bool
     atom_index: int
     atom_name: str
     alt_loc: str
@@ -55,8 +55,9 @@ class PDBAtom:
         self,
     ):
         # currently this works only for single-char chain tags
+        record_type = "HETATM" if self.het else "ATOM"
         atom_line = (
-            f"{self.record_type:<6}{self.atom_index:>5} {self.atom_name:<4}{self.alt_loc:>1}"
+            f"{record_type:<6}{self.atom_index:>5} {self.atom_name:<4}{self.alt_loc:>1}"
             f"{self.res_name_3:>3} {self.chain_tag:>1}"
             f"{self.residue_index:>4}{self.insertion_code:>1}   "
             f"{self.pos[0]:>8.3f}{self.pos[1]:>8.3f}{self.pos[2]:>8.3f}"
@@ -64,24 +65,6 @@ class PDBAtom:
             f"{self.element:>2}{self.charge:>2}"
         )
         return atom_line
-
-    def rename(self, atom_name: str) -> "PDBAtom":
-        return PDBAtom(
-            self.record_type,
-            self.atom_index,
-            atom_name,
-            self.alt_loc,
-            self.res_name_3,
-            self.chain_tag,
-            self.asym_id,
-            self.residue_index,
-            self.insertion_code,
-            self.pos,
-            self.occupancy,
-            self.b_factor,
-            self.element,
-            self.charge,
-        )
 
 
 def write_pdb(chain_atoms: list[list[PDBAtom]], out_path: str):
@@ -118,13 +101,6 @@ class PDBContext:
     def token_res_names_to_string(self) -> list[str]:
         return [tensorcode_to_string(x) for x in self.token_residue_names.cpu()]
 
-    @property
-    def is_ligand(self) -> bool:
-        return self.is_entity(EntityType.LIGAND)
-
-    def is_entity(self, ety: EntityType) -> bool:
-        return self.token_entity_type[0].item() == ety.value
-
     def get_chain_entity_type(self, asym_id: int) -> int:
         mask = self.token_asym_id == asym_id
         assert mask.sum() > 0
@@ -132,7 +108,7 @@ class PDBContext:
         assert isinstance(e_type, int)
         return e_type
 
-    def get_pdb_atoms(self):
+    def get_pdb_atoms(self) -> list[PDBAtom]:
         # warning: calling this on cuda tensors is extremely slow
         atom_asym_id = self.token_asym_id[self.atom_token_index]
         # atom level attributes
@@ -148,15 +124,18 @@ class PDBContext:
             _atomic_num_to_element(int(x.item())) for x in self.atom_ref_element
         ]
 
-        pdb_atoms = []
+        pdb_atoms: list[PDBAtom] = []
         num_atoms = self.atom_coords.shape[0]
         for atom_index in range(num_atoms):
             if not self.atom_exists_mask[atom_index].item():
                 # skip missing atoms
                 continue
-
+            token_index = self.atom_token_index[atom_index]
             atom = PDBAtom(
-                record_type="ATOM" if not self.is_ligand else "HETATM",
+                het=(
+                    self.token_entity_type[token_index].item()
+                    == EntityType.LIGAND.value
+                ),
                 atom_index=atom_index,
                 atom_name=atom_names[atom_index],
                 alt_loc="",
@@ -206,7 +185,7 @@ def rename_ligand_atoms(atoms: list[PDBAtom]) -> list[PDBAtom]:
         idx = atom_type_counter.get(atom.element, 1)
         atom_type_counter[atom.element] = idx + 1
         base_name = atom.atom_name
-        renumbered_atoms.append(atom.rename(f"{base_name}_{idx}"))
+        renumbered_atoms.append(replace(atom, atom_name=f"{base_name}_{idx}"))
     return renumbered_atoms
 
 

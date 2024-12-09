@@ -69,3 +69,6 @@ exclude = [
 
 [tool.hatch.build.targets.wheel]
 # should use packages from sdist section
+
+[project.scripts]
+chai = "chai_lab.main:cli"

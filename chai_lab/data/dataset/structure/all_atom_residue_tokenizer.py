@@ -1,6 +1,6 @@
 # Copyright (c) 2024 Chai Discovery, Inc.
-# This source code is licensed under the Chai Discovery Community License
-# Agreement (LICENSE.md) found in the root directory of this source tree.
+# Licensed under the Apache License, Version 2.0.
+# See the LICENSE file for details.
 
 import logging
 from dataclasses import dataclass
@@ -13,6 +13,9 @@ from torch import Tensor
 from chai_lab.data.dataset.structure import utils
 from chai_lab.data.dataset.structure.all_atom_structure_context import (
     AllAtomStructureContext,
+)
+from chai_lab.data.dataset.structure.bond_utils import (
+    get_atom_covalent_bond_pairs_from_glycan_string,
 )
 from chai_lab.data.dataset.structure.utils import (
     backbone_atoms_all_present,
@@ -180,6 +183,7 @@ class AllAtomResidueTokenizer:
             if (
                 residue.name in standard_residue_pdb_codes
                 and entity_type != EntityType.LIGAND
+                and entity_type != EntityType.MANUAL_GLYCAN
             )
             else self._tokenize_per_atom
         )
@@ -385,6 +389,9 @@ class AllAtomResidueTokenizer:
 
         valid_residues = [x for x in tokenized_residues if x is not None]
         if len(valid_residues) == 0:
+            logger.warning(
+                f"Got no residues for entity {entity_data.entity_id} with residues {entity_data.residues}"
+            )
             return None
 
         tokens = TokenSpan.concatenate(valid_residues)
@@ -510,6 +517,15 @@ class AllAtomResidueTokenizer:
                 dtype=torch.bool,
             ),
             symmetries=tokens.symmetries,
+            atom_covalent_bond_indices=get_atom_covalent_bond_pairs_from_glycan_string(
+                glycan_string=(
+                    entity_data.original_record
+                    if entity_data.entity_type == EntityType.MANUAL_GLYCAN
+                    else ""
+                ),
+                token_residue_index=tokens.residue_index,
+                atom_ref_name=tokens.atom_names,
+            ),
         )
 
     def _get_ref_conformer_data(self, residue: Residue) -> ConformerData:

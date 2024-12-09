@@ -43,6 +43,8 @@ If you are hosting your own ColabFold server, additionally pass the `--msa-serve
 chai fold --use-msa-server --msa-server-url "https://api.internalcolabserver.com" input.fasta output_folder
 ```
 
+We also provide additional utility functions for tasks such as MSA file format conversion; see `chai --help` for details.
+
 ### Programmatic inference
 
 The main entrypoint into the Chai-1 folding code is through the `chai_lab.chai1.run_inference` function. The following script demonstrates how to programmatically provide inputs to the model, and obtain a list of PDB files for downstream analysis:
@@ -51,7 +53,7 @@ The main entrypoint into the Chai-1 folding code is through the `chai_lab.chai1.
 python examples/predict_structure.py
 ```
 
-To get the best performance, we recommend running the model with MSAs. The following script demonstrates how to provide MSAs to the model by calling out to an MSA server:
+To get the best performance, we recommend running the model with MSAs. The following script demonstrates how to provide MSAs to the model.
 
 ```shell
 python examples/msas/predict_with_msas.py

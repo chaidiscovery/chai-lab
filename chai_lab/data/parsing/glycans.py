@@ -33,10 +33,12 @@ class GlycosidicBond:
 
     @property
     def src_atom_name(self) -> str:
-        return f"C{self.src_atom}"
+        """Links between sugars are O-glycosidic bonds; we use src O dst C."""
+        return f"O{self.src_atom}"
 
     @property
     def dst_atom_name(self) -> str:
+        """Links between sugars are O-glycosidic bonds; we use src O dst C."""
         return f"C{self.dst_atom}"
 
 

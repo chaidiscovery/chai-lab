@@ -3,6 +3,7 @@
 # See the LICENSE file for details.
 
 import logging
+from collections import defaultdict
 from pathlib import Path
 
 import antipickle
@@ -157,8 +158,13 @@ class RefConformerGenerator:
 
         AllChem.EmbedMultipleConfs(mol_with_hs, numConfs=1, params=params)
         AllChem.RemoveHs(mol_with_hs)
+
+        element_counter: dict = defaultdict(int)
         for atom in mol_with_hs.GetAtoms():
-            atom.SetProp("name", atom.GetSymbol())
+            elem = atom.GetSymbol()
+            element_counter[elem] += 1  # Start each counter at 1
+            atom.SetProp("name", elem + str(element_counter[elem]))
+
         retval = self._load_ref_conformer_from_rdkit(mol_with_hs)
         retval.atom_names = [a.upper() for a in retval.atom_names]
         return retval

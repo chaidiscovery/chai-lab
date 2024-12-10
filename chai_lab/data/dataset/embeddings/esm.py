@@ -40,7 +40,7 @@ def esm_model(model_name: str, device):
                 model_name,
                 cache_dir=esm_cache_folder,
                 torch_dtype=(
-                    torch.float16 if is_torch_bf16_gpu_available() else torch.bfloat16
+                    torch.bfloat16 if is_torch_bf16_gpu_available() else torch.float16
                 ),
             )
         )

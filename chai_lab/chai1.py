@@ -409,8 +409,8 @@ def make_all_atom_feature_context(
     else:
         restraint_context = RestraintContext.empty()
 
-    # Handles leaving atoms for bonds in-place
-    merged_context.drop_leaving_atoms()
+    # Handles leaving atoms for glycan bonds in-place
+    merged_context.drop_glycan_leaving_atoms_inplace()
 
     # Build final feature context
     feature_context = AllAtomFeatureContext(

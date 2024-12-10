@@ -110,11 +110,10 @@ class AllAtomStructureContext:
             )
 
     @typecheck
-    def _infer_bonds_within_conformer(
+    def _infer_CO_bonds_within_glycan(
         self,
         atom_idx: int,
         allowed_elements: list[int] | None = None,
-        exclude_polymers: bool = True,
     ) -> Bool[Tensor, "{self.num_atoms}"]:
         """Return mask for atoms that atom_idx might bond to based on distances.
 
@@ -124,12 +123,7 @@ class AllAtomStructureContext:
         res = self.token_residue_index[tok]
         asym = self.token_asym_id[tok]
 
-        if exclude_polymers and self.token_residue_type[tok] in (
-            EntityType.PROTEIN.value,
-            EntityType.DNA.value,
-            EntityType.RNA.value,
-            EntityType.POLYMER_HYBRID.value,
-        ):
+        if self.token_residue_type[tok].item() != EntityType.MANUAL_GLYCAN.value:
             return torch.zeros(self.num_atoms, dtype=torch.bool)
 
         mask = (
@@ -157,30 +151,27 @@ class AllAtomStructureContext:
         bond_candidates = (distances[atom_idx] < 1.5) & mask & is_allowed_element
         return bond_candidates
 
-    def drop_leaving_atoms(self) -> None:
+    def drop_glycan_leaving_atoms_inplace(self) -> None:
         """Drop OH groups that leave upon bond formation by setting atom_exists_mask."""
         # For each of the bonds, identify the atoms within bond radius and guess which are leaving
+        oxygen = 8
         for i, (atom_a, atom_b) in enumerate(zip(*self.atom_covalent_bond_indices)):
             # Find the C-O bonds
-            (bond_candidates_b,) = torch.where(
-                self._infer_bonds_within_conformer(
-                    atom_b.item(), allowed_elements=[8], exclude_polymers=True
+            [bond_candidates_b] = torch.where(
+                self._infer_CO_bonds_within_glycan(
+                    atom_b.item(), allowed_elements=[oxygen]
                 )
             )
             # Filter to bonds that link to terminal atoms
+            # NOTE do not specify element here
             bonds_b = [
                 candidate
                 for candidate in bond_candidates_b.tolist()
-                if (
-                    self._infer_bonds_within_conformer(
-                        candidate, exclude_polymers=True
-                    ).sum()
-                    == 1
-                )
+                if (self._infer_CO_bonds_within_glycan(candidate).sum() == 1)
             ]
             # If there are multiple such bonds, we can't infer which to drop
             if len(bonds_b) == 1:
-                b_bond = bonds_b.pop()
+                [b_bond] = bonds_b
                 self.atom_exists_mask[b_bond] = False
                 logger.info(
                     f"Bond {i} right: Dropping latter atom in bond {self.atom_residue_index[atom_b]} {self.atom_ref_name[atom_b]} -> {self.atom_residue_index[b_bond]} {self.atom_ref_name[b_bond]}"
@@ -188,25 +179,20 @@ class AllAtomStructureContext:
                 continue  # Only identify one leaving atom per bond
 
             # Repeat the above for atom_a if we didn't find anything for atom B
-            (bond_candidates_a,) = torch.where(
-                self._infer_bonds_within_conformer(
-                    atom_a.item(), allowed_elements=[8], exclude_polymers=True
+            [bond_candidates_a] = torch.where(
+                self._infer_CO_bonds_within_glycan(
+                    atom_a.item(), allowed_elements=[oxygen]
                 )
             )
             # Filter to bonds that link to terminal atoms
             bonds_a = [
                 candidate
                 for candidate in bond_candidates_a.tolist()
-                if (
-                    self._infer_bonds_within_conformer(
-                        candidate, exclude_polymers=True
-                    ).sum()
-                    == 1
-                )
+                if (self._infer_CO_bonds_within_glycan(candidate).sum() == 1)
             ]
             # If there are multiple such bonds, we can't infer which to drop
             if len(bonds_a) == 1:
-                a_bond = bonds_a.pop()
+                [a_bond] = bonds_a
                 self.atom_exists_mask[a_bond] = False
                 logger.info(
                     f"Bond {i} left: Dropping latter atom in bond {self.atom_residue_index[atom_a]} {self.atom_ref_element[atom_a]} -> {self.atom_residue_index[a_bond]} {self.atom_ref_element[a_bond]}"

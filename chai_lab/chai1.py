@@ -305,7 +305,7 @@ def make_all_atom_feature_context(
     msa_server_url: str = "https://api.colabfold.com",
     msa_directory: Path | None = None,
     constraint_path: Path | None = None,
-    torch_device: torch.device = torch.device("cpu"),
+    esm_device: torch.device = torch.device("cpu"),
 ):
     assert not (
         use_msa_server and msa_directory
@@ -374,7 +374,7 @@ def make_all_atom_feature_context(
 
     # Load ESM embeddings
     if use_esm_embeddings:
-        embedding_context = get_esm_embedding_context(chains, device=torch_device)
+        embedding_context = get_esm_embedding_context(chains, device=esm_device)
     else:
         embedding_context = EmbeddingContext.empty(n_tokens=n_actual_tokens)
 
@@ -457,7 +457,7 @@ def run_inference(
         msa_server_url=msa_server_url,
         msa_directory=msa_directory,
         constraint_path=constraint_path,
-        torch_device=torch_device,
+        esm_device=torch_device,
     )
 
     return run_folding_on_context(

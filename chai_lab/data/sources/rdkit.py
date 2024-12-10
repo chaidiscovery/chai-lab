@@ -3,8 +3,8 @@
 # See the LICENSE file for details.
 
 import logging
-from pathlib import Path
 from collections import defaultdict
+from pathlib import Path
 
 import antipickle
 import torch

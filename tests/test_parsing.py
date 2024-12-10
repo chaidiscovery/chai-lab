@@ -71,7 +71,6 @@ def test_fasta_parsing():
 
 
 def test_smiles_parsing():
-    """"""
     smiles = ">smiles\nCc1cc2nc3c(=O)[nH]c(=O)nc-3n(C[C@H](O)[C@H](O)[C@H](O)CO)c2cc1C"
     with TemporaryDirectory() as tmpdir:
         fa_file = Path(tmpdir) / "test.fasta"

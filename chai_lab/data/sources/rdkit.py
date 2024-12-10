@@ -157,6 +157,12 @@ class RefConformerGenerator:
 
         AllChem.EmbedMultipleConfs(mol_with_hs, numConfs=1, params=params)
         AllChem.RemoveHs(mol_with_hs)
+        
+        element_counter = defaultdict(int)
+        for i, atom in enumerate(mol_with_hs.GetAtoms()):
+            elem = atom.GetSymbol()
+            element_counter[elem] += 1
+            atom.SetProp("name", elem + str(element_counter[elem]))
         for i, atom in enumerate(mol_with_hs.GetAtoms()):
             atom.SetProp("name", atom.GetSymbol()+str(i+1))
         retval = self._load_ref_conformer_from_rdkit(mol_with_hs)

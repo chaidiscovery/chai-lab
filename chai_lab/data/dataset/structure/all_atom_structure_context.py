@@ -123,7 +123,7 @@ class AllAtomStructureContext:
         res = self.token_residue_index[tok]
         asym = self.token_asym_id[tok]
 
-        if self.token_residue_type[tok].item() != EntityType.MANUAL_GLYCAN.value:
+        if self.token_entity_type[tok].item() != EntityType.MANUAL_GLYCAN.value:
             return torch.zeros(self.num_atoms, dtype=torch.bool)
 
         mask = (

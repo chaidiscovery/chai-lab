@@ -40,7 +40,9 @@ Working through a more complex example, let's say we have a two-ring ligand such
 NAG(4-1 NAG)
 ```
 
-This syntax specifies that the root of the glycan is the leading `NAG` ring. The parentheses indicate that we are attaching another molecule to the ring directly preceding the parentheses. The `4-1` syntax "draws" a bond between the O4 atom of the previous "root" `NAG` and the C1 atom of the subsequent `NAG` ring. To specify how this glycan ought to be connected to the protein, we again use the restraints file to specify a residue and atom to which the glycan is bound, and the carbon atom within the root glycan ring that is bound.
+This syntax specifies that the root of the glycan is the leading `NAG` ring. The parentheses indicate that we are attaching another molecule to the ring directly preceding the parentheses. The `4-1` syntax "draws" a bond between the O4 atom of the previous "root" `NAG` and the C1 atom of the subsequent `NAG` ring. Note that this syntax, when read left-to-right, is "building out" the glycan from the root outwards.
+
+To specify how this glycan ought to be connected to the protein, we again use the restraints file to specify a residue and atom to which the glycan is bound, and the carbon atom within the root glycan ring that is bound.
 
 chainA|res_idxA|chainB|res_idxB|connection_type|confidence|min_distance_angstrom|max_distance_angstrom|comment|restraint_id
 |---|---|---|---|---|---|---|---|---|---|
@@ -55,9 +57,9 @@ NAG(4-1 NAG(4-1 NAG(4-1 NAG)))
 ...and to create branched ligands
 ```
 >glycan|branched-glycan
-NAG(4-1 NAG(4-1 NAG))(3-4 MAN)
+NAG(4-1 NAG(4-1 BMA(3-1 MAN)(6-1 MAN)))
 ```
-This branched example has a root `NAG` ring with a branch with two more `NAG` rings and a branch with a single `MAN` ring. For additional examples of this syntax, please refer to the examples tested in the `tests/test_glycans.py` test file.
+This branched example has a root `NAG` ring followed by a `NAG` and a `BMA`, which then branches to two `MAN` rings. For additional examples of this syntax, please refer to the examples tested in the `tests/test_glycans.py` test file.
 
 ### Example
 

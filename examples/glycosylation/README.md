@@ -59,7 +59,7 @@ NAG(4-1 NAG(4-1 NAG(4-1 NAG)))
 >glycan|branched-glycan
 NAG(4-1 NAG(4-1 BMA(3-1 MAN)(6-1 MAN)))
 ```
-This branched example has a root `NAG` ring followed by a `NAG` and a `BMA`, which then branches to two `MAN` rings. For additional examples of this syntax, please refer to the examples tested in the `tests/test_glycans.py` test file.
+This branched example has a root `NAG` ring followed by a `NAG` and a `BMA`, which then branches to two `MAN` rings. For additional examples of this syntax, please refer to the examples in `tests/test_glycans.py`.
 
 ### Example
 

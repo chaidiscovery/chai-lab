@@ -24,9 +24,9 @@ Now, a glycan is also covalently bound to a residue; to specify this, we include
 
 chainA|res_idxA|chainB|res_idxB|connection_type|confidence|min_distance_angstrom|max_distance_angstrom|comment|restraint_id
 |---|---|---|---|---|---|---|---|---|---|
-A|N436@N|B|@C4|covalent|1.0|0.0|0.0|protein-glycan|bond1
+A|N436@N|B|@C1|covalent|1.0|0.0|0.0|protein-glycan|bond1
 
-Breaking this down, this specifies that the within chain A (the first entry in the fasta), the "N" residue at the 436-th position (1-indexed) as indicated by the "N436" prefix is bound, via its nitrogen "N" atom as indicated by the "@N" suffix, to the C4 atom in the first glycan ("@C4"). Ring numbering follows standard glycan ring number schemas. For other ligands, you will need check how the specific version of `rdkit` that we use in `chai-lab` (run `uv pip list | grep rdkit` for version) assigns atom names and use the same atom names to specify your bonds. In addition, note that the min and max distance fields are ignored, as is the confidence field. 
+Breaking this down, this specifies that the within chain A (the first entry in the fasta), the "N" residue at the 436-th position (1-indexed) as indicated by the "N436" prefix is bound, via its nitrogen "N" atom as indicated by the "@N" suffix, to the C1 atom in the first glycan ("@C1"). Ring numbering follows standard glycan ring number schemas. For other ligands, you will need check how the specific version of `rdkit` that we use in `chai-lab` (run `uv pip list | grep rdkit` for version) assigns atom names and use the same atom names to specify your bonds. In addition, note that the min and max distance fields are ignored, as is the confidence field. 
 
 
 ### Multi-ring glycan
@@ -37,30 +37,36 @@ Working through a more complex example, let's say we have a two-ring ligand such
 >protein|example-protein
 ...N...
 >glycan|example-dual-sugar
-NAG(1-4 NAG)
+NAG(4-1 NAG)
 ```
 
-This syntax specifies that the root of the glycan is the leading `NAG` ring. The parentheses indicate that we are attaching another molecule to the ring directly preceding the parentheses. The `1-4` syntax "draws" a bond between the C1 atom of the previous "root" `NAG` and the C4 atom of the subsequent `NAG` ring. To specify how this glycan ought to be connected to the protein, we again use the restraints file to specify a residue and atom to which the glycan is bound, and the carbon atom within the root glycan ring that is bound.
+This syntax specifies that the root of the glycan is the leading `NAG` ring. The parentheses indicate that we are attaching another molecule to the ring directly preceding the parentheses. The `4-1` syntax "draws" a bond between the O4 atom of the previous "root" `NAG` and the C1 atom of the subsequent `NAG` ring. Note that this syntax, when read left-to-right, is "building out" the glycan from the root sugar outwards.
+
+To specify how this glycan ought to be connected to the protein, we again use the restraints file to specify a residue and atom to which the glycan is bound, and the carbon atom within the root glycan ring that is bound.
 
 chainA|res_idxA|chainB|res_idxB|connection_type|confidence|min_distance_angstrom|max_distance_angstrom|comment|restraint_id
 |---|---|---|---|---|---|---|---|---|---|
-A|N436@N|B|@C4|covalent|1.0|0.0|0.0|protein-glycan|bond1
+A|N436@N|B|@C1|covalent|1.0|0.0|0.0|protein-glycan|bond1
 
 You can chain this syntax to create longer ligands:
 ```
 >glycan|4-NAG-in-a-linear-chain
-NAG(1-4 NAG(1-4 NAG(1-4 NAG)))
+NAG(4-1 NAG(4-1 NAG(4-1 NAG)))
 ```
 
 ...and to create branched ligands
 ```
 >glycan|branched-glycan
-NAG(1-4 NAG(1-4 NAG))(3-4 MAN)
+NAG(4-1 NAG(4-1 BMA(3-1 MAN)(6-1 MAN)))
 ```
-This branched example has a root `NAG` ring with a branch with two more `NAG` rings and a branch with a single `MAN` ring. For additional examples, please refer to the examples tested in the `tests/test_glycans.py` test file.
+This branched example has a root `NAG` ring followed by a `NAG` and a `BMA`, which then branches to two `MAN` rings. For additional examples of this syntax, please refer to the examples in `tests/test_glycans.py`.
 
 ### Example
 
 We have included an example of how glycans can be specified under `predict_glycosylated.py` in this directory, along with its corresponding `bonds.restraints` csv file. This example is based on the PDB structure [1AC5](https://www.rcsb.org/structure/1ac5). The predicted structrue (colored, glycans in purple and orange, protein in green) from this script should look like the following when aligned with the ground truth 1AC5 structure (gray):
 
 ![glycan example prediction](./output.png)
+
+### A note on leaving atoms
+
+One might notice that in the above example, we are specifying CCD codes for sugar rings and connecting them to each other and an amino acid residue via various bonds. A subtle point is that the reference conformer for these sugar rings include OH hydroxyl groups that leave when bonds are formed. Under the hood, Chai-1 tries to automatically find and remove these atoms (see `AllAtomStructureContext.drop_glycan_leaving_atoms_inplace` for implementation), but this logic only drops leaving hydroxyl groups within glycan sugar rings. For other, non-sugar covalently attached ligands, please specify a SMILES string without the leaving atoms. If this does not work for your use case, please open a GitHub issue.

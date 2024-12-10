@@ -296,8 +296,7 @@ class StructureCandidates:
         )
 
 
-@torch.no_grad()
-def run_inference(
+def make_all_atom_feature_context(
     fasta_file: Path,
     *,
     output_dir: Path,
@@ -306,18 +305,8 @@ def run_inference(
     msa_server_url: str = "https://api.colabfold.com",
     msa_directory: Path | None = None,
     constraint_path: Path | None = None,
-    # expose some params for easy tweaking
-    num_trunk_recycles: int = 3,
-    num_diffn_timesteps: int = 200,
-    seed: int | None = None,
-    device: str | None = None,
-    low_memory: bool = True,
-) -> StructureCandidates:
-    if output_dir.exists():
-        assert not any(
-            output_dir.iterdir()
-        ), f"Output directory {output_dir} is not empty."
-    torch_device = torch.device(device if device is not None else "cuda:0")
+    esm_device: torch.device = torch.device("cpu"),
+):
     assert not (
         use_msa_server and msa_directory
     ), "Cannot specify both MSA server and directory"
@@ -385,7 +374,7 @@ def run_inference(
 
     # Load ESM embeddings
     if use_esm_embeddings:
-        embedding_context = get_esm_embedding_context(chains, device=torch_device)
+        embedding_context = get_esm_embedding_context(chains, device=esm_device)
     else:
         embedding_context = EmbeddingContext.empty(n_tokens=n_actual_tokens)
 
@@ -420,6 +409,9 @@ def run_inference(
     else:
         restraint_context = RestraintContext.empty()
 
+    # Handles leaving atoms for glycan bonds in-place
+    merged_context.drop_glycan_leaving_atoms_inplace()
+
     # Build final feature context
     feature_context = AllAtomFeatureContext(
         chains=chains,
@@ -429,6 +421,43 @@ def run_inference(
         template_context=template_context,
         embedding_context=embedding_context,
         restraint_context=restraint_context,
+    )
+    return feature_context
+
+
+@torch.no_grad()
+def run_inference(
+    fasta_file: Path,
+    *,
+    output_dir: Path,
+    use_esm_embeddings: bool = True,
+    use_msa_server: bool = False,
+    msa_server_url: str = "https://api.colabfold.com",
+    msa_directory: Path | None = None,
+    constraint_path: Path | None = None,
+    # expose some params for easy tweaking
+    num_trunk_recycles: int = 3,
+    num_diffn_timesteps: int = 200,
+    seed: int | None = None,
+    device: str | None = None,
+    low_memory: bool = True,
+) -> StructureCandidates:
+    if output_dir.exists():
+        assert not any(
+            output_dir.iterdir()
+        ), f"Output directory {output_dir} is not empty."
+
+    torch_device = torch.device(device if device is not None else "cuda:0")
+
+    feature_context = make_all_atom_feature_context(
+        fasta_file=fasta_file,
+        output_dir=output_dir,
+        use_esm_embeddings=use_esm_embeddings,
+        use_msa_server=use_msa_server,
+        msa_server_url=msa_server_url,
+        msa_directory=msa_directory,
+        constraint_path=constraint_path,
+        esm_device=torch_device,
     )
 
     return run_folding_on_context(

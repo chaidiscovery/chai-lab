@@ -9,8 +9,10 @@ from functools import cached_property, partial
 import torch
 from torch import Tensor
 
+from chai_lab.data.parsing.structure.entity_type import EntityType
 from chai_lab.utils.tensor_utils import (
     batch_tensorcode_to_string,
+    cdist,
     tensorcode_to_string,
 )
 from chai_lab.utils.typing import Bool, Float, Int, UInt8, typecheck
@@ -106,6 +108,95 @@ class AllAtomStructureContext:
             logging.info(
                 f"Bond {i} (asym res_idx resname): {asym_a} {res_idx_a} {resname_a} <> {asym_b} {res_idx_b} {resname_b}"
             )
+
+    @typecheck
+    def _infer_CO_bonds_within_glycan(
+        self,
+        atom_idx: int,
+        allowed_elements: list[int] | None = None,
+    ) -> Bool[Tensor, "{self.num_atoms}"]:
+        """Return mask for atoms that atom_idx might bond to based on distances.
+
+        If exclude_polymers is True, then always return no bonds for polymer entities
+        """
+        tok = self.atom_token_index[atom_idx]
+        res = self.token_residue_index[tok]
+        asym = self.token_asym_id[tok]
+
+        if self.token_entity_type[tok].item() != EntityType.MANUAL_GLYCAN.value:
+            return torch.zeros(self.num_atoms, dtype=torch.bool)
+
+        mask = (
+            (self.atom_residue_index == res)
+            & (self.atom_asym_id == asym)
+            & self.atom_exists_mask
+        )
+
+        # This field contains reference conformers for each residue
+        # Pairwise distances are therefore valid within each residue
+        distances = cdist(self.atom_gt_coords)
+        assert distances.shape == (self.num_atoms, self.num_atoms)
+        distances[torch.arange(self.num_atoms), torch.arange(self.num_atoms)] = (
+            torch.inf
+        )
+
+        is_allowed_element = (
+            torch.isin(
+                self.atom_ref_element, test_elements=torch.tensor(allowed_elements)
+            )
+            if allowed_elements is not None
+            else torch.ones_like(mask)
+        )
+        # Canonical bond length for C-O is 1.43 angstroms; add a bit of headroom
+        bond_candidates = (distances[atom_idx] < 1.5) & mask & is_allowed_element
+        return bond_candidates
+
+    def drop_glycan_leaving_atoms_inplace(self) -> None:
+        """Drop OH groups that leave upon bond formation by setting atom_exists_mask."""
+        # For each of the bonds, identify the atoms within bond radius and guess which are leaving
+        oxygen = 8
+        for i, (atom_a, atom_b) in enumerate(zip(*self.atom_covalent_bond_indices)):
+            # Find the C-O bonds
+            [bond_candidates_b] = torch.where(
+                self._infer_CO_bonds_within_glycan(
+                    atom_b.item(), allowed_elements=[oxygen]
+                )
+            )
+            # Filter to bonds that link to terminal atoms
+            # NOTE do not specify element here
+            bonds_b = [
+                candidate
+                for candidate in bond_candidates_b.tolist()
+                if (self._infer_CO_bonds_within_glycan(candidate).sum() == 1)
+            ]
+            # If there are multiple such bonds, we can't infer which to drop
+            if len(bonds_b) == 1:
+                [b_bond] = bonds_b
+                self.atom_exists_mask[b_bond] = False
+                logger.info(
+                    f"Bond {i} right: Dropping latter atom in bond {self.atom_residue_index[atom_b]} {self.atom_ref_name[atom_b]} -> {self.atom_residue_index[b_bond]} {self.atom_ref_name[b_bond]}"
+                )
+                continue  # Only identify one leaving atom per bond
+
+            # Repeat the above for atom_a if we didn't find anything for atom B
+            [bond_candidates_a] = torch.where(
+                self._infer_CO_bonds_within_glycan(
+                    atom_a.item(), allowed_elements=[oxygen]
+                )
+            )
+            # Filter to bonds that link to terminal atoms
+            bonds_a = [
+                candidate
+                for candidate in bond_candidates_a.tolist()
+                if (self._infer_CO_bonds_within_glycan(candidate).sum() == 1)
+            ]
+            # If there are multiple such bonds, we can't infer which to drop
+            if len(bonds_a) == 1:
+                [a_bond] = bonds_a
+                self.atom_exists_mask[a_bond] = False
+                logger.info(
+                    f"Bond {i} left: Dropping latter atom in bond {self.atom_residue_index[atom_a]} {self.atom_ref_element[atom_a]} -> {self.atom_residue_index[a_bond]} {self.atom_ref_element[a_bond]}"
+                )
 
     def pad(
         self,
@@ -320,6 +411,14 @@ class AllAtomStructureContext:
     def num_atoms(self) -> int:
         (n_atoms,) = self.atom_token_index.shape
         return n_atoms
+
+    @property
+    def atom_residue_index(self) -> Int[Tensor, "n_atoms"]:
+        return self.token_residue_index[self.atom_token_index]
+
+    @property
+    def atom_asym_id(self) -> Int[Tensor, "n_atoms"]:
+        return self.token_asym_id[self.atom_token_index]
 
     def to_dict(self) -> dict[str, torch.Tensor]:
         return asdict(self)

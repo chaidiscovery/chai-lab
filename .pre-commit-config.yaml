@@ -26,6 +26,7 @@ repos:
             examples/.*|
             .pre-commit-config.yaml|
             .pre-commit-hooks.yaml|
+            environments.yaml|
             .github/workflows/.*yml|
             .github/dependabot.yml|
             .github/pull_request_template.md|

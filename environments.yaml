@@ -1,0 +1,65 @@
+name: chai_lab
+channels:
+  - pytorch
+  - conda-forge
+  - nvidia/label/cuda-11.8.0
+  - bioconda
+
+dependencies:
+  - python>=3.10
+  - pytorch=2.3.1=*cuda*
+  - pytorch-cuda=11.8
+  - nvidia/label/cuda-11.8.0::cuda
+
+  - fsspec
+  - biopython>=1.83
+  - rdkit=2023.9.5
+  - biotite
+  - modelcif>=1.0
+  - ihm
+  - gemmi=0.6.3
+
+  - joblib
+  - sh
+  
+  - numpy>=1.21, <2.0
+  - numba
+  - einops=0.8
+  - scipy
+  - transformers=4.44
+  # - ipykernerl=6.27
+  # - seaborn
+  # - matplotlib
+
+  - pandas=2.1
+  - pyarrow
+  - pandera
+  - s3fs
+  # - botocore # AWS?
+  # - boto3
+
+  # # dev
+  # - mypy
+  # - pytest
+  # - pre-commit
+
+  # # types/stubs are required by mypy
+  # - pandas-stubs
+  # - types-pyyaml
+  # - types-tqdm
+  # - typing-extensions
+  # - types-requests  
+
+  - typer=0.12
+  - jaxtyping>=0.2.25
+  - beartype>=0.18
+
+  - tqdm
+
+  - pip
+  - pip:
+      # - cython-npm # pyximport
+      # - git+https://github.com/onecodex/needletail@1a3cc5ab502c38a753511239d00325fdccddc23d # Cargo
+      - tmtools>=0.0.3
+      - git+https://github.com/bjornwallner/DockQ.git@v2.1.1 # anaconda has no old versions
+      - antipickle==0.2.0

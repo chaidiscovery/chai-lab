@@ -903,8 +903,8 @@ def run_folding_on_context(
             output_batch=inputs,
             write_path=cif_out_path,
             entity_names={
-                c.entity_data.entity_id: c.entity_data.entity_name
-                for c in feature_context.chains
+                i: c.entity_data.entity_name
+                for i, c in enumerate(feature_context.chains, start=1)
             },
         )
         cif_paths.append(cif_out_path)

@@ -125,7 +125,7 @@ def get_chains_metadata(
 def _to_chem_component(res_name_3: str, entity_type: int, asym_id: int):
     match entity_type:
         case EntityType.LIGAND.value:
-            return NonPolymerChemComp(id=res_name_3 + str(asym_id), ccd=res_name_3)
+            return NonPolymerChemComp(id=res_name_3 + str(asym_id))
         case EntityType.MANUAL_GLYCAN.value:
             return SaccharideChemComp(id=res_name_3, name=res_name_3)
         case EntityType.PROTEIN.value:

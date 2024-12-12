@@ -110,7 +110,9 @@ def get_chains_metadata(
         asym_id2asym_unit[asym_id] = AsymUnit(
             entity=Entity(
                 # sequence is a list of ChemComponents for aminoacids/bases
-                sequence=[_to_chem_component(resi, entity_type) for resi in sequence],
+                sequence=[
+                    _to_chem_component(resi, entity_type, asym_id) for resi in sequence
+                ],
                 description=entity_names[asym_id],
             ),
             details=f"Chain {chain_id_str}",
@@ -120,11 +122,10 @@ def get_chains_metadata(
     return asym_id2asym_unit
 
 
-def _to_chem_component(res_name_3: str, entity_type: int):
+def _to_chem_component(res_name_3: str, entity_type: int, asym_id: int):
     match entity_type:
         case EntityType.LIGAND.value:
-            code = res_name_3
-            return NonPolymerChemComp(res_name_3)
+            return NonPolymerChemComp(id=res_name_3 + str(asym_id), ccd=res_name_3)
         case EntityType.MANUAL_GLYCAN.value:
             return SaccharideChemComp(id=res_name_3, name=res_name_3)
         case EntityType.PROTEIN.value:

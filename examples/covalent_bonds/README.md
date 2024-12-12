@@ -1,6 +1,6 @@
 # Working with bond restraints
 
-Chai-1 supports specifying covalent bonds as input, which specify covalent linkages between atoms in the folded complex. This is useful for specifying covalent modifications such as glycosylation events, which we demonstrate below, but can be generally used to specify arbitrary "non-canonical" bonds in a structure. 
+Chai-1 supports specifying covalent bonds as input, which specify covalent linkages between atoms in the folded complex. This is useful for specifying covalent modifications such as glycosylation events, but can be generally used to specify arbitrary "non-canonical" bonds in a structure; we demonstrate both cases below.
 
 A few notes:
 - Chai-1 was not trained on intra-chain bonds (e.g., disulfides), and we have not evaluated whether specifying such bond information yields expected behaviors.

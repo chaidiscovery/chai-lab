@@ -902,7 +902,7 @@ def run_folding_on_context(
             bfactors=scaled_plddt_scores_per_atom,
             output_batch=inputs,
             write_path=cif_out_path,
-            entity_names={
+            asym_entity_names={
                 i: c.entity_data.entity_name
                 for i, c in enumerate(feature_context.chains, start=1)
             },

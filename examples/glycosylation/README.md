@@ -67,6 +67,12 @@ We have included an example of how glycans can be specified under `predict_glyco
 
 ![glycan example prediction](./output.png)
 
-### A note on leaving atoms
+## Non-glycan ligands
+
+You can also use covalent bonds to "connect" residues to non-glycan ligands. To demonstrate this, we use a single subunit from the homodimer 8CYO. 
+
+## A note on leaving atoms
 
 One might notice that in the above example, we are specifying CCD codes for sugar rings and connecting them to each other and an amino acid residue via various bonds. A subtle point is that the reference conformer for these sugar rings include OH hydroxyl groups that leave when bonds are formed. Under the hood, Chai-1 tries to automatically find and remove these atoms (see `AllAtomStructureContext.drop_glycan_leaving_atoms_inplace` for implementation), but this logic only drops leaving hydroxyl groups within glycan sugar rings. For other, non-sugar covalently attached ligands, please specify a SMILES string without the leaving atoms. If this does not work for your use case, please open a GitHub issue.
+
+

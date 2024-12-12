@@ -14,9 +14,9 @@ if output_dir.exists():
 output_dir.mkdir(exist_ok=True, parents=True)
 
 candidates = run_inference(
-    fasta_file=Path(__file__).with_name("1ac5.fasta"),
+    fasta_file=Path(__file__).with_name("8cyo.fasta"),
     output_dir=output_dir,
-    constraint_path=Path(__file__).with_name("bonds.restraints"),
+    constraint_path=Path(__file__).with_name("8cyo.restraints"),
     num_trunk_recycles=3,
     num_diffn_timesteps=200,
     seed=42,

@@ -102,7 +102,7 @@ We provide a [web server](https://lab.chaidiscovery.com) so you can test the Cha
 </p>
 
 ## Using experimental restraints
-Chai-1 uniquely offers the ability to fold complexes with user-specified "restraints" as inputs. These restraints specify inter-chain contacts at various resolutions that are used to guide Chai-1 in folding the complex. See [restraints documentation](examples/restraints/README.md) for details.
+Chai-1 uniquely offers the ability to fold complexes with user-specified "restraints" as inputs. These restraints specify inter-chain contacts or covalent bonds at various resolutions that are used to guide Chai-1 in folding the complex. See [restraints documentation](examples/restraints/README.md) and [covalent bond documentation](examples/covalent_bonds/README.md) for details.
 
 <p align="center">
     <img src='assets/chailab_restraints_screenshot.png' height=400 >

@@ -69,7 +69,7 @@ We have included an example of how glycans can be specified under `predict_glyco
 
 ## Non-glycan ligands
 
-You can also use covalent bonds to "connect" residues to non-glycan ligands. To demonstrate this, we use a single subunit from the homodimer [8CYO](https://www.rcsb.org/structure/8cyo). We specify a fasta file with a protein sequence and SMILES string in `8cyo.fasta` (we use SMILES for demonstration purposes even though this specific ligand has a CCD code) and the corresponding restraints in `8cyo.restraints`. Folding this example with `predict_covalent_ligand.py` yields the following structure (RCSB structure shown in gray).
+You can also use covalent bonds to "connect" residues to non-glycan ligands. To demonstrate this, we use a single subunit from the homodimer [8CYO](https://www.rcsb.org/structure/8cyo). We specify a fasta file with a protein sequence and SMILES string in `8cyo.fasta` (we use SMILES for demonstration purposes even though this specific ligand has a CCD code) and the corresponding restraints in `8cyo.restraints`. Folding this example with `predict_covalent_ligand.py` yields the following structure (RCSB ground truth structure shown in gray).
 
 ![non glycan example prediction](./non_glycan_output.png)
 

@@ -105,7 +105,7 @@ class AllAtomStructureContext:
             res_idx_b = self.token_residue_index[tok_b]
             resname_a = tensorcode_to_string(self.token_residue_name[tok_a])
             resname_b = tensorcode_to_string(self.token_residue_name[tok_b])
-            logging.info(
+            logger.info(
                 f"Bond {i} (asym res_idx resname): {asym_a} {res_idx_a} {resname_a} <> {asym_b} {res_idx_b} {resname_b}"
             )
 

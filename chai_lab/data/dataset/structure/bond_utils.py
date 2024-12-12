@@ -2,6 +2,7 @@
 # Licensed under the Apache License, Version 2.0.
 # See the LICENSE file for details.
 
+
 import torch
 from einops import rearrange
 from torch import Tensor
@@ -129,7 +130,7 @@ def get_atom_covalent_bond_pairs_from_constraints(
                 pass
             case _:
                 raise ValueError(f"Unrecognized pariwise interaction: {ctype}")
-    return torch.tensor(ret_a, dtype=torch.int), torch.tensor(ret_b, dtype=torch.int)
+    return torch.tensor(ret_a, dtype=torch.long), torch.tensor(ret_b, dtype=torch.long)
 
 
 @typecheck

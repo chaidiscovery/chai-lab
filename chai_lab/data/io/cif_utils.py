@@ -72,7 +72,11 @@ def token_centre_plddts(
     return plddts[atom_idces].tolist(), residue_indices.tolist()
 
 
-def get_chains_metadata(context: PDBContext, entity_names) -> dict[int, AsymUnit]:
+def get_chains_metadata(
+    context: PDBContext, entity_names: dict[int, str]
+) -> dict[int, AsymUnit]:
+    """Return mapping from asym id to AsymUnit objects."""
+    assert context.asym_id2entity_type.keys() == entity_names.keys()
     # for each chain, get chain id, entity id, full sequence
     token_res_names = context.token_res_names_to_string
 
@@ -101,15 +105,13 @@ def get_chains_metadata(context: PDBContext, entity_names) -> dict[int, AsymUnit
 
         sequence = [chain_token_res_names[i] for i in any_token_in_resi]
 
-        entity_id = context.token_entity_id[token_indices[0]]
-
         chain_id_str = _get_chain_letter(asym_id)
 
         asym_id2asym_unit[asym_id] = AsymUnit(
             entity=Entity(
                 # sequence is a list of ChemComponents for aminoacids/bases
                 sequence=[_to_chem_component(resi, entity_type) for resi in sequence],
-                description=entity_names[int(entity_id)],
+                description=entity_names[asym_id],
             ),
             details=f"Chain {chain_id_str}",
             id=chain_id_str,
@@ -140,6 +142,7 @@ def _to_chem_component(res_name_3: str, entity_type: int):
             raise NotImplementedError(f"Cannot handle entity type: {entity_type}")
 
 
+@typecheck
 def save_to_cif(
     coords: Float[Tensor, "1 n_atoms 3"],
     output_batch: dict,

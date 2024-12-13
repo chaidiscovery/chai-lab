@@ -126,8 +126,19 @@ def raw_inputs_to_entitites_data(
         assert residues is not None
 
         # Determine the entity id (unique integer for each distinct sequence)
-        # NOTE very important for recognizing things like homo polymers
-        seq: tuple[str, ...] = tuple(res.name for res in residues)
+        # NOTE because ligand residues have a single "LIG" residue name, the name field
+        # cannot be used to distinguish them. Instead, we use the sequence field itself,
+        # which should contain the SMILES string. This is not ideal, as it fails to
+        # distinguish betwen different SMILES strings that represent the same molecule,
+        # but should capture most cases.
+        # We do not need to do special check on glycans because they are specified as a
+        # string of monosaccharides, which behaves similarly to a string of amino acid
+        # residues.
+        seq: tuple[str, ...] = (
+            (input.sequence,)
+            if input.entity_type == EntityType.LIGAND.value
+            else tuple(res.name for res in residues)
+        )
         entity_key: tuple[EntityType, tuple[str, ...]] = (entity_type, seq)
         if entity_key in entity_to_index:
             entity_id = entity_to_index[entity_key]

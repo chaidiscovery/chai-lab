@@ -104,7 +104,10 @@ def get_chains_metadata(
 
         sequence = [chain_token_res_names[i] for i in any_token_in_resi]
 
-        entity_key = (entity_type, *sequence)
+        if entity_type == EntityType.LIGAND.value:
+            entity_key = (entity_type, asym_id)  # each ligand = separate entity.
+        else:
+            entity_key = (entity_type, *sequence)
 
         asym_entity_name = asymid2entity_name[asym_id]
         if entity_key not in entity_key2ihm_entity:

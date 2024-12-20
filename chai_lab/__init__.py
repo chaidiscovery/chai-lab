@@ -2,4 +2,4 @@
 # Licensed under the Apache License, Version 2.0.
 # See the LICENSE file for details.
 
-__version__ = "0.5.0"
+__version__ = "0.5.1"

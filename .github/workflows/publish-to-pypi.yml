@@ -16,6 +16,14 @@ jobs:
         with:
           # Use the minimum Python version in pyproject.toml (later versions should maintain backwards-compatibility)
           python-version: "3.10"
+      - name: check version
+        run: |
+          GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || echo "No tag")
+          CODE_VERSION=v$(hatch version)
+          if [[ "$GIT_TAG" != "$CODE_VERSION" ]]; then
+            echo "version mismatch: $GIT_TAG and $CODE_VERSION"
+            exit 1
+          fi
 
       - name: Install dependencies
         run: |

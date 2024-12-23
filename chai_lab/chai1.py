@@ -443,6 +443,7 @@ def run_inference(
     # expose some params for easy tweaking
     num_trunk_recycles: int = 3,
     num_diffn_timesteps: int = 200,
+    num_diffn_samples: int = 5,
     seed: int | None = None,
     device: str | None = None,
     low_memory: bool = True,
@@ -470,6 +471,7 @@ def run_inference(
         output_dir=output_dir,
         num_trunk_recycles=num_trunk_recycles,
         num_diffn_timesteps=num_diffn_timesteps,
+        num_diffn_samples=num_diffn_samples,
         seed=seed,
         device=torch_device,
         low_memory=low_memory,
@@ -488,6 +490,7 @@ def run_folding_on_context(
     # expose some params for easy tweaking
     num_trunk_recycles: int = 3,
     num_diffn_timesteps: int = 200,
+    num_diffn_samples: int = 5, 
     seed: int | None = None,
     device: torch.device | None = None,
     low_memory: bool,
@@ -690,7 +693,7 @@ def run_folding_on_context(
             **static_diffusion_inputs,
         )
 
-    num_diffn_samples = 5  # Fixed at export time
+    num_diffn_samples = num_diffn_samples  # changed to be a parameter at export time
     inference_noise_schedule = InferenceNoiseSchedule(
         s_max=DiffusionConfig.S_tmax,
         s_min=4e-4,

@@ -16,6 +16,9 @@ jobs:
         with:
           # Use the minimum Python version in pyproject.toml (later versions should maintain backwards-compatibility)
           python-version: "3.10"
+      - name: Install dependencies
+        run: |
+          pip install . && pip install hatch
       - name: check version
         run: |
           GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || echo "No tag")
@@ -24,10 +27,6 @@ jobs:
             echo "version mismatch: $GIT_TAG and $CODE_VERSION"
             exit 1
           fi
-
-      - name: Install dependencies
-        run: |
-          pip install . && pip install hatch
       - name: Publish to PyPi
         env:
           HATCH_INDEX_USER: "__token__"

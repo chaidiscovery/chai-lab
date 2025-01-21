@@ -18,7 +18,7 @@ pip install chai_lab==0.5.2
 pip install git+https://github.com/chaidiscovery/chai-lab.git
 ```
 
-This Python package requires Linux, and a GPU with CUDA and bfloat16 support. We recommend using an A100 80GB or H100 80GB or L40S 48GB chip, but A10s and A30s should work for smaller complexes. Users have also reported success with consumer-grade RTX 4090.
+This Python package requires Linux, and a GPU with CUDA and bfloat16 support. We recommend using an A100 80GB or H100 80GB or L40S 48GB chip, but A10 and A30 will work for smaller complexes. Users have also reported success with consumer-grade RTX 4090.
 
 ## Running the model
 
@@ -45,9 +45,9 @@ chai fold --use-msa-server --msa-server-url "https://api.internalcolabserver.com
 
 We also provide additional utility functions for tasks such as MSA file format conversion; see `chai --help` for details.
 
-### Programmatic inference
+### Pythonic inference
 
-The main entrypoint into the Chai-1 folding code is through the `chai_lab.chai1.run_inference` function. The following script demonstrates how to programmatically provide inputs to the model, and obtain a list of PDB files for downstream analysis:
+The main entrypoint into the Chai-1 folding code is through the `chai_lab.chai1.run_inference` function. The following script demonstrates how to provide inputs to the model, and obtain a list of PDB files for downstream analysis:
 
 ```shell
 python examples/predict_structure.py
@@ -122,7 +122,7 @@ Devcontainers work on local Linux setup, and on remote machines over an SSH conn
 
 ## Status
 
-Since this is an initial release, we expect to make some breaking changes to the API and are not guaranteeing backwards compatibility. We recommend pinning the current version in your requirements, i.e.:
+API is quite stable, but we recommend pinning the version in your requirements, i.e.:
 
 ```
 chai_lab==0.5.2

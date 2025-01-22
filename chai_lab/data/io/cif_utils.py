@@ -40,7 +40,9 @@ _CHAIN_VOCAB = [*string.ascii_uppercase, *string.ascii_lowercase]
 _CHAIN_VOCAB = _CHAIN_VOCAB + [x + y for x in _CHAIN_VOCAB for y in _CHAIN_VOCAB]
 
 
-def _get_chain_letter(asym_id: int) -> str:
+def get_chain_letter(asym_id: int) -> str:
+    """Get chain given a one-indexed asym_id."""
+    assert asym_id > 0 and asym_id <= len(_CHAIN_VOCAB)
     vocab_index = asym_id - 1  # 1 -> A, 2 -> B
     return _CHAIN_VOCAB[vocab_index]
 

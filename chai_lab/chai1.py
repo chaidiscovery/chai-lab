@@ -86,7 +86,7 @@ from chai_lab.data.features.generators.token_dist_restraint import (
 from chai_lab.data.features.generators.token_pair_pocket_restraint import (
     TokenPairPocketRestraint,
 )
-from chai_lab.data.io.cif_utils import save_to_cif
+from chai_lab.data.io.cif_utils import get_chain_letter, save_to_cif
 from chai_lab.data.parsing.restraints import parse_pairwise_table
 from chai_lab.data.parsing.structure.entity_type import EntityType
 from chai_lab.model.diffusion_schedules import InferenceNoiseSchedule
@@ -872,7 +872,7 @@ def run_folding_on_context(
             inputs["atom_token_index"],
         )
 
-        ranking_outputs = rank(
+        ranking_outputs: SampleRanking = rank(
             atom_pos[idx : idx + 1],
             atom_mask=inputs["atom_exists_mask"],
             atom_token_index=inputs["atom_token_index"],
@@ -908,7 +908,8 @@ def run_folding_on_context(
             write_path=cif_out_path,
             # Set asym names to be A, B, C, ...
             asym_entity_names={
-                i + 1: chr(i + 65) for i in range(len(feature_context.chains))
+                i: get_chain_letter(i)
+                for i in range(1, len(feature_context.chains) + 1)
             },
         )
         cif_paths.append(cif_out_path)

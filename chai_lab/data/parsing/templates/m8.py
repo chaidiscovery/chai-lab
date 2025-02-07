@@ -13,7 +13,7 @@ import torch
 
 from chai_lab.data.io import rcsb
 from chai_lab.data.parsing.msas.a3m import tokenize_sequences_to_arrays
-from chai_lab.data.parsing.templates.a3m import TemplateHit
+from chai_lab.data.parsing.templates.template_hit import TemplateHit
 from chai_lab.tools.kalign import kalign_query_to_reference
 
 logger = logging.getLogger(name=__name__)
@@ -70,9 +70,10 @@ def parse_m8_to_template_hits(
             cif_file = rcsb.download_cif_file(
                 hit_identifier.upper(), directory=Path(tmpdir)
             )
-
             structure = gemmi.read_structure(path=str(cif_file))[0]
+
         chain: gemmi.Chain = structure[hit_chain]  # Indexes by auth chain
+        # NOTE this sequence excludes unresolved residues
         seq: str = chain.get_polymer().make_one_letter_sequence()
 
         seq_matching = seq[row.subject_start : row.subject_end]  # type: ignore

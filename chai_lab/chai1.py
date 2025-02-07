@@ -38,7 +38,10 @@ from chai_lab.data.dataset.structure.all_atom_structure_context import (
 from chai_lab.data.dataset.structure.bond_utils import (
     get_atom_covalent_bond_pairs_from_constraints,
 )
-from chai_lab.data.dataset.templates.context import TemplateContext
+from chai_lab.data.dataset.templates.context import (
+    TemplateContext,
+    get_template_context,
+)
 from chai_lab.data.features.feature_factory import FeatureFactory
 from chai_lab.data.features.feature_type import FeatureType
 from chai_lab.data.features.generators.atom_element import AtomElementOneHot
@@ -305,6 +308,7 @@ def make_all_atom_feature_context(
     msa_server_url: str = "https://api.colabfold.com",
     msa_directory: Path | None = None,
     constraint_path: Path | None = None,
+    templates_path: Path | None = None,
     esm_device: torch.device = torch.device("cpu"),
 ):
     assert not (
@@ -367,10 +371,17 @@ def make_all_atom_feature_context(
     ), f"Discrepant tokens in input and MSA: {merged_context.num_tokens} != {msa_context.num_tokens}"
 
     # Load templates
-    template_context = TemplateContext.empty(
-        n_tokens=n_actual_tokens,
-        n_templates=MAX_NUM_TEMPLATES,
-    )
+    if templates_path is None:
+        template_context = TemplateContext.empty(
+            n_tokens=n_actual_tokens,
+            n_templates=MAX_NUM_TEMPLATES,
+        )
+    else:
+        # NOTE templates m8 file should contain hits with query name corresponding to chain names
+        template_context = get_template_context(
+            chains=chains,
+            template_hits_m8=templates_path,
+        )
 
     # Load ESM embeddings
     if use_esm_embeddings:
@@ -440,6 +451,7 @@ def run_inference(
     msa_server_url: str = "https://api.colabfold.com",
     msa_directory: Path | None = None,
     constraint_path: Path | None = None,
+    template_hits_path: Path | None = None,
     # expose some params for easy tweaking
     num_trunk_recycles: int = 3,
     num_diffn_timesteps: int = 200,
@@ -463,6 +475,7 @@ def run_inference(
         msa_server_url=msa_server_url,
         msa_directory=msa_directory,
         constraint_path=constraint_path,
+        templates_path=template_hits_path,
         esm_device=torch_device,
     )
 

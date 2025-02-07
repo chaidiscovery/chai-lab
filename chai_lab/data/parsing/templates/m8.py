@@ -50,7 +50,7 @@ def parse_m8_to_template_hits(
     # Subset to those matching the query pdb id
     table = table.loc[table.query_id.astype(str) == query_pdb_id]
     if len(table) == 0:
-        logger.warning(f"Found no entries for {query_pdb_id=} in {m8_path=}")
+        logger.warning(f"[{query_pdb_id=}] No corresponding entries in {m8_path=}")
         return  # No hits
 
     assert table.query_id.nunique() == 1
@@ -97,6 +97,8 @@ def parse_m8_to_template_hits(
                 query_seq_realigned=alignment.query_a3m_line,
             )
             assert hit.query_start_end == alignment.reference_span
+
+            logger.info(f"[{query_pdb_id}] {hit}")
             yield hit
 
             counter += 1

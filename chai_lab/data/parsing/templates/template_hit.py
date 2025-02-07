@@ -40,7 +40,7 @@ class TemplateHit:
                 f"{self.query_pdb_id=} <> {self.pdb_id=} yields discrepant start/end "
                 f"indices: {h_i[0]} {h_i[-1]} != {self.hit_start} {self.hit_end} - 1."
                 "First set of indices is from parsing hit_tokens; second set is from "
-                "hit metadata in a3m."
+                "hit metadata in source file."
             )
 
         if not self.hit_end > self.hit_start:

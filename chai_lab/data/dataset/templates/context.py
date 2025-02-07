@@ -371,7 +371,7 @@ def get_template_context(
                 template_hits=template_hits,
                 query_crop_indices=torch.arange(structure_context.num_tokens),
                 tokenizer=tok,
-                max_loaded_templates=20,
+                max_loaded_templates=4,
             )
 
         # This can get triggered if it is a non-protein or if it's a protein with no

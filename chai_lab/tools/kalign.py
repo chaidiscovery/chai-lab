@@ -26,7 +26,7 @@ class KalignAlignment:
     query_aligned: str  # aligned output of kalign
 
     def __post_init__(self):
-        assert len(self.reference_aligned) == len(self.query_aligned)
+        assert len(self.reference_aligned) == len(self.query_aligned) > 0
         # There should be no positions where both the query and reference are gaps
         assert not any(
             r == "-" and q == "-"

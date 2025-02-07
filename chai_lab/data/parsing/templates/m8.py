@@ -23,7 +23,6 @@ def parse_m8_to_template_hits(
     query_pdb_id: str,
     query_sequence: str,
     m8_path: Path,
-    max_templates: int = 4,
 ) -> Iterator[TemplateHit]:
     assert m8_path.is_file() and m8_path.stat().st_size > 0
 
@@ -107,9 +106,6 @@ def parse_m8_to_template_hits(
                 exc_info=True,
             )
             pass
-
-        if max_templates > 0 and counter >= max_templates:
-            return
 
 
 if __name__ == "__main__":

@@ -1,6 +1,6 @@
 # Copyright (c) 2024 Chai Discovery, Inc.
-# This source code is licensed under the Chai Discovery Community License
-# Agreement (LICENSE.md) found in the root directory of this source tree.
+# Licensed under the Apache License, Version 2.0.
+# See the LICENSE file for details.
 
 import logging
 import random
@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 
 @typecheck
 @dataclass
-class ConstraintGroup:
+class RestraintGroup:
     """
     Container for a docking constraint group --
     collection of chains with inter/intra distance constraints
@@ -74,13 +74,13 @@ class ConstraintGroup:
 
     def __str__(self):
         return (
-            f"ConstraintGroup(subchain_ids={self.subchain_ids}, "
+            f"{self.__class__.__name__}(subchain_ids={self.subchain_ids}, "
             f"atom_center_coords.shape={[x.shape for x in self.atom_center_coords]}, "
             f"atom_center_mask.shape={[x.shape for x in self.atom_center_mask]})"
         )
 
 
-class DockingConstraintGenerator(FeatureGenerator):
+class DockingRestraintGenerator(FeatureGenerator):
     """Docking Feature Generator
 
     Works as follows:
@@ -125,7 +125,7 @@ class DockingConstraintGenerator(FeatureGenerator):
     def get_input_kwargs_from_batch(self, batch: dict[str, Any]) -> dict:
         maybe_constraint_dicts = batch["inputs"].get("docking_constraints", [[None]])[0]
         docking_constraints = batch["inputs"]["docking_constraints"] = (
-            [ConstraintGroup(**d) for d in maybe_constraint_dicts]
+            [RestraintGroup(**d) for d in maybe_constraint_dicts]
             if isinstance(maybe_constraint_dicts[0], dict)
             else None
         )
@@ -182,12 +182,12 @@ class DockingConstraintGenerator(FeatureGenerator):
         token_asym_id: Int[Tensor, "b n"],
         token_entity_type: Int[Tensor, "b n"],
         token_subchain_id: UInt8[Tensor, "b n 4"],
-        constraints: list[ConstraintGroup] | None = None,
+        constraints: list[RestraintGroup] | None = None,
     ) -> Tensor:
         try:
             if constraints is not None:
                 assert all_atom_positions.shape[0] == 1
-                return self._generate_from_constraints(
+                return self._generate_from_restraints(
                     token_asym_id=token_asym_id,
                     token_subchain_id=token_subchain_id,
                     constraints=constraints,
@@ -286,12 +286,12 @@ class DockingConstraintGenerator(FeatureGenerator):
         return feature
 
     @typecheck
-    def _generate_from_constraints(
+    def _generate_from_restraints(
         self,
         # constraints only supported with batch size 1
         token_asym_id: Int[Tensor, "1 n"],
         token_subchain_id: UInt8[Tensor, "1 n 4"],
-        constraints: list[ConstraintGroup],
+        constraints: list[RestraintGroup],
     ) -> Tensor:
         logger.info(f"Generating docking feature from constraints: {constraints}")
         n, device = token_asym_id.shape[1], token_asym_id.device
@@ -310,7 +310,7 @@ class DockingConstraintGenerator(FeatureGenerator):
                 token_asym_id=rearrange(token_asym_id, "1 ... -> ..."),
             )
             for i, j in zip(l_idx.tolist(), r_idx.tolist()):
-                constraint_mat, constraint_mask = self.add_constraint(
+                constraint_mat, constraint_mask = self.add_restraint(
                     constraint_mat=constraint_mat,
                     constraint_mask=constraint_mask,
                     token_asym_id=rearrange(token_asym_id, "1 ... -> ..."),
@@ -335,7 +335,7 @@ class DockingConstraintGenerator(FeatureGenerator):
         return feature
 
     @typecheck
-    def add_constraint(
+    def add_restraint(
         self,
         constraint_mat: Float[Tensor, "n n"],
         constraint_mask: Bool[Tensor, "n n"],

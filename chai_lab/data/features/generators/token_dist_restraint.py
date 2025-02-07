@@ -1,6 +1,6 @@
 # Copyright (c) 2024 Chai Discovery, Inc.
-# This source code is licensed under the Chai Discovery Community License
-# Agreement (LICENSE.md) found in the root directory of this source tree.
+# Licensed under the Apache License, Version 2.0.
+# See the LICENSE file for details.
 
 import logging
 from dataclasses import dataclass
@@ -14,15 +14,15 @@ from chai_lab.data.features.feature_type import FeatureType
 from chai_lab.data.features.generators.base import EncodingType, FeatureGenerator
 from chai_lab.data.parsing.structure.entity_type import EntityType
 from chai_lab.model.utils import get_asym_id_from_subchain_id
-from chai_lab.utils.tensor_utils import cdist, tensorcode_to_string, und, und_self
-from chai_lab.utils.typing import Bool, Float, Int, UInt8, typecheck
+from chai_lab.utils.tensor_utils import tensorcode_to_string
+from chai_lab.utils.typing import Float, Int, UInt8, typecheck
 
 logger = logging.getLogger(__name__)
 
 
 @typecheck
 @dataclass
-class ConstraintGroup:
+class RestraintGroup:
     """
     Container for a token pair distance restraint (contact)
     """
@@ -138,76 +138,33 @@ class TokenDistanceRestraint(FeatureGenerator):
     def get_input_kwargs_from_batch(self, batch) -> dict:
         maybe_constraint_dicts = batch["inputs"].get("contact_constraints", [[None]])[0]
         contact_constraints = (
-            [ConstraintGroup(**d) for d in maybe_constraint_dicts]
+            [RestraintGroup(**d) for d in maybe_constraint_dicts]
             if isinstance(maybe_constraint_dicts[0], dict)
             else None
         )
         return dict(
             atom_gt_coords=batch["inputs"]["atom_gt_coords"],
-            atom_exists_mask=batch["inputs"]["atom_exists_mask"],
             token_asym_id=batch["inputs"]["token_asym_id"].long(),
-            token_ref_atom_index=batch["inputs"]["token_ref_atom_index"].long(),
-            token_exists_mask=batch["inputs"]["token_exists_mask"],
-            token_entity_type=batch["inputs"]["token_entity_type"].long(),
             token_residue_index=batch["inputs"]["token_residue_index"].long(),
             token_residue_names=batch["inputs"]["token_residue_name"],
             token_subchain_id=batch["inputs"]["subchain_id"],
             constraints=contact_constraints,
         )
 
-    def _sample_restraints(
-        self,
-        dists: Float[Tensor, "n n"],
-        num_restraints: int,
-    ):
-        sampled_restraints = torch.full_like(dists, self.ignore_idx)
-        # sample upper bound independently in range (min_dist, max_dist)
-        # for each pair of tokens
-        # We choose a random delta to upper bound all sampled distances with.
-        # We do this because larger distance restraints are more likely to be
-        # valid than smaller ones, and we try to reduce that bias here.
-        delta = torch.rand(1) * (self.max_dist - self.min_dist)
-        all_restraint_bounds = torch.rand_like(dists) * delta + self.min_dist
-        all_valid_restraints = dists < all_restraint_bounds
-        num_valid_restraints = int(all_valid_restraints.sum().item())
-        if num_valid_restraints == 0 or num_restraints == 0:  # no restraints to add
-            return sampled_restraints
-        num_restraints = min(num_valid_restraints, num_restraints)
-        # select random restraints and respective sampled bounds
-        sampled_restraint_mask = all_restraint_bounds.new_zeros(
-            num_valid_restraints, dtype=torch.bool
-        )
-        sampled_restraint_mask[:num_restraints] = True
-        # select random restraints by shuffling
-        sampled_restraint_mask = sampled_restraint_mask[
-            torch.randperm(num_valid_restraints)
-        ]
-
-        # add the bounds/pairs that we sampled to the sampled restraint matrix
-        flat_restraint_bounds = all_restraint_bounds[all_valid_restraints]
-        flat_restraint_bounds[~sampled_restraint_mask] = self.ignore_idx
-        sampled_restraints[all_valid_restraints] = flat_restraint_bounds
-
-        return sampled_restraints
-
     @typecheck
     def _generate(
         self,
         atom_gt_coords: Float[Tensor, "b a 3"],
-        atom_exists_mask: Bool[Tensor, "b a"],
         token_asym_id: Int[Tensor, "b n"],
-        token_ref_atom_index: Int[Tensor, "b n"],
-        token_exists_mask: Bool[Tensor, "b n"],
-        token_entity_type: Int[Tensor, "b n"],
         token_residue_index: Int[Tensor, "b n"],
         token_residue_names: UInt8[Tensor, "b n 8"],
         token_subchain_id: UInt8[Tensor, "b n 4"],
-        constraints: list[ConstraintGroup] | None = None,
-    ) -> Tensor:
+        constraints: list[RestraintGroup] | None = None,
+    ) -> Float[Tensor, "b n n 1"]:
         try:
             if constraints is not None:
                 assert atom_gt_coords.shape[0] == 1
-                return self.generate_from_constraints(
+                return self.generate_from_restraint(
                     token_asym_id=token_asym_id,
                     token_residue_index=token_residue_index,
                     token_residue_names=token_residue_names,
@@ -217,80 +174,24 @@ class TokenDistanceRestraint(FeatureGenerator):
         except Exception as e:
             logger.error(f"Error {e} generating distance constraints: {constraints}")
 
-        return self._generate_from_batch(
-            atom_gt_coords=atom_gt_coords,
-            atom_exists_mask=atom_exists_mask,
-            token_asym_id=token_asym_id,
-            token_ref_atom_index=token_ref_atom_index,
-            token_exists_mask=token_exists_mask,
-            token_entity_type=token_entity_type,
+        batch, n = token_asym_id.shape
+        device = token_asym_id.device
+        constraint_mat = torch.full(
+            (batch, n, n, 1),
+            fill_value=self.ignore_idx,
+            device=device,
+            dtype=torch.float32,
         )
+        return constraint_mat
 
     @typecheck
-    def _generate_from_batch(
-        self,
-        atom_gt_coords: Float[Tensor, "b a 3"],
-        atom_exists_mask: Bool[Tensor, "b a"],
-        token_asym_id: Int[Tensor, "b n"],
-        token_ref_atom_index: Int[Tensor, "b n"],
-        token_exists_mask: Bool[Tensor, "b n"],
-        token_entity_type: Int[Tensor, "b n"],
-    ) -> Tensor:
-        batch_size = atom_gt_coords.shape[0]
-        # create inter-chain contact mask
-        valid_token_pair_mask = und_self(token_exists_mask, "b i, b j -> b i j")
-        left_entity_type_mask = torch.any(
-            (token_entity_type.unsqueeze(-1) - self.query_entity_types) == 0, dim=-1
-        )
-        right_entity_type_mask = torch.any(
-            (token_entity_type.unsqueeze(-1) - self.key_entity_types) == 0, dim=-1
-        )
-        valid_entity_pair_mask = und(
-            left_entity_type_mask, right_entity_type_mask, "b i, b j -> b i j"
-        )
-        diff_chain_mask = rearrange(token_asym_id, "b i -> b i 1") != rearrange(
-            token_asym_id, "b j -> b 1 j"
-        )
-        ref_atom_mask = torch.gather(
-            atom_exists_mask, dim=1, index=token_ref_atom_index
-        )
-        valid_token_ref_atom_mask = und_self(ref_atom_mask, "b i, b j -> b i j")
-        valid_contact_mask = (
-            valid_token_pair_mask
-            & valid_entity_pair_mask
-            & valid_token_ref_atom_mask
-            & diff_chain_mask
-        )
-
-        # compute pairwise distances
-        token_ref_atom_coords = torch.gather(
-            atom_gt_coords, dim=1, index=repeat(token_ref_atom_index, "... -> ... 3")
-        )
-        # optionally add noise to coordinates before computing distances
-        token_ref_atom_coords = (
-            token_ref_atom_coords
-            + torch.randn_like(token_ref_atom_coords) * self.coord_noise
-        )
-        inter_token_dists = cdist(token_ref_atom_coords)
-        inter_token_dists[~valid_contact_mask] = self.max_dist + 1
-        # compute contacts by (1) sampling an upper bound on the distance
-        # and (2) selecting pairwise distances below the threshold
-        num_to_include = self.get_num_restraints(batch_size)
-        restraint_mats = [
-            self._sample_restraints(inter_token_dists[i], n)
-            for i, n in enumerate(num_to_include)
-        ]
-        encoded_feat = torch.stack(restraint_mats, dim=0)
-        return self.make_feature(encoded_feat.unsqueeze(-1))
-
-    @typecheck
-    def generate_from_constraints(
+    def generate_from_restraint(
         self,
         token_asym_id: Int[Tensor, "1 n"],
         token_residue_index: Int[Tensor, "1 n"],
         token_residue_names: UInt8[Tensor, "1 n 8"],
         token_subchain_id: UInt8[Tensor, "1 n 4"],
-        constraints: list[ConstraintGroup],
+        constraints: list[RestraintGroup],
     ) -> Tensor:
         logger.info(f"Generating distance feature from constraints: {constraints}")
         n, device = token_asym_id.shape[1], token_asym_id.device
@@ -304,7 +205,7 @@ class TokenDistanceRestraint(FeatureGenerator):
                     token_asym_id=rearrange(token_asym_id, "1 ... -> ..."),
                 )
             )
-            constraint_mat = self.add_distance_constraint(
+            constraint_mat = self.add_distance_restraint(
                 constraint_mat=constraint_mat,
                 token_asym_id=rearrange(token_asym_id, "1 ... -> ..."),
                 token_residue_index=rearrange(token_residue_index, "1 ... -> ..."),
@@ -322,7 +223,7 @@ class TokenDistanceRestraint(FeatureGenerator):
         return self.make_feature(constraint_mat)
 
     @typecheck
-    def add_distance_constraint(
+    def add_distance_restraint(
         self,
         constraint_mat: Float[Tensor, "n n"],
         token_asym_id: Int[Tensor, "n"],

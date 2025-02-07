@@ -1,6 +1,6 @@
 # Copyright (c) 2024 Chai Discovery, Inc.
-# This source code is licensed under the Chai Discovery Community License
-# Agreement (LICENSE.md) found in the root directory of this source tree.
+# Licensed under the Apache License, Version 2.0.
+# See the LICENSE file for details.
 
 import logging
 from dataclasses import dataclass
@@ -34,6 +34,7 @@ class AllAtomEntityData:
     entity_type: EntityType
     subchain_id: str
     is_d_polypeptide: bool = False  # NOTE (mostly) exists for eval set construction
+    original_record: str = ""  # NOTE for glycan parsing
 
     def __post_init__(self):
         assert (

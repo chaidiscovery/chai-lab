@@ -1,7 +1,7 @@
 # Copyright (c) 2024 Chai Discovery, Inc.
 
-# This source code is licensed under the Chai Discovery Community License
-# Agreement (LICENSE.md) found in the root directory of this source tree.
+# Licensed under the Apache License, Version 2.0.
+# See the LICENSE file for details.
 
 example_ligands = [
     "C",

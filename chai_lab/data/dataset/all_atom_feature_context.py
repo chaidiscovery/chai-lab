@@ -1,12 +1,12 @@
 # Copyright (c) 2024 Chai Discovery, Inc.
-# This source code is licensed under the Chai Discovery Community License
-# Agreement (LICENSE.md) found in the root directory of this source tree.
+# Licensed under the Apache License, Version 2.0.
+# See the LICENSE file for details.
 
 import logging
 from dataclasses import dataclass
 from typing import Any, Final
 
-from chai_lab.data.dataset.constraints.constraint_context import ConstraintContext
+from chai_lab.data.dataset.constraints.restraint_context import RestraintContext
 from chai_lab.data.dataset.embeddings.embedding_context import EmbeddingContext
 from chai_lab.data.dataset.msas.msa_context import MSAContext
 from chai_lab.data.dataset.structure.all_atom_structure_context import (
@@ -36,7 +36,7 @@ class AllAtomFeatureContext:
     profile_msa_context: MSAContext
     template_context: TemplateContext
     embedding_context: EmbeddingContext | None
-    constraint_context: ConstraintContext
+    restraint_context: RestraintContext
 
     def __str__(self) -> str:
         chains_info = [str(chain) for chain in self.chains]
@@ -72,7 +72,7 @@ class AllAtomFeatureContext:
                 if self.embedding_context is not None
                 else None
             ),
-            constraint_context=self.constraint_context.pad(max_tokens=n_tokens),
+            restraint_context=self.restraint_context.pad(max_tokens=n_tokens),
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -91,5 +91,5 @@ class AllAtomFeatureContext:
             **msa_context_dict,
             **self.template_context.to_dict(),
             **(self.embedding_context.to_dict() if self.embedding_context else {}),
-            **self.constraint_context.to_dict(),
+            **self.restraint_context.to_dict(),
         }

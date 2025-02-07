@@ -1,6 +1,6 @@
 # Copyright (c) 2024 Chai Discovery, Inc.
-# This source code is licensed under the Chai Discovery Community License
-# Agreement (LICENSE.md) found in the root directory of this source tree.
+# Licensed under the Apache License, Version 2.0.
+# See the LICENSE file for details.
 
 import logging
 import string
@@ -19,6 +19,7 @@ from chai_lab.data.dataset.structure.all_atom_structure_context import (
 )
 from chai_lab.data.dataset.structure.chain import Chain
 from chai_lab.data.parsing.fasta import get_residue_name, read_fasta
+from chai_lab.data.parsing.glycans import glycan_string_residues
 from chai_lab.data.parsing.input_validation import (
     constituents_of_modified_fasta,
     identify_potential_entity_types,
@@ -93,6 +94,7 @@ def _synth_subchain_id(idx: int) -> str:
 def raw_inputs_to_entitites_data(
     inputs: list[Input], identifier: str = "test"
 ) -> list[AllAtomEntityData]:
+    """Load an entity for each raw input."""
     entities = []
 
     # track unique entities
@@ -117,13 +119,26 @@ def raw_inputs_to_entitites_data(
                     for r in parsed_sequence
                 ]
                 residues = get_polymer_residues(expanded_sequence, entity_type)
+            case EntityType.MANUAL_GLYCAN:
+                residues = glycan_string_residues(glycan_string=input.sequence)
             case _:
                 raise NotImplementedError
         assert residues is not None
 
         # Determine the entity id (unique integer for each distinct sequence)
-        # NOTE very important for recognizing things like homo polymers
-        seq: tuple[str, ...] = tuple(res.name for res in residues)
+        # NOTE because ligand residues have a single "LIG" residue name, the name field
+        # cannot be used to distinguish them. Instead, we use the sequence field itself,
+        # which should contain the SMILES string. This is not ideal, as it fails to
+        # distinguish betwen different SMILES strings that represent the same molecule,
+        # but should capture most cases.
+        # We do not need to do special check on glycans because they are specified as a
+        # string of monosaccharides, which behaves similarly to a string of amino acid
+        # residues.
+        seq: tuple[str, ...] = (
+            (input.sequence,)
+            if input.entity_type == EntityType.LIGAND.value
+            else tuple(res.name for res in residues)
+        )
         entity_key: tuple[EntityType, tuple[str, ...]] = (entity_type, seq)
         if entity_key in entity_to_index:
             entity_id = entity_to_index[entity_key]
@@ -144,6 +159,7 @@ def raw_inputs_to_entitites_data(
                 method="none",
                 entity_type=entity_type,
                 subchain_id=_synth_subchain_id(i),
+                original_record=input.sequence,
             )
         )
 
@@ -157,7 +173,7 @@ def load_chains_from_raw(
     tokenizer: AllAtomResidueTokenizer | None = None,
 ) -> list[Chain]:
     """
-    loads and tokenizes each input chain
+    Loads and tokenizes each input chain; skips over inputs that fail to tokenize.
     """
 
     if tokenizer is None:
@@ -182,16 +198,22 @@ def load_chains_from_raw(
                 chain_id=chain_index,
                 sym_id=sym_id,
             )
-        except Exception:
-            logger.exception(f"Failed to tokenize input {entity_data=}  {sym_id=}")
+            if tok is None:
+                logger.exception(f"Failed to tokenize input {entity_data=}  {sym_id=}")
+        except Exception as e:
+            logger.exception(
+                f"Failed to tokenize input {entity_data=}  {sym_id=}", exc_info=e
+            )
             tok = None
         structure_contexts.append(tok)
-    assert len(structure_contexts) == len(entities)
+
     # Join the untokenized entity data with the tokenized chain data, removing
     # chains we failed to tokenize
     chains = [
         Chain(entity_data=entity_data, structure_context=structure_context)
-        for entity_data, structure_context in zip(entities, structure_contexts)
+        for entity_data, structure_context in zip(
+            entities, structure_contexts, strict=True
+        )
         if structure_context is not None
     ]
 
@@ -229,6 +251,8 @@ def read_inputs(fasta_file: str | Path, length_limit: int | None = None) -> list
                 entity_type = EntityType.RNA
             case "dna":
                 entity_type = EntityType.DNA
+            case "glycan":
+                entity_type = EntityType.MANUAL_GLYCAN
             case _:
                 raise ValueError(f"{entity_str} is not a valid entity type")
 

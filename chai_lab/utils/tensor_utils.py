@@ -1,8 +1,9 @@
 # Copyright (c) 2024 Chai Discovery, Inc.
-# This source code is licensed under the Chai Discovery Community License
-# Agreement (LICENSE.md) found in the root directory of this source tree.
+# Licensed under the Apache License, Version 2.0.
+# See the LICENSE file for details.
 
 import typing
+from dataclasses import asdict, is_dataclass, replace
 from functools import lru_cache
 from typing import TypeVar
 
@@ -257,6 +258,11 @@ def _move_data_to_device(x, device: torch.device):
         return [move_data_to_device(el, device) for el in x]
     elif isinstance(x, tuple):
         return tuple(move_data_to_device(el, device) for el in x)
+    if is_dataclass(x):
+        return replace(
+            x,
+            **{k: move_data_to_device(v, device) for k, v in asdict(x).items()},  # type: ignore
+        )
     else:
         raise NotImplementedError(type(x))
 

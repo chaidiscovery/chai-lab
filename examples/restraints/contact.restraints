@@ -1,0 +1,3 @@
+chainA,res_idxA,chainB,res_idxB,connection_type,confidence,min_distance_angstrom,max_distance_angstrom,comment,restraint_id
+A,C387,B,Y101,contact,1.0,0.0,5.5,protein-heavy,restraint_1
+C,I32,A,S483,contact,1.0,0.0,5.5,protein-light,restraint_2

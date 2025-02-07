@@ -1,6 +1,6 @@
 # Copyright (c) 2024 Chai Discovery, Inc.
-# This source code is licensed under the Chai Discovery Community License
-# Agreement (LICENSE.md) found in the root directory of this source tree.
+# Licensed under the Apache License, Version 2.0.
+# See the LICENSE file for details.
 
 from dataclasses import dataclass
 
@@ -77,6 +77,7 @@ class Residue:
     b_factor_or_plddt: float
     conformer_data: ConformerData | None
     smiles: str | None = None
+    is_covalent_bonded: bool = False
 
 
 def get_restype(

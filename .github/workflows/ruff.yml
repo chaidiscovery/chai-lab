@@ -11,10 +11,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Set up Python 3.11
+      - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: 3.11
+          # Use the minimum Python version in pyproject.toml (later versions should maintain backwards-compatibility)
+          python-version: "3.10"
           cache: "pip"
       - name: Install
         run: pip install pre-commit

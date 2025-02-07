@@ -1,7 +1,8 @@
+import logging
+import shutil
 from pathlib import Path
 
 import numpy as np
-import torch
 
 from chai_lab.chai1 import run_inference
 
@@ -27,7 +28,12 @@ CCCCCCCCCCCCCC(=O)O
 fasta_path = Path("/tmp/example.fasta")
 fasta_path.write_text(example_fasta)
 
+# Inference expects an empty directory; enforce this
 output_dir = Path("/tmp/outputs")
+if output_dir.exists():
+    logging.warning(f"Removing old output directory: {output_dir}")
+    shutil.rmtree(output_dir)
+output_dir.mkdir(exist_ok=True)
 
 candidates = run_inference(
     fasta_file=fasta_path,
@@ -36,12 +42,12 @@ candidates = run_inference(
     num_trunk_recycles=3,
     num_diffn_timesteps=200,
     seed=42,
-    device=torch.device("cuda:0"),
+    device="cuda:0",
     use_esm_embeddings=True,
 )
 
 cif_paths = candidates.cif_paths
-scores = [rd.aggregate_score for rd in candidates.ranking_data]
+agg_scores = [rd.aggregate_score.item() for rd in candidates.ranking_data]
 
 
 # Load pTM, ipTM, pLDDTs and clash scores for sample 2

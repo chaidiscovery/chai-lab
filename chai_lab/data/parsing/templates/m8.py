@@ -70,11 +70,12 @@ def parse_m8_to_template_hits(
             cif_file = rcsb.download_cif_file(
                 hit_identifier.upper(), directory=Path(tmpdir)
             )
-            structure = gemmi.read_structure(path=str(cif_file))[0]
+            structure = gemmi.read_structure(path=str(cif_file))
 
-        chain: gemmi.Chain = structure[hit_chain]  # Indexes by auth chain
-        # NOTE this sequence excludes unresolved residues
-        seq: str = chain.get_polymer().make_one_letter_sequence()
+        chain: gemmi.Chain = structure[0][hit_chain]  # Indexes by auth chain
+        # NOTE this sequence excludes unresolved residues, and adds "-" to indicate gap
+        # We strip the gap because the m8 file is indexed without the gap
+        seq: str = chain.get_polymer().make_one_letter_sequence().replace("-", "")
 
         seq_matching = seq[row.subject_start : row.subject_end]  # type: ignore
 

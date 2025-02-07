@@ -4,6 +4,7 @@
 
 
 import logging
+import shutil
 import subprocess
 from dataclasses import dataclass
 from functools import lru_cache
@@ -13,6 +14,8 @@ from tempfile import TemporaryDirectory
 from chai_lab.data.parsing.fasta import Fasta, read_fasta, write_fastas
 
 logger = logging.getLogger(__name__)
+
+assert shutil.which("kalign") is not None, "Could not find kalign in your PATH"
 
 
 @dataclass(frozen=True)

@@ -94,6 +94,7 @@ class AllAtomStructureContext:
     def residue_names(self) -> list[str]:
         return batch_tensorcode_to_string(self.token_residue_name)
 
+    @typecheck
     def index_select(self, idxs: Int[Tensor, "n"]) -> "AllAtomStructureContext":
         """
         Selects a subset of the data in the context, reindexing the tokens and atoms in

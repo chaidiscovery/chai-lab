@@ -21,12 +21,12 @@ ipykernel~=6.27    # needed by vs code to run notebooks in devcontainer
 matplotlib
 
 # misc
-tqdm~=4.66
+# tqdm~=4.66
 
 # data import/export, application-specific
 gemmi~=0.6.3       # pdb/mmcif parsing
 rdkit==2023.9.5    # parsing of ligands. 2023.9.6 has broken type stubs
-biopython==1.83    # parsing, data access
+# biopython==1.83    # parsing, data access
 antipickle==0.2.0  # save/load heterogeneous python structures
 tmtools>=0.0.3     # Python bindings for the TM-align algorithm
 modelcif>=1.0      # mmcif writing, confirmed to work currently latest 1.0
@@ -38,8 +38,8 @@ modelcif>=1.0      # mmcif writing, confirmed to work currently latest 1.0
 # anarci @ git+https://github.com/arogozhnikov/microANARCI@d81823395d0c3532d6e033d80b036b4aa4a4565e
 
 # computing, dl
-numpy~=1.21
-pandas[parquet,gcp,aws]~=2.1 
+# numpy~=1.21
+# pandas[parquet,gcp,aws]~=2.1 
 pandera
 numba>=0.59
 # polars              

@@ -2,6 +2,7 @@
 # Licensed under the Apache License, Version 2.0.
 # See the LICENSE file for details.
 from dataclasses import dataclass
+from pathlib import Path
 
 import torch
 from torch import Tensor
@@ -27,6 +28,7 @@ class TemplateHit:
     hit_tokens: Int32[Tensor, "n_tokens"]
     deletion_matrix: UInt8[Tensor, "n_tokens"]
     query_seq_realigned: str  # The realigned sequence
+    cif_path: Path | None = None
 
     def __post_init__(self):
         q_i = self.indices_query
@@ -48,6 +50,9 @@ class TemplateHit:
 
         if not self.indices_hit_within_subregion.min() >= 0:
             raise ValueError("negative indices")
+
+        if self.cif_path is not None:
+            assert self.cif_path.is_file()
 
     def __str__(self) -> str:
         fields = ", ".join(

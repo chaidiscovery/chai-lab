@@ -228,13 +228,16 @@ class LoadedTemplate:
 
 
 def _get_entity_data(
-    pdb_id: str,
+    pdb_id_or_path: str | Path,
     chain_id: str,
     subchain_id: str | None = None,
 ) -> AllAtomEntityData:
-    with TemporaryDirectory() as tmpdir:
-        local_path = download_cif_file(pdb_id, Path(tmpdir))
-        gemmi_structure = gemmi.read_structure(str(local_path))
+    if not Path(pdb_id_or_path).is_file():
+        with TemporaryDirectory() as tmpdir:
+            local_path = download_cif_file(str(pdb_id_or_path), Path(tmpdir))
+            gemmi_structure = gemmi.read_structure(str(local_path))
+    else:
+        gemmi_structure = gemmi.read_structure(str(pdb_id_or_path))
 
     entities_data = structure_to_entities_data(
         structure=gemmi_structure,
@@ -246,7 +249,7 @@ def _get_entity_data(
     entities_data = [e for e in entities_data if e.entity_type == EntityType.PROTEIN]
     if not len(entities_data) == 1:
         raise ValueError(
-            f"Expected exactly one protein entity for {pdb_id} chain {chain_id}, got {len(entities_data)}"
+            f"Expected exactly one protein entity for {pdb_id_or_path} chain {chain_id}, but got {len(entities_data)}"
         )
     return entities_data[0]
 
@@ -298,8 +301,12 @@ def get_template_data(
         # Load the entity data for the hit
         try:
             template_entity_data = _get_entity_data(
-                template_hit.pdb_id,
-                template_hit.chain_id,
+                pdb_id_or_path=(
+                    template_hit.pdb_id
+                    if template_hit.cif_path is None
+                    else template_hit.cif_path
+                ),
+                chain_id=template_hit.chain_id,  # Templates are referenced by chain, NOT subchain
             )
         except (ValueError, ClientResponseError, NameResolutionError, MaxRetryError):
             logger.info(f"Failed to load entity data for {template_hit}")

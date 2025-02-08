@@ -381,6 +381,7 @@ def make_all_atom_feature_context(
         template_context = get_template_context(
             chains=chains,
             template_hits_m8=templates_path,
+            template_cif_cache_folder=output_dir / "templates",
         )
 
     # Load ESM embeddings

@@ -23,8 +23,12 @@ def parse_m8_to_template_hits(
     query_pdb_id: str,
     query_sequence: str,
     m8_path: Path,
+    template_cif_folder: Path | None = None,
 ) -> Iterator[TemplateHit]:
     assert m8_path.is_file() and m8_path.stat().st_size > 0
+
+    if template_cif_folder is not None:
+        template_cif_folder.mkdir(parents=True, exist_ok=True)
 
     table = pd.read_csv(
         m8_path,
@@ -68,7 +72,10 @@ def parse_m8_to_template_hits(
         assert isinstance(hit_identifier, str) and isinstance(hit_chain, str)
         with TemporaryDirectory() as tmpdir:
             cif_file = rcsb.download_cif_file(
-                hit_identifier.upper(), directory=Path(tmpdir)
+                hit_identifier.upper(),
+                directory=(
+                    Path(tmpdir) if template_cif_folder is None else template_cif_folder
+                ),
             )
             structure = gemmi.read_structure(path=str(cif_file))
 
@@ -97,6 +104,7 @@ def parse_m8_to_template_hits(
                 hit_tokens=torch.from_numpy(match_seq[0]).int(),
                 deletion_matrix=torch.from_numpy(match_del[0]),
                 query_seq_realigned=alignment.query_a3m_line,
+                cif_path=cif_file if template_cif_folder is not None else None,
             )
             assert hit.query_start_end == alignment.reference_span
 

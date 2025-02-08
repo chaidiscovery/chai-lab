@@ -327,6 +327,7 @@ class TemplateContext:
 def get_template_context(
     chains: list[Chain],
     template_hits_m8: Path,
+    template_cif_cache_folder: Path | None = None,
 ) -> TemplateContext:
     """
     For each example, loads templates for cropped chain, collate the templates.
@@ -365,6 +366,7 @@ def get_template_context(
                 chain.entity_data.entity_name,
                 chain.entity_data.sequence,
                 template_hits_m8,
+                template_cif_folder=template_cif_cache_folder,
             )
             # Load the template data
             loaded_templates = get_template_data(

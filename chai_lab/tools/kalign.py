@@ -15,8 +15,6 @@ from chai_lab.data.parsing.fasta import Fasta, read_fasta, write_fastas
 
 logger = logging.getLogger(__name__)
 
-assert shutil.which("kalign") is not None, "Could not find kalign in your PATH"
-
 
 @dataclass(frozen=True)
 class KalignAlignment:
@@ -71,6 +69,8 @@ def kalign_query_to_reference(
 
     Returns KalignAlignment object that encapsulates the aligned query w.r.t. reference
     """
+    assert shutil.which("kalign") is not None, "Could not find kalign in your PATH"
+
     query = query.upper().replace("-", "")
     with TemporaryDirectory() as tmp_dir:
         # Write the input sequences

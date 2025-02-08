@@ -15,6 +15,7 @@ def download_cif_file(pdb_id: str, directory: Path) -> Path:
             f"Destination for {pdb_id=} already exists: {outfile}; will not overwrite"
         )
     source_url = f"https://files.rcsb.org/download/{pdb_id}.cif.gz"
+    logging.info(f"Fetching {source_url} -> {outfile}")
     retrieved, _ = urllib.request.urlretrieve(url=source_url, filename=outfile)
     retrieved_path = Path(retrieved)
     assert retrieved_path.exists() and retrieved_path.stat().st_size > 0

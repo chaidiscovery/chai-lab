@@ -468,18 +468,18 @@ def run_inference(
     all_structure_candidates = []
 
     for fasta_file in fasta_files:
-        output_dir = output_dir / fasta_file.stem
+        curr_output_dir = output_dir / fasta_file.stem
 
-        if output_dir.exists():
+        if curr_output_dir.exists():
             if overwrite:
-                shutil.rmtree(output_dir)
+                shutil.rmtree(curr_output_dir)
             else:
-                print(f"Skipping {fasta_file} as output directory exists: {output_dir}")
+                print(f"Skipping {fasta_file} as output directory exists: {curr_output_dir}")
                 continue
 
         feature_context = make_all_atom_feature_context(
             fasta_file=fasta_file,
-            output_dir=output_dir,
+            output_dir=curr_output_dir,
             use_esm_embeddings=use_esm_embeddings,
             use_msa_server=use_msa_server,
             msa_server_url=msa_server_url,
@@ -490,7 +490,7 @@ def run_inference(
 
         structure_candidates = run_folding_on_context(
             feature_context,
-            output_dir=output_dir,
+            output_dir=curr_output_dir,
             num_trunk_recycles=num_trunk_recycles,
             num_diffn_timesteps=num_diffn_timesteps,
             num_diffn_samples=num_diffn_samples,

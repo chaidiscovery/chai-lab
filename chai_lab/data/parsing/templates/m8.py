@@ -64,6 +64,10 @@ def parse_m8_to_template_hits(
 
     assert table.query_id.nunique() == 1
 
+    # Ensure indexes are of type int
+    for k in ["query_start", "query_end", "subject_start", "subject_end"]:
+        table[k] = table[k].astype(int)
+
     # start and ends are 1-indexed in the input table
     # update the starts to be 0 indexed w.t. the indexing becomes 0-index half open
     for k in ["query_start", "subject_start"]:

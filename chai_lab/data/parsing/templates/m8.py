@@ -19,19 +19,10 @@ from chai_lab.tools.kalign import kalign_query_to_reference
 logger = logging.getLogger(name=__name__)
 
 
-def parse_m8_to_template_hits(
-    query_pdb_id: str,
-    query_sequence: str,
-    m8_path: Path,
-    template_cif_folder: Path | None = None,
-) -> Iterator[TemplateHit]:
-    assert m8_path.is_file() and m8_path.stat().st_size > 0
-
-    if template_cif_folder is not None:
-        template_cif_folder.mkdir(parents=True, exist_ok=True)
-
-    table = pd.read_csv(
-        m8_path,
+def parse_m8_file(fname: Path) -> pd.DataFrame:
+    """Parse the m8 alignment format describing template information."""
+    return pd.read_csv(
+        fname,
         delimiter="\t",
         header=None,
         names=[
@@ -50,6 +41,20 @@ def parse_m8_to_template_hits(
             "comment",
         ],
     ).sort_values(by=["query_id", "evalue"])
+
+
+def parse_m8_to_template_hits(
+    query_pdb_id: str,
+    query_sequence: str,
+    m8_path: Path,
+    template_cif_folder: Path | None = None,
+) -> Iterator[TemplateHit]:
+    assert m8_path.is_file() and m8_path.stat().st_size > 0
+
+    if template_cif_folder is not None:
+        template_cif_folder.mkdir(parents=True, exist_ok=True)
+
+    table = parse_m8_file(m8_path)
 
     # Subset to those matching the query pdb id
     table = table.loc[table.query_id.astype(str) == query_pdb_id]

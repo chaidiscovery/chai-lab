@@ -2,8 +2,8 @@
 # Licensed under the Apache License, Version 2.0.
 # See the LICENSE file for details.
 
-
 import math
+import shutil
 from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
@@ -432,7 +432,7 @@ def make_all_atom_feature_context(
 
 @torch.no_grad()
 def run_inference(
-    fasta_file: Path,
+    fasta_files: list[Path] | str,
     *,
     output_dir: Path,
     use_esm_embeddings: bool = True,
@@ -447,35 +447,69 @@ def run_inference(
     seed: int | None = None,
     device: str | None = None,
     low_memory: bool = True,
-) -> StructureCandidates:
-    if output_dir.exists():
-        assert not any(
-            output_dir.iterdir()
-        ), f"Output directory {output_dir} is not empty."
+    overwrite: bool = False,
+) -> list[StructureCandidates]:
+    
+    if isinstance(fasta_files, (str, Path)):
+        fasta_files = [Path(fasta_files)]
+    else:
+        fasta_files = [Path(f) for f in fasta_files if isinstance(f, str)]
 
     torch_device = torch.device(device if device is not None else "cuda:0")
 
-    feature_context = make_all_atom_feature_context(
-        fasta_file=fasta_file,
-        output_dir=output_dir,
-        use_esm_embeddings=use_esm_embeddings,
-        use_msa_server=use_msa_server,
-        msa_server_url=msa_server_url,
-        msa_directory=msa_directory,
-        constraint_path=constraint_path,
-        esm_device=torch_device,
-    )
+    # Load models once
+    feature_embedding = load_exported("feature_embedding.pt", torch_device)
+    bond_loss_input_proj = load_exported("bond_loss_input_proj.pt", torch_device)
+    token_input_embedder = load_exported("token_embedder.pt", torch_device)
+    trunk = load_exported("trunk.pt", torch_device)
+    diffusion_module = load_exported("diffusion_module.pt", torch_device)
+    confidence_head = load_exported("confidence_head.pt", torch_device)
 
-    return run_folding_on_context(
-        feature_context,
-        output_dir=output_dir,
-        num_trunk_recycles=num_trunk_recycles,
-        num_diffn_timesteps=num_diffn_timesteps,
-        num_diffn_samples=num_diffn_samples,
-        seed=seed,
-        device=torch_device,
-        low_memory=low_memory,
-    )
+    all_structure_candidates = []
+
+    for fasta_file in fasta_files:
+        curr_output_dir = output_dir / fasta_file.stem
+
+        if curr_output_dir.exists():
+            if overwrite:
+                shutil.rmtree(curr_output_dir)
+            else:
+                print(f"Skipping {fasta_file} as output directory exists: {curr_output_dir}")
+                continue
+
+        feature_context = make_all_atom_feature_context(
+            fasta_file=fasta_file,
+            output_dir=curr_output_dir,
+            use_esm_embeddings=use_esm_embeddings,
+            use_msa_server=use_msa_server,
+            msa_server_url=msa_server_url,
+            msa_directory=msa_directory,
+            constraint_path=constraint_path,
+            esm_device=torch_device,
+        )
+
+        structure_candidates = run_folding_on_context(
+            feature_context,
+            output_dir=curr_output_dir,
+            num_trunk_recycles=num_trunk_recycles,
+            num_diffn_timesteps=num_diffn_timesteps,
+            num_diffn_samples=num_diffn_samples,
+            seed=seed,
+            device=torch_device,
+            low_memory=low_memory,
+            models={
+                "feature_embedding": feature_embedding,
+                "bond_loss_input_proj": bond_loss_input_proj,
+                "token_input_embedder": token_input_embedder,
+                "trunk": trunk,
+                "diffusion_module": diffusion_module,
+                "confidence_head": confidence_head,
+            },
+        )
+
+        all_structure_candidates.append(structure_candidates)
+
+    return all_structure_candidates
 
 
 def _bin_centers(min_bin: float, max_bin: float, no_bins: int) -> Tensor:
@@ -495,6 +529,7 @@ def run_folding_on_context(
     seed: int | None = None,
     device: torch.device | None = None,
     low_memory: bool,
+    models: dict[str, ModuleWrapper],
 ) -> StructureCandidates:
     """
     Function for in-depth explorations.
@@ -556,25 +591,14 @@ def run_folding_on_context(
     )
     block_atom_pair_mask = inputs["block_atom_pair_mask"]
 
-    ##
-    ## Load exported models
-    ##
-
     _, _, model_size = msa_mask.shape
     assert model_size in AVAILABLE_MODEL_SIZES
-
-    feature_embedding = load_exported("feature_embedding.pt", device)
-    bond_loss_input_proj = load_exported("bond_loss_input_proj.pt", device)
-    token_input_embedder = load_exported("token_embedder.pt", device)
-    trunk = load_exported("trunk.pt", device)
-    diffusion_module = load_exported("diffusion_module.pt", device)
-    confidence_head = load_exported("confidence_head.pt", device)
 
     ##
     ## Run the features through the feature embedder
     ##
 
-    embedded_features = feature_embedding.forward(
+    embedded_features = models["feature_embedding"].forward(
         crop_size=model_size,
         move_to_device=device,
         return_on_cpu=low_memory,
@@ -600,7 +624,7 @@ def run_folding_on_context(
 
     bond_ft_gen = TokenBondRestraint()
     bond_ft = bond_ft_gen.generate(batch=batch).data
-    trunk_bond_feat, structure_bond_feat = bond_loss_input_proj.forward(
+    trunk_bond_feat, structure_bond_feat = models["bond_loss_input_proj"].forward(
         return_on_cpu=low_memory,
         move_to_device=device,
         crop_size=model_size,
@@ -613,7 +637,7 @@ def run_folding_on_context(
     ## Run the inputs through the token input embedder
     ##
 
-    token_input_embedder_outputs: tuple[Tensor, ...] = token_input_embedder.forward(
+    token_input_embedder_outputs: tuple[Tensor, ...] = models["token_input_embedder"].forward(
         return_on_cpu=low_memory,
         move_to_device=device,
         token_single_input_feats=token_single_input_feats,
@@ -640,7 +664,7 @@ def run_folding_on_context(
     token_single_trunk_repr = token_single_initial_repr
     token_pair_trunk_repr = token_pair_initial_repr
     for _ in tqdm(range(num_trunk_recycles), desc="Trunk recycles"):
-        (token_single_trunk_repr, token_pair_trunk_repr) = trunk.forward(
+        (token_single_trunk_repr, token_pair_trunk_repr) = models["trunk"].forward(
             move_to_device=device,
             token_single_trunk_initial_repr=token_single_initial_repr,
             token_pair_trunk_initial_repr=token_pair_initial_repr,
@@ -654,9 +678,6 @@ def run_folding_on_context(
             token_pair_mask=token_pair_mask,
             crop_size=model_size,
         )
-    # We won't be using the trunk anymore; remove it from memory
-    del trunk
-    torch.cuda.empty_cache()
 
     ##
     ## Denoise the trunk representation by passing it through the diffusion module
@@ -688,7 +709,7 @@ def run_folding_on_context(
             atom_pos, "(b ds) ... -> b ds ...", ds=ds
         ).contiguous()
         noise_sigma = repeat(sigma, " -> b ds", b=batch_size, ds=ds)
-        return diffusion_module.forward(
+        return models["diffusion_module"].forward(
             atom_noised_coords=atom_noised_coords.float(),
             noise_sigma=noise_sigma.float(),
             crop_size=model_size,
@@ -758,16 +779,12 @@ def run_folding_on_context(
             d_i_prime = (atom_pos - denoised_pos) / sigma_next
             atom_pos = atom_pos + (sigma_next - sigma_hat) * ((d_i_prime + d_i) / 2)
 
-    # We won't be running diffusion anymore
-    del diffusion_module, static_diffusion_inputs
-    torch.cuda.empty_cache()
-
     ##
     ## Run the confidence model
     ##
 
     confidence_outputs: list[tuple[Tensor, ...]] = [
-        confidence_head.forward(
+        models["confidence_head"].forward(
             move_to_device=device,
             token_single_input_repr=token_single_initial_repr,
             token_single_trunk_repr=token_single_trunk_repr,

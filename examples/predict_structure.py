@@ -36,7 +36,7 @@ if output_dir.exists():
 output_dir.mkdir(exist_ok=True)
 
 candidates = run_inference(
-    fasta_file=fasta_path,
+    fasta_files=fasta_path,
     output_dir=output_dir,
     # 'default' setup
     num_trunk_recycles=3,
@@ -46,9 +46,9 @@ candidates = run_inference(
     use_esm_embeddings=True,
 )
 
-cif_paths = candidates.cif_paths
-agg_scores = [rd.aggregate_score.item() for rd in candidates.ranking_data]
+cif_paths = candidates[0].cif_paths
+agg_scores = [rd.aggregate_score.item() for rd in candidates[0].ranking_data]
 
 
 # Load pTM, ipTM, pLDDTs and clash scores for sample 2
-scores = np.load(output_dir.joinpath("scores.model_idx_2.npz"))
+scores = np.load(output_dir.joinpath("example/scores.model_idx_2.npz"))

@@ -4,7 +4,6 @@
 import logging
 import urllib.request
 from pathlib import Path
-from tempfile import TemporaryDirectory
 
 
 def download_cif_file(pdb_id: str, directory: Path) -> Path:
@@ -22,8 +21,3 @@ def download_cif_file(pdb_id: str, directory: Path) -> Path:
     assert retrieved_path == outfile
     assert retrieved_path.exists() and retrieved_path.stat().st_size > 0
     return retrieved_path
-
-
-if __name__ == "__main__":
-    with TemporaryDirectory() as p:
-        download_cif_file("7FBI", Path(p))

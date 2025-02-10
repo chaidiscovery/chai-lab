@@ -308,12 +308,16 @@ def make_all_atom_feature_context(
     msa_server_url: str = "https://api.colabfold.com",
     msa_directory: Path | None = None,
     constraint_path: Path | None = None,
+    use_templates_server: bool = False,
     templates_path: Path | None = None,
     esm_device: torch.device = torch.device("cpu"),
 ):
     assert not (
         use_msa_server and msa_directory
     ), "Cannot specify both MSA server and directory"
+    assert not (
+        use_templates_server and templates_path
+    ), "Cannot specify both templates server and path"
 
     # Prepare inputs
     assert fasta_file.exists(), fasta_file
@@ -349,8 +353,13 @@ def make_all_atom_feature_context(
         generate_colabfold_msas(
             protein_seqs=protein_sequences,
             msa_dir=msa_dir,
+            search_templates=use_templates_server,
             msa_server_url=msa_server_url,
         )
+        if use_templates_server:  # Override templates path with server path
+            assert templates_path is None
+            templates_path = msa_dir / "all_chain_templates.m8"
+            assert templates_path.is_file()
         msa_context, msa_profile_context = get_msa_contexts(
             chains, msa_directory=msa_dir
         )
@@ -372,14 +381,20 @@ def make_all_atom_feature_context(
 
     # Load templates
     if templates_path is None:
+        assert (
+            not use_templates_server
+        ), "Templates path should never be none when querying server for templates"
         template_context = TemplateContext.empty(
             n_tokens=n_actual_tokens,
             n_templates=MAX_NUM_TEMPLATES,
         )
     else:
-        # NOTE templates m8 file should contain hits with query name corresponding to chain names
+        # NOTE templates m8 file should contain hits with query name matching chain entity_names
+        # or the hash of the chain sequence. When we query the server, we use the hash of the
+        # sequence to identify each hit.
         template_context = get_template_context(
             chains=chains,
+            use_sequence_hash_for_lookup=use_templates_server,
             template_hits_m8=templates_path,
             template_cif_cache_folder=output_dir / "templates",
         )
@@ -452,6 +467,7 @@ def run_inference(
     msa_server_url: str = "https://api.colabfold.com",
     msa_directory: Path | None = None,
     constraint_path: Path | None = None,
+    use_templates_server: bool = False,
     template_hits_path: Path | None = None,
     # expose some params for easy tweaking
     num_trunk_recycles: int = 3,
@@ -476,6 +492,7 @@ def run_inference(
         msa_server_url=msa_server_url,
         msa_directory=msa_directory,
         constraint_path=constraint_path,
+        use_templates_server=use_templates_server,
         templates_path=template_hits_path,
         esm_device=torch_device,
     )

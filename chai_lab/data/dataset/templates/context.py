@@ -21,6 +21,7 @@ from chai_lab.data.dataset.structure.all_atom_structure_context import (
 from chai_lab.data.dataset.structure.chain import Chain
 from chai_lab.data.dataset.templates.align import align_1d, align_2d
 from chai_lab.data.dataset.templates.load import LoadedTemplate, get_template_data
+from chai_lab.data.parsing.msas.aligned_pqt import hash_sequence
 from chai_lab.data.parsing.structure.entity_type import EntityType
 from chai_lab.data.parsing.templates.m8 import parse_m8_to_template_hits
 from chai_lab.data.parsing.templates.template_hit import TemplateHit
@@ -327,6 +328,7 @@ class TemplateContext:
 def get_template_context(
     chains: list[Chain],
     template_hits_m8: Path,
+    use_sequence_hash_for_lookup: bool = False,
     template_cif_cache_folder: Path | None = None,
 ) -> TemplateContext:
     """
@@ -363,7 +365,11 @@ def get_template_context(
         if chain.entity_data.entity_type == EntityType.PROTEIN:
             # Create an iterator over tempalte hits
             template_hits: Iterator[TemplateHit] = parse_m8_to_template_hits(
-                chain.entity_data.entity_name,
+                (
+                    chain.entity_data.entity_name
+                    if not use_sequence_hash_for_lookup
+                    else hash_sequence(chain.entity_data.sequence)
+                ),
                 chain.entity_data.sequence,
                 template_hits_m8,
                 template_cif_folder=template_cif_cache_folder,

@@ -21,7 +21,7 @@ logger = logging.getLogger(name=__name__)
 
 def parse_m8_file(fname: Path) -> pd.DataFrame:
     """Parse the m8 alignment format describing template information."""
-    return pd.read_csv(
+    table = pd.read_csv(
         fname,
         delimiter="\t",
         header=None,
@@ -41,6 +41,9 @@ def parse_m8_file(fname: Path) -> pd.DataFrame:
             "comment",
         ],
     ).sort_values(by=["query_id", "evalue"])
+    for k in ["query_start", "query_end", "subject_start", "subject_end"]:
+        table[k] = table[k].astype(int)
+    return table
 
 
 def parse_m8_to_template_hits(
@@ -63,10 +66,6 @@ def parse_m8_to_template_hits(
         return  # No hits
 
     assert table.query_id.nunique() == 1
-
-    # Ensure indexes are of type int
-    for k in ["query_start", "query_end", "subject_start", "subject_end"]:
-        table[k] = table[k].astype(int)
 
     # start and ends are 1-indexed in the input table
     # update the starts to be 0 indexed w.t. the indexing becomes 0-index half open

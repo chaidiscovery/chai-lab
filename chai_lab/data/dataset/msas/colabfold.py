@@ -19,6 +19,7 @@ from chai_lab import __version__
 from chai_lab.data.parsing.fasta import Fasta, read_fasta
 from chai_lab.data.parsing.msas.aligned_pqt import expected_basename, hash_sequence
 from chai_lab.data.parsing.msas.data_source import MSADataSource
+from chai_lab.data.parsing.templates.m8 import parse_m8_file
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +30,7 @@ TQDM_BAR_FORMAT = (
 
 # N.B. this function (and this function only) is copied from https://github.com/sokrypton/ColabFold
 # and follows the license in that repository
+# We have made modifications to how templates are returned from thsi function.
 @typing.no_type_check  # Original ColabFold code was not well typed
 def _run_mmseqs2(
     x,
@@ -41,8 +43,8 @@ def _run_mmseqs2(
     pairing_strategy="greedy",
     host_url="https://api.colabfold.com",
     user_agent: str = "",
-) -> list[str] | tuple[list[str], list[str]]:
-    """Return a block of a3m lines for each of the input sequences in x."""
+) -> tuple[list[str], str | None]:
+    """Return a block of a3m lines and optionally template hits for each of the input sequences in x."""
     submission_endpoint = "ticket/pair" if use_pairing else "ticket/msa"
 
     headers = {}
@@ -257,59 +259,13 @@ def _run_mmseqs2(
             tar_gz.extractall(path)
 
     # templates
+    template_path: str | None = None
     if use_templates:
-        templates = {}
         # print("seq\tpdb\tcid\tevalue")
-        for line in open(f"{path}/pdb70.m8", "r"):
-            p = line.rstrip().split()
-            M, pdb, _, _ = p[0], p[1], p[2], p[10]
-            M = int(M)
-            if M not in templates:
-                templates[M] = []
-            templates[M].append(pdb)
-            # if len(templates[M]) <= 20:
-            #  print(f"{int(M)-N}\t{pdb}\t{qid}\t{e_value}")
-
-        template_paths = {}
-        for k, TMPL in templates.items():
-            TMPL_PATH = f"{prefix}_{mode}/templates_{k}"
-            if not os.path.isdir(TMPL_PATH):
-                os.mkdir(TMPL_PATH)
-                TMPL_LINE = ",".join(TMPL[:20])
-                response = None
-                while True:
-                    error_count = 0
-                    try:
-                        # https://requests.readthedocs.io/en/latest/user/advanced/#advanced
-                        # "good practice to set connect timeouts to slightly larger than a multiple of 3"
-                        response = requests.get(
-                            f"{host_url}/template/{TMPL_LINE}",
-                            stream=True,
-                            timeout=6.02,
-                            headers=headers,
-                        )
-                    except requests.exceptions.Timeout:
-                        logger.warning(
-                            "Timeout while submitting to template server. Retrying..."
-                        )
-                        continue
-                    except Exception as e:
-                        error_count += 1
-                        logger.warning(
-                            f"Error while fetching result from template server. Retrying... ({error_count}/5)"
-                        )
-                        logger.warning(f"Error: {e}")
-                        time.sleep(5)
-                        if error_count > 5:
-                            raise
-                        continue
-                    break
-                with tarfile.open(fileobj=response.raw, mode="r|gz") as tar:
-                    tar.extractall(path=TMPL_PATH)
-                os.symlink("pdb70_a3m.ffindex", f"{TMPL_PATH}/pdb70_cs219.ffindex")
-                with open(f"{TMPL_PATH}/pdb70_cs219.ffdata", "w") as f:
-                    f.write("")
-            template_paths[k] = TMPL_PATH
+        # NOTE this section has been significantly reduced to enable Chai-1 to take m8 files
+        # as a common input format, while also reducing how much we ping the server.
+        template_path = os.path.join(path, "pdb70.m8")
+        assert os.path.isfile(template_path)
 
     # gather a3m lines
     a3m_lines = {}
@@ -327,21 +283,8 @@ def _run_mmseqs2(
                         a3m_lines[M] = []
                 a3m_lines[M].append(line)
 
-    # return results
-
     a3m_lines = ["".join(a3m_lines[n]) for n in Ms]
-
-    if use_templates:
-        template_paths_ = []
-        for n in Ms:
-            if n not in template_paths:
-                template_paths_.append(None)
-                # print(f"{n-N}\tno_templates_found")
-            else:
-                template_paths_.append(template_paths[n])
-        template_paths = template_paths_
-
-    return (a3m_lines, template_paths) if use_templates else a3m_lines
+    return a3m_lines, template_path
 
 
 def _is_padding_msa_row(sequence: str) -> bool:
@@ -354,6 +297,7 @@ def generate_colabfold_msas(
     protein_seqs: list[str],
     msa_dir: Path,
     msa_server_url: str,
+    search_templates: bool = False,
     write_a3m_to_msa_dir: bool = False,  # Useful for manual inspection + debugging
 ):
     """
@@ -398,10 +342,11 @@ def generate_colabfold_msas(
         # as the i-th index of the sequence so long as it isn't a padding sequence (all -)
         paired_msas: list[str]
         if len(protein_seqs) > 1:
-            paired_msas = _run_mmseqs2(
+            paired_msas, _ = _run_mmseqs2(
                 protein_seqs,
                 mmseqs_paired_dir,
                 use_pairing=True,
+                use_templates=False,  # No templates when running paired search
                 host_url=msa_server_url,
                 user_agent=user_agent,
             )
@@ -411,13 +356,29 @@ def generate_colabfold_msas(
 
         # MSAs without pairing logic attached; may include sequences not contained in the paired MSA
         # Needs a second call as the colabfold server returns either paired or unpaired, not both
-        per_chain_msas = _run_mmseqs2(
+        per_chain_msas, template_hits_file = _run_mmseqs2(
             protein_seqs,
             mmseqs_dir,
             use_pairing=False,
+            use_templates=search_templates,
             host_url=msa_server_url,
             user_agent=user_agent,
         )
+        if search_templates:
+            assert template_hits_file is not None and os.path.isfile(template_hits_file)
+            all_templates = parse_m8_file(Path(template_hits_file))
+            # query IDs are 101, 102, ... from the server; remap IDs
+            query_map = {}
+            for orig_query_id, orig_seq in enumerate(protein_seqs, start=101):
+                h = hash_sequence(orig_seq)
+                query_map[orig_query_id] = h
+            all_templates["query_id"] = all_templates["query_id"].apply(query_map.get)
+            assert not pd.isnull(all_templates["query_id"]).any()
+
+            logger.info(f"Found {len(all_templates)} template hits")
+            all_templates.to_csv(
+                msa_dir / "all_chain_templates.m8", index=False, header=False, sep="\t"
+            )
 
         # Process the MSAs into our internal format
         for protein_seq, pair_msa, single_msa in zip(

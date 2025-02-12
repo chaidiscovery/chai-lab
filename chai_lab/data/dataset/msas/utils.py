@@ -6,9 +6,10 @@ import torch
 from einops import rearrange, repeat
 from torch import Tensor
 
-from chai_lab.utils.typing import Bool
+from chai_lab.utils.typing import Bool, typecheck
 
 
+@typecheck
 def subsample_msa_rows(
     mask: Bool[Tensor, "1 depth tokens"],
     select_n_rows: int = 4096,

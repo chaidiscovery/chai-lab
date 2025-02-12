@@ -3,10 +3,13 @@
 # See the LICENSE file for details.
 
 
+import itertools
+import logging
 import math
 from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Sequence
 
 import numpy as np
 import torch
@@ -296,6 +299,23 @@ class StructureCandidates:
             plddt=self.plddt[idx],
         )
 
+    @classmethod
+    def concat(
+        cls, candidates: Sequence["StructureCandidates"]
+    ) -> "StructureCandidates":
+        return cls(
+            cif_paths=list(
+                itertools.chain.from_iterable([c.cif_paths for c in candidates])
+            ),
+            ranking_data=list(
+                itertools.chain.from_iterable([c.ranking_data for c in candidates])
+            ),
+            msa_coverage_plot_path=candidates[0].msa_coverage_plot_path,
+            pae=torch.cat([c.pae for c in candidates]),
+            pde=torch.cat([c.pde for c in candidates]),
+            plddt=torch.cat([c.plddt for c in candidates]),
+        )
+
 
 def make_all_atom_feature_context(
     fasta_file: Path,
@@ -446,6 +466,7 @@ def run_inference(
     num_trunk_recycles: int = 3,
     num_diffn_timesteps: int = 200,
     num_diffn_samples: int = 5,
+    num_trunk_samples: int = 5,
     seed: int | None = None,
     device: str | None = None,
     low_memory: bool = True,
@@ -468,17 +489,22 @@ def run_inference(
         esm_device=torch_device,
     )
 
-    return run_folding_on_context(
-        feature_context,
-        output_dir=output_dir,
-        num_trunk_recycles=num_trunk_recycles,
-        num_diffn_timesteps=num_diffn_timesteps,
-        num_diffn_samples=num_diffn_samples,
-        recycle_msa_subsample=recycle_msa_subsample,
-        seed=seed,
-        device=torch_device,
-        low_memory=low_memory,
-    )
+    all_candidates: list[StructureCandidates] = []
+    for trunk_idx in range(num_trunk_samples):
+        logging.info(f"Trunk sample {trunk_idx + 1}/{num_trunk_samples}")
+        cand = run_folding_on_context(
+            feature_context,
+            output_dir=output_dir / f"trunk_{trunk_idx}",
+            num_trunk_recycles=num_trunk_recycles,
+            num_diffn_timesteps=num_diffn_timesteps,
+            num_diffn_samples=num_diffn_samples,
+            recycle_msa_subsample=recycle_msa_subsample,
+            seed=seed + trunk_idx if seed is not None else None,
+            device=torch_device,
+            low_memory=low_memory,
+        )
+        all_candidates.append(cand)
+    return StructureCandidates.concat(all_candidates)
 
 
 def _bin_centers(min_bin: float, max_bin: float, no_bins: int) -> Tensor:

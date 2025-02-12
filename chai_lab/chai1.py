@@ -471,6 +471,7 @@ def run_inference(
     device: str | None = None,
     low_memory: bool = True,
 ) -> StructureCandidates:
+    assert num_trunk_samples > 0 and num_diffn_samples > 0
     if output_dir.exists():
         assert not any(
             output_dir.iterdir()

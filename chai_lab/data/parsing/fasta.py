@@ -4,7 +4,7 @@
 
 import logging
 from pathlib import Path
-from typing import NamedTuple
+from typing import NamedTuple, Sequence
 
 from chai_lab.data.parsing.structure.entity_type import EntityType
 from chai_lab.data.residue_constants import restype_1to3_with_x
@@ -26,11 +26,31 @@ nucleic_acid_1_to_name: dict[tuple[str, EntityType], str] = {
 }
 
 
+def fastas_to_str(fastas: Sequence[Fasta]) -> str:
+    return "".join(f">{fasta.header}\n{fasta.sequence}\n" for fasta in fastas)
+
+
 def read_fasta(file_path: str | Path) -> list[Fasta]:
     from Bio import SeqIO
 
     fasta_sequences = SeqIO.parse(open(file_path), "fasta")
     return [Fasta(fasta.description, str(fasta.seq)) for fasta in fasta_sequences]
+
+
+def read_fasta_unique(p: Path) -> tuple[list[str], list[bytes]]:
+    """Read unique sequences from the given fasta file."""
+    known = set()
+    descriptions: list[str] = []
+    aligned_seqs: list[bytes] = []
+    for rec_id, rec_seq in read_fasta(p):
+        aligned_seq = rec_seq.encode()
+        if aligned_seq in known:
+            continue  # skip duplicate sequences
+        known.add(aligned_seq)
+
+        descriptions.append(rec_id)
+        aligned_seqs.append(aligned_seq)
+    return descriptions, aligned_seqs
 
 
 def get_residue_name(
@@ -48,3 +68,12 @@ def get_residue_name(
             return nucleic_acid_1_to_name.get((fasta_code, entity_type), unk)
         case _:
             raise ValueError(f"Invalid polymer entity type {entity_type}")
+
+
+def write_fastas(
+    fastas: Sequence[Fasta],
+    output_path: str,
+):
+    logger.debug(f"Writing {len(fastas)} sequences to {output_path}")
+    with open(output_path, "w") as fp:
+        fp.write(fastas_to_str(fastas))

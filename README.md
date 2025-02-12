@@ -29,12 +29,12 @@ You can fold a FASTA file containing all the sequences (including modified resid
 chai fold input.fasta output_folder
 ```
 
-By default, the model generates five sample predictions, and uses embeddings without MSAs or templates. For additional information about how to supply MSAs and restraints to the model, see the documentation below, or run `chai fold --help`.
+By default, the model generates five sample predictions, and uses embeddings without MSAs or templates. For additional information about how to supply MSAs, templates, and restraints to the model, see the documentation below, or run `chai fold --help`.
 
-For example, to run the model with MSAs (which we recommend for improved performance), pass the `--use-msa-server` flag:
+For example, to run the model with MSAs (which we recommend for improved performance), pass the `--use-msa-server` and `--use-templates-server` flags:
 
 ```shell
-chai fold --use-msa-server input.fasta output_folder
+chai fold --use-msa-server --use-templates-server input.fasta output_folder
 ```
 
 If you are hosting your own ColabFold server, additionally pass the `--msa-server` flag with your server:

@@ -28,3 +28,27 @@ def get_centre_positions_and_mask(
     center_mask = center_mask & token_exists_mask
 
     return center_pos, center_mask
+
+
+@typecheck
+def get_token_reference_atom_positions_and_mask(
+    atom_pos: Float[Tensor, "b a d"],
+    atom_mask: Bool[Tensor, "b a"],
+    token_reference_atom_index: Int[Tensor, "b n"],
+    token_exists_mask: Bool[Tensor, "b n_tokens"],
+) -> tuple[Float[Tensor, "b n d"], Bool[Tensor, "b n"]]:
+    """
+    Get positions of the reference atom (CB for proteins, C2 or C4 for nucleic acids, sole atom for atom tokens)
+    for each token
+    """
+    batch_indices = torch.arange(0, atom_pos.shape[0])[:, None]
+
+    reference_atom_pos = atom_pos[batch_indices, token_reference_atom_index]
+    reference_atom_mask = atom_mask[batch_indices, token_reference_atom_index]
+
+    # because token_reference_atom_index is zero-padded, and because
+    # atom number 0 is probably a valid atom, we need to reapply
+    # the token mask
+    reference_atom_mask = reference_atom_mask & token_exists_mask
+
+    return reference_atom_pos, reference_atom_mask

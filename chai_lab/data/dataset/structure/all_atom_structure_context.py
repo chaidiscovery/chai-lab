@@ -94,6 +94,104 @@ class AllAtomStructureContext:
     def residue_names(self) -> list[str]:
         return batch_tensorcode_to_string(self.token_residue_name)
 
+    @typecheck
+    def index_select(self, idxs: Int[Tensor, "n"]) -> "AllAtomStructureContext":
+        """
+        Selects a subset of the data in the context, reindexing the tokens and atoms in
+        the new context (i.e. the new context will be indexed from 0).
+
+        Parameters
+        ----------
+        idxs : Int[Tensor, "n"]
+            The indices of the tokens to select.
+
+        Returns
+        -------
+        AllAtomStructureContext
+            A new context with the selected tokens and atoms.
+        """
+        assert ((idxs >= 0) & (idxs < self.num_tokens)).all()
+
+        # get atoms to keep
+        selected_atom_index = torch.where(
+            (self.atom_token_index == idxs[..., None]).any(dim=0)
+        )[0]
+
+        # rebuild token index and atom-token index
+        token_index = torch.arange(len(idxs))
+
+        atom_token_index, selected_atom_idx = torch.where(
+            self.atom_token_index == idxs[..., None]
+        )
+
+        def _reselect_atom_indices(
+            prior_atom_index: Int[Tensor, "n_tokens"],
+        ) -> Int[Tensor, "n_tokens_new"]:
+            mask = torch.zeros(self.num_atoms, dtype=torch.bool)
+            mask[prior_atom_index] = True
+            selected_mask = mask[selected_atom_idx]
+            return torch.where(selected_mask)[0]
+
+        token_centre_atom_index = _reselect_atom_indices(self.token_centre_atom_index)
+        token_ref_atom_index = _reselect_atom_indices(self.token_ref_atom_index)
+
+        atom_covalent_bond_indices = None
+        if self.atom_covalent_bond_indices is not None:
+            left_idx, right_idx = self.atom_covalent_bond_indices
+            atom_pairs = torch.zeros(self.num_atoms, self.num_atoms, dtype=torch.bool)
+            atom_pairs[left_idx, right_idx] = True
+            selected_atom_pairs = atom_pairs[selected_atom_idx][:, selected_atom_idx]
+            new_left, new_right = torch.where(selected_atom_pairs)
+            atom_covalent_bond_indices = new_left, new_right
+
+        token_backbone_frame_atom_index = torch.stack(
+            [
+                _reselect_atom_indices(x)
+                for x in torch.unbind(self.token_backbone_frame_index, dim=-1)
+            ],
+            dim=-1,
+        )
+
+        return AllAtomStructureContext(
+            # token-level
+            token_residue_type=self.token_residue_type[idxs],
+            token_residue_index=self.token_residue_index[idxs],
+            token_index=token_index,
+            token_centre_atom_index=token_centre_atom_index,
+            token_ref_atom_index=token_ref_atom_index,
+            token_exists_mask=self.token_exists_mask[idxs],
+            token_backbone_frame_mask=self.token_backbone_frame_mask[idxs],
+            token_backbone_frame_index=token_backbone_frame_atom_index,
+            token_asym_id=self.token_asym_id[idxs],
+            token_entity_id=self.token_entity_id[idxs],
+            token_sym_id=self.token_sym_id[idxs],
+            token_entity_type=self.token_entity_type[idxs],
+            token_residue_name=self.token_residue_name[idxs],
+            token_b_factor_or_plddt=self.token_b_factor_or_plddt[idxs],
+            # atom-level
+            atom_token_index=atom_token_index,
+            atom_within_token_index=self.atom_within_token_index[selected_atom_index],
+            atom_ref_pos=self.atom_ref_pos[selected_atom_index],
+            atom_ref_mask=self.atom_ref_mask[selected_atom_index],
+            atom_ref_element=self.atom_ref_element[selected_atom_index],
+            atom_ref_charge=self.atom_ref_charge[selected_atom_index],
+            atom_ref_name=[self.atom_ref_name[i] for i in selected_atom_index],
+            atom_ref_name_chars=self.atom_ref_name_chars[selected_atom_index],
+            atom_ref_space_uid=self.atom_ref_space_uid[selected_atom_index],
+            atom_is_not_padding_mask=self.atom_is_not_padding_mask[selected_atom_index],
+            # supervision-only
+            atom_gt_coords=self.atom_gt_coords[selected_atom_index],
+            atom_exists_mask=self.atom_exists_mask[selected_atom_index],
+            # structure-level
+            pdb_id=self.pdb_id[idxs],
+            source_pdb_chain_id=self.source_pdb_chain_id[idxs],
+            subchain_id=self.subchain_id[idxs],
+            resolution=self.resolution,
+            is_distillation=self.is_distillation,
+            symmetries=self.symmetries[selected_atom_index],
+            atom_covalent_bond_indices=atom_covalent_bond_indices,
+        )
+
     def report_bonds(self) -> None:
         """Log information about covalent bonds."""
         for i, (atom_a, atom_b) in enumerate(zip(*self.atom_covalent_bond_indices)):

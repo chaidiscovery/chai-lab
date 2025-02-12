@@ -35,6 +35,8 @@ RUN --mount=type=cache,target=/var/cache/apt \
   build-essential libstdc++6 \
   # python
   python3.10 python3.10-dev \
+  # needed for templates logic
+  kalign \
   # (run continues)
   # stop git from complaining about dubious ownership.
   && git config --global --add safe.directory "*" \

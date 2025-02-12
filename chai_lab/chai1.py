@@ -483,6 +483,7 @@ def run_inference(
     fasta_file: Path,
     *,
     output_dir: Path,
+    # Configuration for ESM, MSA, constraints, and templates
     use_esm_embeddings: bool = True,
     use_msa_server: bool = False,
     msa_server_url: str = "https://api.colabfold.com",
@@ -490,7 +491,7 @@ def run_inference(
     constraint_path: Path | None = None,
     use_templates_server: bool = False,
     template_hits_path: Path | None = None,
-    # expose some params for easy tweaking
+    # Parameters controlling how we do inference
     recycle_msa_subsample: int = 0,
     num_trunk_recycles: int = 3,
     num_diffn_timesteps: int = 200,

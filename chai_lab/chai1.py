@@ -32,6 +32,7 @@ from chai_lab.data.dataset.inference_dataset import load_chains_from_raw, read_i
 from chai_lab.data.dataset.msas.colabfold import generate_colabfold_msas
 from chai_lab.data.dataset.msas.load import get_msa_contexts
 from chai_lab.data.dataset.msas.msa_context import MSAContext
+from chai_lab.data.dataset.msas.utils import subsample_msa_rows
 from chai_lab.data.dataset.structure.all_atom_structure_context import (
     AllAtomStructureContext,
 )
@@ -441,6 +442,7 @@ def run_inference(
     msa_directory: Path | None = None,
     constraint_path: Path | None = None,
     # expose some params for easy tweaking
+    recycle_msa_subsample: int = 0,
     num_trunk_recycles: int = 3,
     num_diffn_timesteps: int = 200,
     num_diffn_samples: int = 5,
@@ -472,6 +474,7 @@ def run_inference(
         num_trunk_recycles=num_trunk_recycles,
         num_diffn_timesteps=num_diffn_timesteps,
         num_diffn_samples=num_diffn_samples,
+        recycle_msa_subsample=recycle_msa_subsample,
         seed=seed,
         device=torch_device,
         low_memory=low_memory,
@@ -488,6 +491,7 @@ def run_folding_on_context(
     *,
     output_dir: Path,
     # expose some params for easy tweaking
+    recycle_msa_subsample: int = 0,
     num_trunk_recycles: int = 3,
     num_diffn_timesteps: int = 200,
     # all diffusion samples come from the same trunk
@@ -647,7 +651,7 @@ def run_folding_on_context(
             token_single_trunk_repr=token_single_trunk_repr,  # recycled
             token_pair_trunk_repr=token_pair_trunk_repr,  # recycled
             msa_input_feats=msa_input_feats,
-            msa_mask=msa_mask,
+            msa_mask=subsample_msa_rows(msa_mask, select_n_rows=recycle_msa_subsample),
             template_input_feats=template_input_feats,
             template_input_masks=template_input_masks,
             token_single_mask=token_single_mask,

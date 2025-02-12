@@ -466,7 +466,7 @@ def run_inference(
     num_trunk_recycles: int = 3,
     num_diffn_timesteps: int = 200,
     num_diffn_samples: int = 5,
-    num_trunk_samples: int = 5,
+    num_trunk_samples: int = 1,
     seed: int | None = None,
     device: str | None = None,
     low_memory: bool = True,
@@ -494,7 +494,11 @@ def run_inference(
         logging.info(f"Trunk sample {trunk_idx + 1}/{num_trunk_samples}")
         cand = run_folding_on_context(
             feature_context,
-            output_dir=output_dir / f"trunk_{trunk_idx}",
+            output_dir=(
+                output_dir / f"trunk_{trunk_idx}"
+                if num_trunk_samples > 1
+                else output_dir
+            ),
             num_trunk_recycles=num_trunk_recycles,
             num_diffn_timesteps=num_diffn_timesteps,
             num_diffn_samples=num_diffn_samples,

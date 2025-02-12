@@ -69,7 +69,9 @@ def kalign_query_to_reference(
 
     Returns KalignAlignment object that encapsulates the aligned query w.r.t. reference
     """
-    assert shutil.which("kalign") is not None, "Could not find kalign in your PATH"
+    assert (
+        shutil.which("kalign") is not None
+    ), "Could not find kalign in your PATH; kalign is required for templates"
 
     query = query.upper().replace("-", "")
     with TemporaryDirectory() as tmp_dir:

@@ -1,5 +1,5 @@
 # dev-deps, still placed in the same requirements file
-ruff==0.6.3 # in sync with pre-commit-hook
+ruff>=0.6.3 # in sync with pre-commit-hook
 mypy
 pytest
 pre-commit

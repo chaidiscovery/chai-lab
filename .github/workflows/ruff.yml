@@ -22,7 +22,8 @@ jobs:
       - name: Run pre-commit checks on all files
         # run specific ruff pre-commit hooks on all files
         run: >
-          pip install pre-commit
+          pip install -r requirements.dev
+          && pip install pre-commit
           && pre-commit install -f
           && pre-commit run ruff --all-files
           && pre-commit run ruff-format --all-files

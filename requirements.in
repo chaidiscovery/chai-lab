@@ -1,6 +1,3 @@
-# dev-deps
-pre-commit
-
 # types/stubs are required by mypy
 pandas-stubs
 types-pyyaml

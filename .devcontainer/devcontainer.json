@@ -17,7 +17,8 @@
         "--memory=1000g"
     ],
     "shutdownAction": "none",
-    "postCreateCommand": "uv pip install -e . && pre-commit install -f",
+    // This contains a separate requirements file for devcontainer specific packages e.g. ruff
+    "postCreateCommand": "uv pip install -e . && uv pip install -r requirements.dev && pre-commit install -f",
     "customizations": {
         "vscode": {
             "settings": {

@@ -52,7 +52,7 @@ class MSAContext:
             mask=self.mask[subscript],
         )
 
-    def take_rows_with_padding(self, row_indices_with_nones: list):
+    def take_rows_with_padding(self, row_indices_with_nones: list[int | None]):
         """
         allows specifying index=None, which will be filled with empty sequence,
         helpful to align multiple sequences

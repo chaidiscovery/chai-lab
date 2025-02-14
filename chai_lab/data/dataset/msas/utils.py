@@ -3,7 +3,7 @@
 # See the LICENSE file for details.
 
 import torch
-from einops import rearrange, repeat
+from einops import rearrange, reduce, repeat
 from torch import Tensor
 
 from chai_lab.utils.typing import Bool, typecheck
@@ -18,20 +18,27 @@ def subsample_msa_rows(
     """Adjust masking to look at a random subset of msas.
 
     Returns input mask as-is if select_n_rows <= 0 or depth < select_n_rows."""
-    nonnull_rows_mask = rearrange(mask.any(dim=-1), "1 d -> d")
+    # Count the number of non-padding residues in each row of the MSA
+    msa_sizes = rearrange(
+        reduce(mask, "b depth tok -> b depth", reduction="sum"), "1 depth -> depth"
+    )
+    nonnull_rows_mask = msa_sizes > 0
     input_depth = nonnull_rows_mask.sum().item()
     if select_n_rows <= 0 or input_depth <= select_n_rows:
         return mask
 
-    # Select from rows of the MSA that are not fully masked out
-    (nonnull_row_indices,) = torch.where(nonnull_rows_mask)
-    assert (n := nonnull_row_indices.numel()) > select_n_rows
-    permuted = torch.randperm(n, device=mask.device, generator=generator)
-    selected_row_indices = nonnull_row_indices[permuted[:select_n_rows]]
+    # Bias towards bigger hit MSAs; 0 size is automatically nulled out
+    mask_ranking = msa_sizes * torch.rand(
+        size=msa_sizes.shape,
+        dtype=torch.float16,
+        device=msa_sizes.device,
+        generator=generator,
+    )
+    # Ascending sort -> choose the last (highest scoring) rows
+    selected_row_indices = mask_ranking.argsort()[-select_n_rows:]
 
     # Create a mask for selected row indices
     selection_mask = torch.zeros_like(nonnull_rows_mask)
     selection_mask[selected_row_indices] = True
-    selection_mask = repeat(selection_mask, "d -> 1 d 1")
 
-    return mask & selection_mask
+    return mask & repeat(selection_mask, "d -> 1 d 1")

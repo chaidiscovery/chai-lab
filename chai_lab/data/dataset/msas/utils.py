@@ -40,6 +40,5 @@ def subsample_msa_rows(
     # Create a mask for selected row indices
     selection_mask = torch.zeros_like(nonnull_rows_mask)
     selection_mask[selected_row_indices] = True
-    selection_mask = repeat(selection_mask, "d -> 1 d 1")
 
-    return mask & selection_mask
+    return mask & repeat(selection_mask, "d -> 1 d 1")

@@ -402,9 +402,7 @@ def make_all_atom_feature_context(
 
     # Load templates
     if templates_path is None:
-        assert (
-            not use_templates_server
-        ), "Templates path should never be none when querying server for templates"
+        assert not use_templates_server, "Server should have written a path"
         template_context = TemplateContext.empty(
             n_tokens=n_actual_tokens,
             n_templates=MAX_NUM_TEMPLATES,

@@ -1,7 +1,4 @@
-# dev-deps, still placed in the same requirements file
-ruff>=0.6.3 # in sync with pre-commit-hook
-mypy
-pytest
+# dev-deps
 pre-commit
 
 # types/stubs are required by mypy
@@ -15,8 +12,6 @@ types-requests
 typer~=0.12        # CLI generator
 # pydantic~=2.5      # serialization/deserialization of configs
 
-# notebooks, plotting
-ipykernel~=6.27    # needed by vs code to run notebooks in devcontainer
 # seaborn
 matplotlib
 

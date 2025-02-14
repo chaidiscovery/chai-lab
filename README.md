@@ -26,21 +26,21 @@ This Python package requires Linux, and a GPU with CUDA and bfloat16 support. We
 
 You can fold a FASTA file containing all the sequences (including modified residues, nucleotides, and ligands as SMILES strings) in a complex of interest by calling:
 ```shell
-chai fold input.fasta output_folder
+chai-lab fold input.fasta output_folder
 ```
 
-By default, the model generates five sample predictions, and uses embeddings without MSAs or templates. For additional information about how to supply MSAs, templates, and restraints to the model, see the documentation below, or run `chai fold --help`.
+By default, the model generates five sample predictions, and uses embeddings without MSAs or templates. For additional information about how to supply MSAs, templates, and restraints to the model, see the documentation below, or run `chai-lab fold --help`.
 
 For example, to run the model with MSAs (which we recommend for improved performance), pass the `--use-msa-server` and `--use-templates-server` flags:
 
 ```shell
-chai fold --use-msa-server --use-templates-server input.fasta output_folder
+chai-lab fold --use-msa-server --use-templates-server input.fasta output_folder
 ```
 
 If you are hosting your own ColabFold server, additionally pass the `--msa-server` flag with your server:
 
 ```shell
-chai fold --use-msa-server --msa-server-url "https://api.internalcolabserver.com" input.fasta output_folder
+chai-lab fold --use-msa-server --msa-server-url "https://api.internalcolabserver.com" input.fasta output_folder
 ```
 
 We also provide additional utility functions for tasks such as MSA file format conversion; see `chai --help` for details.

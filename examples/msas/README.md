@@ -61,7 +61,7 @@ aligned_pqt.head()
 
 ## Additional MSA generation strategies
 
-Multiple strategies can be used for generating MSAs. In our [technical report](https://chaiassets.com/chai-1/paper/technical_report_v1.pdf), we generated MSAs using [jackhmmer](https://github.com/EddyRivasLab/hmmer). Other algorithms such as [MMseqs2](https://github.com/soedinglab/MMseqs2) can also be used. In this vein, we provide support for automatic MSA generation via the [ColabFold](https://github.com/sokrypton/ColabFold) server using `chai fold input.fasta output_directory --msa-server` or by invoking `run_inference` as follows:
+Multiple strategies can be used for generating MSAs. In our [technical report](https://chaiassets.com/chai-1/paper/technical_report_v1.pdf), we generated MSAs using [jackhmmer](https://github.com/EddyRivasLab/hmmer). Other algorithms such as [MMseqs2](https://github.com/soedinglab/MMseqs2) can also be used. In this vein, we provide support for automatic MSA generation via the [ColabFold](https://github.com/sokrypton/ColabFold) server using `chai-lab fold input.fasta output_directory --msa-server` or by invoking `run_inference` as follows:
 
 ```python
 candidates = run_inference(

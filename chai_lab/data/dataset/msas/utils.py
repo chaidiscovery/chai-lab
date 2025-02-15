@@ -36,6 +36,8 @@ def subsample_msa_rows(
     )
     # Ascending sort -> choose the last (highest scoring) rows
     selected_row_indices = mask_ranking.argsort()[-select_n_rows:]
+    # We should never sample empty MSA rows
+    assert not (~nonnull_rows_mask[selected_row_indices]).any()
 
     # Create a mask for selected row indices
     selection_mask = torch.zeros_like(nonnull_rows_mask)

@@ -72,7 +72,7 @@ def subsample_and_reorder_msa_feats_n_mask(
         generator=generator,
     )
 
-    # Select the rows
+    # Select the rows; where returns in order from top to bottom, preserving order
     (selection_idx,) = torch.where(selection_mask)
     feats_sampled = torch.index_select(feats, dim=1, index=selection_idx)
     mask_sampled = torch.index_select(mask, dim=1, index=selection_idx)

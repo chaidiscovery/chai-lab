@@ -3,7 +3,7 @@
 # See the LICENSE file for details.
 
 import torch
-from einops import rearrange, reduce, repeat
+from einops import rearrange, reduce
 from torch import Tensor
 from torch.nn import functional as F
 
@@ -43,20 +43,6 @@ def _subsample_msa_rows(
     selection_mask = torch.zeros_like(nonnull_rows_mask)
     selection_mask[selected_row_indices] = True
     return selection_mask
-
-
-@typecheck
-def subsample_and_remask_msa_mask(
-    mask: Bool[Tensor, "1 depth tokens"],
-    select_n_rows: int = 4096,
-    generator: torch.Generator | None = None,
-) -> Bool[Tensor, "1 depth tokens"]:
-    """Subsets the given mask by selecting random rows."""
-    # Create a mask for selected row indices
-    selection_mask = _subsample_msa_rows(
-        mask, select_n_rows=select_n_rows, generator=generator
-    )
-    return mask & repeat(selection_mask, "d -> 1 d 1")
 
 
 @typecheck

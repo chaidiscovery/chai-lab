@@ -35,7 +35,9 @@ from chai_lab.data.dataset.inference_dataset import load_chains_from_raw, read_i
 from chai_lab.data.dataset.msas.colabfold import generate_colabfold_msas
 from chai_lab.data.dataset.msas.load import get_msa_contexts
 from chai_lab.data.dataset.msas.msa_context import MSAContext
-from chai_lab.data.dataset.msas.utils import subsample_msa_rows
+from chai_lab.data.dataset.msas.utils import (
+    subsample_and_reorder_msa_feats_n_mask,
+)
 from chai_lab.data.dataset.structure.all_atom_structure_context import (
     AllAtomStructureContext,
 )
@@ -705,14 +707,28 @@ def run_folding_on_context(
     token_single_trunk_repr = token_single_initial_repr
     token_pair_trunk_repr = token_pair_initial_repr
     for _ in tqdm(range(num_trunk_recycles), desc="Trunk recycles"):
+        subsampled_msa_input_feats, subsampled_msa_mask = None, None
+        if recycle_msa_subsample > 0:
+            subsampled_msa_input_feats, subsampled_msa_mask = (
+                subsample_and_reorder_msa_feats_n_mask(
+                    msa_input_feats,
+                    msa_mask,
+                )
+            )
         (token_single_trunk_repr, token_pair_trunk_repr) = trunk.forward(
             move_to_device=device,
             token_single_trunk_initial_repr=token_single_initial_repr,
             token_pair_trunk_initial_repr=token_pair_initial_repr,
             token_single_trunk_repr=token_single_trunk_repr,  # recycled
             token_pair_trunk_repr=token_pair_trunk_repr,  # recycled
-            msa_input_feats=msa_input_feats,
-            msa_mask=subsample_msa_rows(msa_mask, select_n_rows=recycle_msa_subsample),
+            msa_input_feats=(
+                subsampled_msa_input_feats
+                if subsampled_msa_input_feats is not None
+                else msa_input_feats
+            ),
+            msa_mask=(
+                subsampled_msa_mask if subsampled_msa_mask is not None else msa_mask
+            ),
             template_input_feats=template_input_feats,
             template_input_masks=template_input_masks,
             token_single_mask=token_single_mask,

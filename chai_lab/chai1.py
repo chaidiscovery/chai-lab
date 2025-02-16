@@ -706,9 +706,10 @@ def run_folding_on_context(
     # the subsequent recycle
     token_single_trunk_repr = token_single_initial_repr
     token_pair_trunk_repr = token_pair_initial_repr
-    for _ in tqdm(range(num_trunk_recycles), desc="Trunk recycles"):
+    for recycling_iter in tqdm(range(num_trunk_recycles), desc="Trunk recycles"):
         subsampled_msa_input_feats, subsampled_msa_mask = None, None
-        if recycle_msa_subsample > 0:
+        # On the final recycle, don't subsample and provide full MSA
+        if recycle_msa_subsample > 0 and recycling_iter < (num_trunk_recycles - 1):
             subsampled_msa_input_feats, subsampled_msa_mask = (
                 subsample_and_reorder_msa_feats_n_mask(
                     msa_input_feats,

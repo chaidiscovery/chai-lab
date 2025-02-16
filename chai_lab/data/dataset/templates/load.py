@@ -325,10 +325,6 @@ def get_template_data(
             logger.debug(f"Skipping {template_hit} as it has modified residues")
             continue
 
-        if template_entity_data.missing_residues:
-            logger.debug(f"Skipping {template_hit} as it contains missing residues")
-            continue
-
         template_structure_context = tokenizer.tokenize_entity(template_entity_data)
         if template_structure_context is None:
             logger.warning(f"Skipping {template_hit} as it failed to tokenize")
@@ -397,5 +393,4 @@ def get_template_data(
             f"Templates for {pdb_id} | {len(template_data)} remain, dropped hits: {drop_count}"
         )
 
-    logger.info(f"Loaded {len(template_data)} templates")
     return template_data

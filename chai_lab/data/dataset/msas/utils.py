@@ -2,6 +2,8 @@
 # Licensed under the Apache License, Version 2.0.
 # See the LICENSE file for details.
 
+import logging
+
 import torch
 from einops import rearrange, reduce
 from torch import Tensor
@@ -57,11 +59,18 @@ def subsample_and_reorder_msa_feats_n_mask(
         select_n_rows=select_n_rows,
         generator=generator,
     )
+    if torch.allclose(selection_mask, mask):  # No subsampling
+        return feats, mask
 
     # Select the rows; where returns in order from top to bottom, preserving order
     (selection_idx,) = torch.where(selection_mask)
-    feats_sampled = torch.index_select(feats, dim=1, index=selection_idx)
+    logging.info(f"Subsampling {selection_idx.tolist()[:5]}...")
+    (unselected_idx,) = torch.where(~selection_mask)
+    combo_idx = torch.cat([selection_idx, unselected_idx])
+    # Features are reordered, while mask is selected + padded
+    feats_sampled = torch.index_select(feats, dim=1, index=combo_idx)
     mask_sampled = torch.index_select(mask, dim=1, index=selection_idx)
+    assert mask_sampled.any(dim=-1).all()
 
     # Pad with zeros
     _, orig_depth, _ = mask.shape
@@ -69,7 +78,8 @@ def subsample_and_reorder_msa_feats_n_mask(
     assert (n_pad := orig_depth - new_depth) > 0
     # Padding is last dim, moving forward, e.g., for last two dimensions, it is:
     # (left, right, top, bottom)
+    # [0, 0, 0, n_pad] ignores the token dim and pads out the depth dim
     return (
-        F.pad(feats_sampled, pad=[0, 0, 0, 0, 0, n_pad], value=0.0),
+        feats_sampled,
         F.pad(mask_sampled, pad=[0, 0, 0, n_pad], value=False),
     )

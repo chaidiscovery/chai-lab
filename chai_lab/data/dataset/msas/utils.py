@@ -17,10 +17,10 @@ def _subsample_msa_rows(
     mask: Bool[Tensor, "1 depth tokens"],
     select_n_rows: int = 4096,
     generator: torch.Generator | None = None,
-) -> Bool[Tensor, "depth"]:
+) -> Bool[Tensor, "depth"] | None:
     """Adjust masking to look at a random subset of msas.
 
-    Returns input mask as-is if select_n_rows <= 0 or depth < select_n_rows."""
+    Returns None if select_n_rows <= 0 or depth < select_n_rows."""
     # Count the number of non-padding residues in each row of the MSA
     msa_sizes = rearrange(
         reduce(mask, "b depth tok -> b depth", reduction="sum"), "1 depth -> depth"
@@ -28,7 +28,7 @@ def _subsample_msa_rows(
     nonnull_rows_mask = msa_sizes > 0
     input_depth = nonnull_rows_mask.sum().item()
     if select_n_rows <= 0 or input_depth <= select_n_rows:
-        return mask
+        return None
 
     # Bias towards bigger hit MSAs; 0 size is automatically nulled out
     mask_ranking = msa_sizes * torch.rand(
@@ -59,7 +59,7 @@ def subsample_and_reorder_msa_feats_n_mask(
         select_n_rows=select_n_rows,
         generator=generator,
     )
-    if torch.allclose(selection_mask, mask):  # No subsampling
+    if selection_mask is None:  # No subsampling
         return feats, mask
 
     # Select the rows; where returns in order from top to bottom, preserving order
@@ -70,6 +70,7 @@ def subsample_and_reorder_msa_feats_n_mask(
     # Features are reordered, while mask is selected + padded
     feats_sampled = torch.index_select(feats, dim=1, index=combo_idx)
     mask_sampled = torch.index_select(mask, dim=1, index=selection_idx)
+    # Every sampled row should have nonzero coverage
     assert mask_sampled.any(dim=-1).all()
 
     # Pad with zeros

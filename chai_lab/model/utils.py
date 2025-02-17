@@ -199,7 +199,7 @@ def get_asym_id_from_subchain_id(
     subchain_id: str,
     source_pdb_chain_id: UInt8[Tensor, "n_tokens 4"],
     token_asym_id: Int[Tensor, "n"],
-):
+) -> int:
     # encde the subchain ids and perform lookup in context features
     chain_id_tensorcode = string_to_tensorcode(subchain_id, pad_to_length=4)
     chain_id_tensorcode = chain_id_tensorcode.to(token_asym_id.device)

@@ -3,6 +3,7 @@
 # See the LICENSE file for details.
 
 import logging
+from io import StringIO
 from pathlib import Path
 from typing import NamedTuple, Sequence
 
@@ -30,10 +31,12 @@ def fastas_to_str(fastas: Sequence[Fasta]) -> str:
     return "".join(f">{fasta.header}\n{fasta.sequence}\n" for fasta in fastas)
 
 
-def read_fasta(file_path: str | Path) -> list[Fasta]:
+def read_fasta(file_path: str | Path | StringIO) -> list[Fasta]:
     from Bio import SeqIO
 
-    fasta_sequences = SeqIO.parse(open(file_path), "fasta")
+    fasta_sequences = SeqIO.parse(
+        open(file_path) if isinstance(file_path, (str, Path)) else file_path, "fasta"
+    )
     return [Fasta(fasta.description, str(fasta.seq)) for fasta in fasta_sequences]
 
 

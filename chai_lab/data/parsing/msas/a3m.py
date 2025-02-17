@@ -116,7 +116,7 @@ def tokenize_sequences_to_arrays(
 def read_colabfold_a3m(fname: Path) -> dict[str, list[Fasta]]:
     """Returns mapping of MSA hits per identifier in the given a3m file.
 
-    The query line in each block of MSA hits is dropped.
+    The query line in each block of MSA hits is retained.
     """
     text = fname.read_text()
     retval: dict[str, list[Fasta]] = {}
@@ -124,7 +124,8 @@ def read_colabfold_a3m(fname: Path) -> dict[str, list[Fasta]]:
         if not block:
             continue
         strio = StringIO(block)
-        query, *hits = read_fasta(strio)
-        assert re.match(r"^[0-9]{3}$", query.header)
-        retval[query.header] = hits
+        hits = read_fasta(strio)
+        assert len(hits) > 0
+        assert re.match(r"^[0-9]{3}$", (query := hits[0].header))
+        retval[query] = hits
     return retval

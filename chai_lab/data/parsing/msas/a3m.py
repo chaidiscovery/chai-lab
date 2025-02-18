@@ -19,7 +19,7 @@ from typing import Final
 import numba
 import numpy as np
 
-from chai_lab.data.parsing.fasta import Fasta, read_fasta
+from chai_lab.data.parsing.fasta import Fasta, read_fasta_content
 from chai_lab.data.residue_constants import residue_types_with_nucleotides_order
 
 MAPPED_TOKEN_SKIP: Final[int] = -1
@@ -124,8 +124,10 @@ def read_colabfold_a3m(fname: Path) -> dict[str, list[Fasta]]:
         if not block:
             continue
         strio = StringIO(block)
-        hits = read_fasta(strio)
+        hits = read_fasta_content(strio)
         assert len(hits) > 0
-        assert re.match(r"^[0-9]{3}$", (query := hits[0].header))
+
+        query = hits[0].header
+        assert re.match(r"^[0-9]{3}$", query)
         retval[query] = hits
     return retval

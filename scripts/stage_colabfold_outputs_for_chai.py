@@ -3,7 +3,8 @@
 # See the LICENSE file for details.
 """
 Given a output directory from a ColabFold run, traverses the directory structure and stage
-the same MSA and templates to run through Chai1.
+the same MSA and templates to run through Chai1. This is likely not applicable unless you are
+incorporating Chai1 into adhoc analyses based on ColabFold outputs.
 
 Some minimal example:
 

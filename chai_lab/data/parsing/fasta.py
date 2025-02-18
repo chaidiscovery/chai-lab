@@ -5,7 +5,7 @@
 import logging
 from io import StringIO
 from pathlib import Path
-from typing import NamedTuple, Sequence
+from typing import NamedTuple, Sequence, TextIO
 
 from chai_lab.data.parsing.structure.entity_type import EntityType
 from chai_lab.data.residue_constants import restype_1to3_with_x
@@ -31,12 +31,15 @@ def fastas_to_str(fastas: Sequence[Fasta]) -> str:
     return "".join(f">{fasta.header}\n{fasta.sequence}\n" for fasta in fastas)
 
 
-def read_fasta(file_path: str | Path | StringIO) -> list[Fasta]:
+def read_fasta(file_path: str | Path) -> list[Fasta]:
+    with open(file_path) as source:
+        return read_fasta_content(source)
+
+
+def read_fasta_content(content: StringIO | TextIO) -> list[Fasta]:
     from Bio import SeqIO
 
-    fasta_sequences = SeqIO.parse(
-        open(file_path) if isinstance(file_path, (str, Path)) else file_path, "fasta"
-    )
+    fasta_sequences = SeqIO.parse(content, "fasta")
     return [Fasta(fasta.description, str(fasta.seq)) for fasta in fasta_sequences]
 
 

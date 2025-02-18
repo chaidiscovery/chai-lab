@@ -9,13 +9,17 @@ Note that while we don't directly load from .a3m files for the model, the aligne
 we do use expects a column of sequences in the same format that .a3m gives.
 """
 
+import re
 import string
 from functools import lru_cache
+from io import StringIO
+from pathlib import Path
 from typing import Final
 
 import numba
 import numpy as np
 
+from chai_lab.data.parsing.fasta import Fasta, read_fasta
 from chai_lab.data.residue_constants import residue_types_with_nucleotides_order
 
 MAPPED_TOKEN_SKIP: Final[int] = -1
@@ -107,3 +111,21 @@ def tokenize_sequences_to_arrays(
         out_deletions=out_deletions,
     )
     return out_sequences, out_deletions
+
+
+def read_colabfold_a3m(fname: Path) -> dict[str, list[Fasta]]:
+    """Returns mapping of MSA hits per identifier in the given a3m file.
+
+    The query line in each block of MSA hits is retained.
+    """
+    text = fname.read_text()
+    retval: dict[str, list[Fasta]] = {}
+    for block in text.split("\x00"):  # Splits on null byte
+        if not block:
+            continue
+        strio = StringIO(block)
+        hits = read_fasta(strio)
+        assert len(hits) > 0
+        assert re.match(r"^[0-9]{3}$", (query := hits[0].header))
+        retval[query] = hits
+    return retval

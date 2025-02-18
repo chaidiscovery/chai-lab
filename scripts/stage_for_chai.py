@@ -29,6 +29,9 @@ This should create the following:
 
 Then, you can Chai on the files:
 chai-lab fold chai_folder/4nnp/chai.fasta 4nnp_out --msa-directory chai_folder/4nnp/msas/ --template-hits-path chai_folder/4nnp/all_template_hits.m8
+
+NOTE This preserves the pairing that ColabFold determines; this is NOT necessarily
+the same as the pairing that occurs when using the --use-msa-server flag.
 """
 
 import logging
@@ -156,6 +159,8 @@ def main(colabfold_out_dir: Path, chai_dir: Path):
     for identifier, sequences in fasta_entries.items():
         chai_out_folder = chai_dir / identifier
         chai_out_folder.mkdir(parents=True, exist_ok=True)
+
+        # Gather MSAs
         colabfold_id_to_seq = gather_colabfold_msas(
             colabfold_out_dir=colabfold_out_dir,
             identifier=identifier,
@@ -172,6 +177,7 @@ def main(colabfold_out_dir: Path, chai_dir: Path):
                 "|", maxsplit=1
             )[-1]
 
+        # Gather templates
         gather_colabfold_templates(
             colabfold_out_dir=colabfold_out_dir,
             identifier=identifier,

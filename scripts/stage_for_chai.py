@@ -2,7 +2,33 @@
 # Licensed under the Apache License, Version 2.0.
 # See the LICENSE file for details.
 """
-Stage the folders for chai
+Given a output directory from a ColabFold run, traverses the directory structure and stage
+the same MSA and templates to run through Chai1.
+
+Some minimal example:
+
+Given the following directory structure:
+    colab_out_dir/
+        - 4nnp_env/
+        - 4nnp_pairgreedy/
+        ...
+        - sequences.csv (containing 4nnp as an id)
+
+Run:
+python stage_for_chai.py colab_out_dir chai_folder
+
+This should create the following:
+    chai_folder/
+        - 4nnp/
+            - chai.fasta (input sequences for chai model)
+            - msas/ (contain the same sequences + pairing as colabfold writes)
+                - hash1.aligned.pqt
+                - hash2.aligned.pqt
+                - ...
+            all_template_hits.m8 (contains template hits for all chains)
+
+Then, you can Chai on the files:
+chai-lab fold chai_folder/4nnp/chai.fasta 4nnp_out --msa-directory chai_folder/4nnp/msas/ --template-hits-path chai_folder/4nnp/all_template_hits.m8
 """
 
 import logging

@@ -71,7 +71,7 @@ def kalign_query_to_reference(
     """
     assert (
         shutil.which("kalign") is not None
-    ), "Could not find kalign in your PATH; kalign is required for templates"
+    ), "kalign is required for templates, but was not found in PATH. Try 'apt install kalign'?"
 
     query = query.upper().replace("-", "")
     with TemporaryDirectory() as tmp_dir:

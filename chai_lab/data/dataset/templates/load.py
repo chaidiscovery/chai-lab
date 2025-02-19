@@ -382,7 +382,7 @@ def get_template_data(
                         f"Skipping {template_hit} due to mismatched sequences: {context_alignment=} {original_alignment=}"
                     )
                     continue
-            except Exception:
+            except IndexError:
                 logger.warning(
                     f"Skipping {template_hit} due to exception when checking sequences",
                     exc_info=True,

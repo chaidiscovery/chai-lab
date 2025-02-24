@@ -45,9 +45,6 @@ class TemplateHit:
                 "hit metadata in source file."
             )
 
-        if h_i[-1] >= self.hit_tokens.numel():
-            raise ValueError(f"Hit indices exceed size of hit: {h_i} {self.hit_tokens}")
-
         if not self.hit_end > self.hit_start:
             raise ValueError(f"Invalid hit start/end: {self.hit_start} {self.hit_end}")
 

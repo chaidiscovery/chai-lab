@@ -3,6 +3,7 @@
 # See the LICENSE file for details.
 
 import dataclasses
+import logging
 import os
 import random
 from pathlib import Path
@@ -32,7 +33,7 @@ def download_if_not_exists(http_url: str, path: Path):
     with FileLock(path.with_suffix(".download_lock")):
         if path.exists():
             return  # if-lock-if sandwich to download only once
-        print(f"downloading {http_url}")
+        logging.info(f"downloading {http_url}")
         tmp_path = path.with_suffix(f".download_tmp_{random.randint(10 ** 5, 10**6)}")
         with requests.get(http_url, stream=True) as response:
             response.raise_for_status()  # Check if the request was successful

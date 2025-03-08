@@ -9,7 +9,7 @@ from pathlib import Path
 import antipickle
 import torch
 from rdkit import Chem
-from rdkit.Chem import AllChem
+from rdkit.Chem import rdDistGeom, rdmolops
 
 # for some reason calling Chem.rdDetermineBonds doesnt work
 from rdkit.Chem.rdDetermineBonds import DetermineBonds
@@ -147,7 +147,7 @@ class RefConformerGenerator:
 
         mol_with_hs = Chem.AddHs(mol)
 
-        params = AllChem.ETKDGv3()
+        params = rdDistGeom.ETKDGv3()
         params.useSmallRingTorsions = True
         params.randomSeed = 123
         params.useChirality = True
@@ -156,8 +156,8 @@ class RefConformerGenerator:
         params.maxAttempts = 10_000
         params.useRandomCoords = True
 
-        AllChem.EmbedMultipleConfs(mol_with_hs, numConfs=1, params=params)
-        AllChem.RemoveHs(mol_with_hs)
+        rdDistGeom.EmbedMultipleConfs(mol_with_hs, numConfs=1, params=params)
+        rdmolops.RemoveHs(mol_with_hs)
 
         element_counter: dict = defaultdict(int)
         for atom in mol_with_hs.GetAtoms():

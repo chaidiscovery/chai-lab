@@ -17,7 +17,8 @@ tqdm~=4.66
 
 # data import/export, application-specific
 gemmi~=0.6.3       # pdb/mmcif parsing
-rdkit==2023.9.5    # parsing of ligands. 2023.9.6 has broken type stubs
+rdkit~=2024.9.5    # we likely support other versions, 
+                   #  but typing is not consistent across rdkit versions, and mypy complain
 biopython>=1.83    # parsing, data access
 antipickle==0.2.0  # save/load heterogeneous python structures
 tmtools>=0.0.3     # Python bindings for the TM-align algorithm

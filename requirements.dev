@@ -4,3 +4,9 @@ ruff==0.6.3 # in sync with pre-commit-hook
 mypy
 pytest
 ipykernel~=6.27 # needed by vs code to run notebooks in devcontainer
+
+# types/stubs are required by mypy
+pandas-stubs
+types-pyyaml
+types-tqdm
+types-requests

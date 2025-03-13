@@ -5,6 +5,7 @@
 import logging
 from dataclasses import asdict, dataclass
 from functools import cached_property, partial
+from typing import Any
 
 import torch
 from torch import Tensor
@@ -494,7 +495,7 @@ class AllAtomStructureContext:
         )
 
     def to(self, device: torch.device | str) -> "AllAtomStructureContext":
-        dict_ = {
+        dict_: dict[str, Any] = {
             k: v.to(device) if torch.is_tensor(v) else v
             for k, v in asdict(self).items()
         }

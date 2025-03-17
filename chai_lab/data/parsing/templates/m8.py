@@ -16,7 +16,7 @@ from chai_lab.data.parsing.msas.a3m import tokenize_sequences_to_arrays
 from chai_lab.data.parsing.templates.template_hit import TemplateHit
 from chai_lab.tools.kalign import kalign_query_to_reference
 
-logger = logging.getLogger(name=__name__)
+logger = logging.getLogger(__name__)
 
 
 def parse_m8_file(fname: Path) -> pd.DataFrame:

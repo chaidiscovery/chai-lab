@@ -45,7 +45,6 @@ module = [
     "biotite.*",
     "DockQ.*",
     "boto3.*",
-    "transformers.*",
     "modelcif.*",
     "ihm.*",
 ]

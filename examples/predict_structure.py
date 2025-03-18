@@ -6,6 +6,8 @@ import numpy as np
 
 from chai_lab.chai1 import run_inference
 
+logging.basicConfig(level=logging.INFO)  # control verbosity
+
 # We use fasta-like format for inputs.
 # - each entity encodes protein, ligand, RNA or DNA
 # - each entity is labeled with unique name;

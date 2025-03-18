@@ -52,7 +52,7 @@ def parse_m8_to_template_hits(
     m8_path: Path,
     template_cif_folder: Path | None = None,
 ) -> Iterator[TemplateHit]:
-    assert m8_path.is_file() and m8_path.stat().st_size > 0
+    assert m8_path.is_file()
 
     if template_cif_folder is not None:
         template_cif_folder.mkdir(parents=True, exist_ok=True)
@@ -127,12 +127,3 @@ def parse_m8_to_template_hits(
                 exc_info=True,
             )
             pass
-
-
-if __name__ == "__main__":
-    for _ in parse_m8_to_template_hits(
-        "101",
-        "DIQMTQSPSSLSGGGGDRVTITCRASQSVSSAVAWYQQKPGKAPKLLIYSASSLYSGVPSRFSGSRSGTDFTLTISSLQPEDFATYYCQQSYYYPITFGQGTKVE",
-        Path("/workspaces/chai-lab/pdb70.m8"),
-    ):
-        pass

@@ -33,10 +33,12 @@ def get_msa_contexts(
     """
     Looks inside msa_directory to find .aligned.pqt files to load alignments from.
 
-    Returns two contexts
-
+    Returns two contexts:
     - First context to tokenize and give to model
     - Second context for computing summary statistics
+
+    NOTE argument is a msa directory path (not a mapping from sequence to MSA path)
+    in order to handle cases of custom MSAs
     """
 
     pdb_ids = set(chain.entity_data.pdb_id for chain in chains)

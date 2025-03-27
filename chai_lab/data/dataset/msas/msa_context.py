@@ -12,7 +12,10 @@ from chai_lab.data.parsing.msas.data_source import (
     MSADataSource,
     msa_dataset_source_to_int,
 )
-from chai_lab.data.residue_constants import residue_types_with_nucleotides_order
+from chai_lab.data.residue_constants import (
+    residue_types_with_nucleotides,
+    residue_types_with_nucleotides_order,
+)
 from chai_lab.utils.defaults import default
 from chai_lab.utils.typing import Bool, Int32, UInt8, typecheck
 
@@ -62,6 +65,11 @@ class MSAContext:
             [-1 if x is None else x for x in row_indices_with_nones], dtype=torch.long
         )  # idx=-1 for new sequence
         return padded[filled_indices, :]
+
+    def ith_sequence(self, idx: int) -> str:
+        """Gets the sequence for the ith row of the MSA; useful for debugging/testing."""
+        residues = [residue_types_with_nucleotides[i] for i in self.tokens[idx]]
+        return "".join(residues)
 
     def pad(
         self,

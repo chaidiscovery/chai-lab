@@ -299,7 +299,7 @@ def generate_colabfold_msas(
     msa_server_url: str,
     search_templates: bool = False,
     write_a3m_to_msa_dir: bool = False,  # Useful for manual inspection + debugging
-):
+) -> dict[str, Path]:
     """
     Generate MSAs using the ColabFold (https://github.com/sokrypton/ColabFold)
     server. No-op if no protein sequences are given.
@@ -317,7 +317,7 @@ def generate_colabfold_msas(
     assert not any(msa_dir.iterdir()), "MSA directory must be empty"
     if not protein_seqs:
         logger.warning("No protein sequences for MSA generation; this is a no-op.")
-        return
+        return {}
 
     with tempfile.TemporaryDirectory() as tmp_dir_path:
         tmp_dir = Path(tmp_dir_path)
@@ -381,6 +381,7 @@ def generate_colabfold_msas(
             )
 
         # Process the MSAs into our internal format
+        msa_paths: dict[str, Path] = {}  # Map each sequence to path of aligned pqt
         for protein_seq, pair_msa, single_msa in zip(
             protein_seqs, paired_msas, per_chain_msas, strict=True
         ):
@@ -453,3 +454,5 @@ def generate_colabfold_msas(
                 # If we have a homomer, we might see the same chain multiple
                 # times. The MSAs should be identical for each.
                 aligned_df.to_parquet(msa_path)
+                msa_paths[protein_seq] = msa_path
+    return msa_paths

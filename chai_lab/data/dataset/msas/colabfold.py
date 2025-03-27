@@ -404,12 +404,13 @@ def generate_colabfold_msas(
             )
             unique_paired_msa_seqs = set(paired_msa_seqs)
 
-            # Non-paired MSA sequences that weren't already covered in the paired MSA; skip header
+            # Non-paired MSA sequences that weren't already covered in the paired MSA
+            # If there were paired MSAs, then skip the header to avoid duplication
             single_fasta: list[Fasta] = [
                 record
                 for i, record in enumerate(read_fasta(single_a3m_path))
                 if (
-                    i > 0
+                    (len(paired_headers) == 0 or i > 0)
                     and not _is_padding_msa_row(record.sequence)
                     and record.sequence not in unique_paired_msa_seqs
                 )

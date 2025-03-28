@@ -1,5 +1,5 @@
 # CLI, administrator tools
-typer-slim~=0.12        # CLI generator
+typer~=0.12          # CLI generator
 # pydantic~=2.5      # serialization/deserialization of configs
 
 # seaborn

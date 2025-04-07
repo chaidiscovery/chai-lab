@@ -380,7 +380,7 @@ def make_all_atom_feature_context(
             msa_server_url=msa_server_url,
         )
         if use_templates_server and protein_sequences:
-            # # Override templates path with server path
+            # Override templates path with server path
             assert templates_path is None
             templates_path = msa_dir / "all_chain_templates.m8"
             assert templates_path.is_file()

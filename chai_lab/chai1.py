@@ -365,12 +365,12 @@ def make_all_atom_feature_context(
     raise_if_too_many_tokens(n_actual_tokens)
 
     # Generated and/or load MSAs
+    protein_sequences = [
+        chain.entity_data.sequence
+        for chain in chains
+        if chain.entity_data.entity_type == EntityType.PROTEIN
+    ]
     if use_msa_server:
-        protein_sequences = [
-            chain.entity_data.sequence
-            for chain in chains
-            if chain.entity_data.entity_type == EntityType.PROTEIN
-        ]
         msa_dir = output_dir / "msas"
         msa_dir.mkdir(parents=True, exist_ok=False)
         generate_colabfold_msas(
@@ -379,7 +379,8 @@ def make_all_atom_feature_context(
             search_templates=use_templates_server,
             msa_server_url=msa_server_url,
         )
-        if use_templates_server:  # Override templates path with server path
+        if use_templates_server and protein_sequences:
+            # # Override templates path with server path
             assert templates_path is None
             templates_path = msa_dir / "all_chain_templates.m8"
             assert templates_path.is_file()
@@ -404,7 +405,8 @@ def make_all_atom_feature_context(
 
     # Load templates
     if templates_path is None:
-        assert not use_templates_server, "Server should have written a path"
+        if protein_sequences:
+            assert not use_templates_server, "Server should have written a path"
         template_context = TemplateContext.empty(
             n_tokens=n_actual_tokens,
             n_templates=MAX_NUM_TEMPLATES,

@@ -43,7 +43,7 @@ class KalignAlignment:
 
     @property
     def reference_span(self) -> tuple[int, int]:
-        """span of the reference that is matched by the query; inclusive on both ends.
+        """Span of the reference matched by the query; inclusive on both ends.
 
         Includes middle gaps, but excludes trailing gaps."""
         reference_positions_covered = set()

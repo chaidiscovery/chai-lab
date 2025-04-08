@@ -43,7 +43,7 @@ class KalignAlignment:
 
     @property
     def reference_span(self) -> tuple[int, int]:
-        """The span of the reference that is matched by the query.
+        """Span of the reference matched by the query; inclusive on both ends.
 
         Includes middle gaps, but excludes trailing gaps."""
         reference_positions_covered = set()
@@ -60,9 +60,7 @@ class KalignAlignment:
 # NOTE caching here helps in the case of dimers that have the same chain sequence that
 # we process twice in a row. This allows us to not re-compute alignments.
 @lru_cache(maxsize=1024)
-def kalign_query_to_reference(
-    ref: str, query: str, threads: int = 1
-) -> KalignAlignment | None:
+def kalign_query_to_reference(ref: str, query: str) -> KalignAlignment | None:
     """Align the query to the reference; ignores all insertions (lower case) and
     deletions (- gaps) in the query. This happens by casting all inputs to upper case
     and removing all - chars.
@@ -89,8 +87,6 @@ def kalign_query_to_reference(
             str(fasta_path),
             "-o",
             str(out_path),
-            "--nthreads",
-            str(threads),
         ]
         logger.debug(f"Running kalign: {command}")
         try:

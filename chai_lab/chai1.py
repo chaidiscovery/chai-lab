@@ -9,7 +9,7 @@ import math
 from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Sequence
+from typing import Dict, Sequence
 
 import numpy as np
 import torch
@@ -499,6 +499,7 @@ def run_inference(
     num_trunk_samples: int = 1,
     seed: int | None = None,
     device: str | None = None,
+    model: Dict[str, ModuleWrapper] | None = None,
     low_memory: bool = True,
 ) -> StructureCandidates:
     assert num_trunk_samples > 0 and num_diffn_samples > 0
@@ -538,6 +539,7 @@ def run_inference(
             recycle_msa_subsample=recycle_msa_subsample,
             seed=seed + trunk_idx if seed is not None else None,
             device=torch_device,
+            model=model,
             low_memory=low_memory,
         )
         all_candidates.append(cand)
@@ -561,12 +563,15 @@ def run_folding_on_context(
     num_diffn_samples: int = 5,
     seed: int | None = None,
     device: torch.device | None = None,
+    model: Dict[str, ModuleWrapper] | None = None,
     low_memory: bool,
 ) -> StructureCandidates:
     """
     Function for in-depth explorations.
     User completely controls folding inputs.
     """
+    model_provided = model is not None
+
     # Set seed
     if seed is not None:
         set_seed([seed])
@@ -630,18 +635,22 @@ def run_folding_on_context(
     _, _, model_size = msa_mask.shape
     assert model_size in AVAILABLE_MODEL_SIZES
 
-    feature_embedding = load_exported("feature_embedding.pt", device)
-    bond_loss_input_proj = load_exported("bond_loss_input_proj.pt", device)
-    token_input_embedder = load_exported("token_embedder.pt", device)
-    trunk = load_exported("trunk.pt", device)
-    diffusion_module = load_exported("diffusion_module.pt", device)
-    confidence_head = load_exported("confidence_head.pt", device)
+    # Maybe load model weights
+    if not model_provided:
+        model = {
+            "feature_embedding": load_exported("feature_embedding.pt", device),
+            "bond_loss_input_proj": load_exported("bond_loss_input_proj.pt", device),
+            "token_input_embedder": load_exported("token_embedder.pt", device),
+            "trunk": load_exported("trunk.pt", device),
+            "diffusion_module": load_exported("diffusion_module.pt", device),
+            "confidence_head": load_exported("confidence_head.pt", device),
+        }
 
     ##
     ## Run the features through the feature embedder
     ##
 
-    embedded_features = feature_embedding.forward(
+    embedded_features = model["feature_embedding"].forward(
         crop_size=model_size,
         move_to_device=device,
         return_on_cpu=low_memory,
@@ -667,7 +676,7 @@ def run_folding_on_context(
 
     bond_ft_gen = TokenBondRestraint()
     bond_ft = bond_ft_gen.generate(batch=batch).data
-    trunk_bond_feat, structure_bond_feat = bond_loss_input_proj.forward(
+    trunk_bond_feat, structure_bond_feat = model["bond_loss_input_proj"].forward(
         return_on_cpu=low_memory,
         move_to_device=device,
         crop_size=model_size,
@@ -680,7 +689,7 @@ def run_folding_on_context(
     ## Run the inputs through the token input embedder
     ##
 
-    token_input_embedder_outputs: tuple[Tensor, ...] = token_input_embedder.forward(
+    token_input_embedder_outputs: tuple[Tensor, ...] = model["token_input_embedder"].forward(
         return_on_cpu=low_memory,
         move_to_device=device,
         token_single_input_feats=token_single_input_feats,
@@ -715,7 +724,7 @@ def run_folding_on_context(
                     msa_mask,
                 )
             )
-        (token_single_trunk_repr, token_pair_trunk_repr) = trunk.forward(
+        (token_single_trunk_repr, token_pair_trunk_repr) = model["trunk"].forward(
             move_to_device=device,
             token_single_trunk_initial_repr=token_single_initial_repr,
             token_pair_trunk_initial_repr=token_pair_initial_repr,
@@ -735,9 +744,11 @@ def run_folding_on_context(
             token_pair_mask=token_pair_mask,
             crop_size=model_size,
         )
+
     # We won't be using the trunk anymore; remove it from memory
-    del trunk
-    torch.cuda.empty_cache()
+    if not model_provided:
+        del model["trunk"]
+        torch.cuda.empty_cache()
 
     ##
     ## Denoise the trunk representation by passing it through the diffusion module
@@ -769,7 +780,7 @@ def run_folding_on_context(
             atom_pos, "(b ds) ... -> b ds ...", ds=ds
         ).contiguous()
         noise_sigma = repeat(sigma, " -> b ds", b=batch_size, ds=ds)
-        return diffusion_module.forward(
+        return model["diffusion_module"].forward(
             atom_noised_coords=atom_noised_coords.float(),
             noise_sigma=noise_sigma.float(),
             crop_size=model_size,
@@ -840,15 +851,16 @@ def run_folding_on_context(
             atom_pos = atom_pos + (sigma_next - sigma_hat) * ((d_i_prime + d_i) / 2)
 
     # We won't be running diffusion anymore
-    del diffusion_module, static_diffusion_inputs
-    torch.cuda.empty_cache()
+    if not model_provided:
+        del model["diffusion_module"], static_diffusion_inputs
+        torch.cuda.empty_cache()
 
     ##
     ## Run the confidence model
     ##
 
     confidence_outputs: list[tuple[Tensor, ...]] = [
-        confidence_head.forward(
+        model["confidence_head"].forward(
             move_to_device=device,
             token_single_input_repr=token_single_initial_repr,
             token_single_trunk_repr=token_single_trunk_repr,

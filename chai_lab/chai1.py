@@ -9,11 +9,12 @@ import math
 from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, Sequence
+from typing import Sequence
 
 import numpy as np
 import torch
 import torch.export
+from dataclasses import dataclass
 from einops import einsum, rearrange, repeat
 from torch import Tensor
 from tqdm import tqdm
@@ -134,6 +135,18 @@ class ModuleWrapper:
             return move_data_to_device(result, device=torch.device("cpu"))
         else:
             return result
+
+
+@dataclass
+class Model:
+    """A dataclass for model weights."""
+    
+    feature_embedding: ModuleWrapper
+    bond_loss_input_proj: ModuleWrapper
+    token_input_embedder: ModuleWrapper
+    trunk: ModuleWrapper | None
+    diffusion_module: ModuleWrapper | None
+    confidence_head: ModuleWrapper
 
 
 def load_exported(comp_key: str, device: torch.device) -> ModuleWrapper:
@@ -478,6 +491,17 @@ def make_all_atom_feature_context(
     return feature_context
 
 
+def get_model() -> Model:
+    return Model(
+        feature_embedding=load_exported("feature_embedding.pt", torch_device),
+        bond_loss_input_proj=load_exported("bond_loss_input_proj.pt", torch_device),
+        token_input_embedder=load_exported("token_embedder.pt", torch_device),
+        trunk=load_exported("trunk.pt", torch_device),
+        diffusion_module=load_exported("diffusion_module.pt", torch_device),
+        confidence_head=load_exported("confidence_head.pt", torch_device),
+    )
+
+
 @torch.no_grad()
 def run_inference(
     fasta_file: Path,
@@ -499,7 +523,7 @@ def run_inference(
     num_trunk_samples: int = 1,
     seed: int | None = None,
     device: str | None = None,
-    model: Dict[str, ModuleWrapper] | None = None,
+    model: Model | None = None,
     low_memory: bool = True,
 ) -> StructureCandidates:
     assert num_trunk_samples > 0 and num_diffn_samples > 0
@@ -523,6 +547,13 @@ def run_inference(
         esm_device=torch_device,
     )
 
+    ##
+    ## Load exported models
+    ##
+
+    model_cached = model is not None
+    model = model or get_model()
+
     all_candidates: list[StructureCandidates] = []
     for trunk_idx in range(num_trunk_samples):
         logging.info(f"Trunk sample {trunk_idx + 1}/{num_trunk_samples}")
@@ -533,14 +564,15 @@ def run_inference(
                 if num_trunk_samples > 1
                 else output_dir
             ),
+            model=model,
             num_trunk_recycles=num_trunk_recycles,
             num_diffn_timesteps=num_diffn_timesteps,
             num_diffn_samples=num_diffn_samples,
             recycle_msa_subsample=recycle_msa_subsample,
             seed=seed + trunk_idx if seed is not None else None,
             device=torch_device,
-            model=model,
             low_memory=low_memory,
+            model_cached=model_cached,
         )
         all_candidates.append(cand)
     return StructureCandidates.concat(all_candidates)
@@ -555,6 +587,7 @@ def run_folding_on_context(
     feature_context: AllAtomFeatureContext,
     *,
     output_dir: Path,
+    model: Model,
     # expose some params for easy tweaking
     recycle_msa_subsample: int = 0,
     num_trunk_recycles: int = 3,
@@ -563,15 +596,13 @@ def run_folding_on_context(
     num_diffn_samples: int = 5,
     seed: int | None = None,
     device: torch.device | None = None,
-    model: Dict[str, ModuleWrapper] | None = None,
     low_memory: bool,
+    model_cached: bool,
 ) -> StructureCandidates:
     """
     Function for in-depth explorations.
     User completely controls folding inputs.
     """
-    model_provided = model is not None
-
     # Set seed
     if seed is not None:
         set_seed([seed])
@@ -628,29 +659,14 @@ def run_folding_on_context(
     )
     block_atom_pair_mask = inputs["block_atom_pair_mask"]
 
-    ##
-    ## Load exported models
-    ##
-
     _, _, model_size = msa_mask.shape
     assert model_size in AVAILABLE_MODEL_SIZES
-
-    # Maybe load model weights
-    if not model_provided:
-        model = {
-            "feature_embedding": load_exported("feature_embedding.pt", device),
-            "bond_loss_input_proj": load_exported("bond_loss_input_proj.pt", device),
-            "token_input_embedder": load_exported("token_embedder.pt", device),
-            "trunk": load_exported("trunk.pt", device),
-            "diffusion_module": load_exported("diffusion_module.pt", device),
-            "confidence_head": load_exported("confidence_head.pt", device),
-        }
 
     ##
     ## Run the features through the feature embedder
     ##
 
-    embedded_features = model["feature_embedding"].forward(
+    embedded_features = model.feature_embedding.forward(
         crop_size=model_size,
         move_to_device=device,
         return_on_cpu=low_memory,
@@ -676,7 +692,7 @@ def run_folding_on_context(
 
     bond_ft_gen = TokenBondRestraint()
     bond_ft = bond_ft_gen.generate(batch=batch).data
-    trunk_bond_feat, structure_bond_feat = model["bond_loss_input_proj"].forward(
+    trunk_bond_feat, structure_bond_feat = model.bond_loss_input_proj.forward(
         return_on_cpu=low_memory,
         move_to_device=device,
         crop_size=model_size,
@@ -689,7 +705,7 @@ def run_folding_on_context(
     ## Run the inputs through the token input embedder
     ##
 
-    token_input_embedder_outputs: tuple[Tensor, ...] = model["token_input_embedder"].forward(
+    token_input_embedder_outputs: tuple[Tensor, ...] = model.token_input_embedder.forward(
         return_on_cpu=low_memory,
         move_to_device=device,
         token_single_input_feats=token_single_input_feats,
@@ -724,7 +740,7 @@ def run_folding_on_context(
                     msa_mask,
                 )
             )
-        (token_single_trunk_repr, token_pair_trunk_repr) = model["trunk"].forward(
+        (token_single_trunk_repr, token_pair_trunk_repr) = model.trunk.forward(
             move_to_device=device,
             token_single_trunk_initial_repr=token_single_initial_repr,
             token_pair_trunk_initial_repr=token_pair_initial_repr,
@@ -746,8 +762,8 @@ def run_folding_on_context(
         )
 
     # We won't be using the trunk anymore; remove it from memory
-    if not model_provided:
-        del model["trunk"]
+    if not model_cached:
+        model.trunk = None
         torch.cuda.empty_cache()
 
     ##
@@ -780,7 +796,7 @@ def run_folding_on_context(
             atom_pos, "(b ds) ... -> b ds ...", ds=ds
         ).contiguous()
         noise_sigma = repeat(sigma, " -> b ds", b=batch_size, ds=ds)
-        return model["diffusion_module"].forward(
+        return model.diffusion_module.forward(
             atom_noised_coords=atom_noised_coords.float(),
             noise_sigma=noise_sigma.float(),
             crop_size=model_size,
@@ -851,8 +867,9 @@ def run_folding_on_context(
             atom_pos = atom_pos + (sigma_next - sigma_hat) * ((d_i_prime + d_i) / 2)
 
     # We won't be running diffusion anymore
-    if not model_provided:
-        del model["diffusion_module"], static_diffusion_inputs
+    if not model_cached:
+        model.diffusion_module = None
+        del static_diffusion_inputs
         torch.cuda.empty_cache()
 
     ##
@@ -860,7 +877,7 @@ def run_folding_on_context(
     ##
 
     confidence_outputs: list[tuple[Tensor, ...]] = [
-        model["confidence_head"].forward(
+        model.confidence_head.forward(
             move_to_device=device,
             token_single_input_repr=token_single_initial_repr,
             token_single_trunk_repr=token_single_trunk_repr,

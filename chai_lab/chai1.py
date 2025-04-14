@@ -7,13 +7,13 @@ import itertools
 import logging
 import math
 from collections import Counter
+from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Sequence
+from typing import Generator, Sequence
 
 import numpy as np
 import torch
-import torch.export
 from einops import einsum, rearrange, repeat
 from torch import Tensor
 from tqdm import tqdm
@@ -146,6 +146,24 @@ def load_exported(comp_key: str, device: torch.device) -> ModuleWrapper:
     else:
         # skip loading on CPU.
         return ModuleWrapper(torch.jit.load(local_path).to(device))
+
+
+_component_cache: dict[str, ModuleWrapper] = {}
+
+
+@contextmanager
+def _component_moved_to(
+    comp_key: str, device: torch.device
+) -> Generator[ModuleWrapper, None, None]:
+    # Transiently moves module to provided device, then moves to CPU.
+    # Much faster than reloading module from disk.
+    if comp_key not in _component_cache:
+        _component_cache[comp_key] = load_exported(comp_key, device)
+
+    component = _component_cache[comp_key]
+    component.jit_module.to(device)
+    yield component
+    component.jit_module.to("cpu")
 
 
 # %%
@@ -632,23 +650,18 @@ def run_folding_on_context(
     _, _, model_size = msa_mask.shape
     assert model_size in AVAILABLE_MODEL_SIZES
 
-    feature_embedding = load_exported("feature_embedding.pt", device)
-    bond_loss_input_proj = load_exported("bond_loss_input_proj.pt", device)
-    token_input_embedder = load_exported("token_embedder.pt", device)
-    trunk = load_exported("trunk.pt", device)
-    diffusion_module = load_exported("diffusion_module.pt", device)
-    confidence_head = load_exported("confidence_head.pt", device)
-
     ##
     ## Run the features through the feature embedder
     ##
 
-    embedded_features = feature_embedding.forward(
-        crop_size=model_size,
-        move_to_device=device,
-        return_on_cpu=low_memory,
-        **features,
-    )
+    with _component_moved_to("feature_embedding.pt", device) as feature_embedding:
+        embedded_features = feature_embedding.forward(
+            crop_size=model_size,
+            move_to_device=device,
+            return_on_cpu=low_memory,
+            **features,
+        )
+
     token_single_input_feats = embedded_features["TOKEN"]
     token_pair_input_feats, token_pair_structure_input_feats = embedded_features[
         "TOKEN_PAIR"
@@ -669,12 +682,13 @@ def run_folding_on_context(
 
     bond_ft_gen = TokenBondRestraint()
     bond_ft = bond_ft_gen.generate(batch=batch).data
-    trunk_bond_feat, structure_bond_feat = bond_loss_input_proj.forward(
-        return_on_cpu=low_memory,
-        move_to_device=device,
-        crop_size=model_size,
-        input=bond_ft,
-    ).chunk(2, dim=-1)
+    with _component_moved_to("bond_loss_input_proj.pt", device) as bond_loss_input_proj:
+        trunk_bond_feat, structure_bond_feat = bond_loss_input_proj.forward(
+            return_on_cpu=low_memory,
+            move_to_device=device,
+            crop_size=model_size,
+            input=bond_ft,
+        ).chunk(2, dim=-1)
     token_pair_input_feats += trunk_bond_feat
     token_pair_structure_input_feats += structure_bond_feat
 
@@ -682,20 +696,21 @@ def run_folding_on_context(
     ## Run the inputs through the token input embedder
     ##
 
-    token_input_embedder_outputs: tuple[Tensor, ...] = token_input_embedder.forward(
-        return_on_cpu=low_memory,
-        move_to_device=device,
-        token_single_input_feats=token_single_input_feats,
-        token_pair_input_feats=token_pair_input_feats,
-        atom_single_input_feats=atom_single_input_feats,
-        block_atom_pair_feat=block_atom_pair_input_feats,
-        block_atom_pair_mask=block_atom_pair_mask,
-        block_indices_h=block_indices_h,
-        block_indices_w=block_indices_w,
-        atom_single_mask=atom_single_mask,
-        atom_token_indices=atom_token_indices,
-        crop_size=model_size,
-    )
+    with _component_moved_to("token_embedder.pt", device) as token_input_embedder:
+        token_input_embedder_outputs: tuple[Tensor, ...] = token_input_embedder.forward(
+            return_on_cpu=low_memory,
+            move_to_device=device,
+            token_single_input_feats=token_single_input_feats,
+            token_pair_input_feats=token_pair_input_feats,
+            atom_single_input_feats=atom_single_input_feats,
+            block_atom_pair_feat=block_atom_pair_input_feats,
+            block_atom_pair_mask=block_atom_pair_mask,
+            block_indices_h=block_indices_h,
+            block_indices_w=block_indices_w,
+            atom_single_mask=atom_single_mask,
+            atom_token_indices=atom_token_indices,
+            crop_size=model_size,
+        )
     token_single_initial_repr, token_single_structure_input, token_pair_initial_repr = (
         token_input_embedder_outputs
     )
@@ -717,28 +732,29 @@ def run_folding_on_context(
                     msa_mask,
                 )
             )
-        (token_single_trunk_repr, token_pair_trunk_repr) = trunk.forward(
-            move_to_device=device,
-            token_single_trunk_initial_repr=token_single_initial_repr,
-            token_pair_trunk_initial_repr=token_pair_initial_repr,
-            token_single_trunk_repr=token_single_trunk_repr,  # recycled
-            token_pair_trunk_repr=token_pair_trunk_repr,  # recycled
-            msa_input_feats=(
-                subsampled_msa_input_feats
-                if subsampled_msa_input_feats is not None
-                else msa_input_feats
-            ),
-            msa_mask=(
-                subsampled_msa_mask if subsampled_msa_mask is not None else msa_mask
-            ),
-            template_input_feats=template_input_feats,
-            template_input_masks=template_input_masks,
-            token_single_mask=token_single_mask,
-            token_pair_mask=token_pair_mask,
-            crop_size=model_size,
-        )
-    # We won't be using the trunk anymore; remove it from memory
-    del trunk
+        with _component_moved_to("trunk.pt", device) as trunk:
+            (token_single_trunk_repr, token_pair_trunk_repr) = trunk.forward(
+                move_to_device=device,
+                token_single_trunk_initial_repr=token_single_initial_repr,
+                token_pair_trunk_initial_repr=token_pair_initial_repr,
+                token_single_trunk_repr=token_single_trunk_repr,  # recycled
+                token_pair_trunk_repr=token_pair_trunk_repr,  # recycled
+                msa_input_feats=(
+                    subsampled_msa_input_feats
+                    if subsampled_msa_input_feats is not None
+                    else msa_input_feats
+                ),
+                msa_mask=(
+                    subsampled_msa_mask if subsampled_msa_mask is not None else msa_mask
+                ),
+                template_input_feats=template_input_feats,
+                template_input_masks=template_input_masks,
+                token_single_mask=token_single_mask,
+                token_pair_mask=token_pair_mask,
+                crop_size=model_size,
+            )
+
+    # in case trunk fragmented mem too much
     torch.cuda.empty_cache()
 
     ##
@@ -765,13 +781,15 @@ def run_folding_on_context(
         static_diffusion_inputs, device=device
     )
 
-    def _denoise(atom_pos: Tensor, sigma: Tensor, ds: int) -> Tensor:
+    def _denoise(
+        diff_mod: ModuleWrapper, atom_pos: Tensor, sigma: Tensor, ds: int
+    ) -> Tensor:
         # verified manually that ds dimension can be arbitrary in diff module
         atom_noised_coords = rearrange(
             atom_pos, "(b ds) ... -> b ds ...", ds=ds
         ).contiguous()
         noise_sigma = repeat(sigma, " -> b ds", b=batch_size, ds=ds)
-        return diffusion_module.forward(
+        return diff_mod.forward(
             atom_noised_coords=atom_noised_coords.float(),
             noise_sigma=noise_sigma.float(),
             crop_size=model_size,
@@ -801,70 +819,73 @@ def run_folding_on_context(
         batch_size * num_diffn_samples, num_atoms, 3, device=device
     )
 
-    for sigma_curr, sigma_next, gamma_curr in tqdm(
-        sigmas_and_gammas, desc="Diffusion steps"
-    ):
-        # Center coords
-        atom_pos = center_random_augmentation(
-            atom_pos,
-            atom_single_mask=repeat(
-                atom_single_mask,
-                "b a -> (b ds) a",
-                ds=num_diffn_samples,
-            ),
-        )
-
-        # Alg 2. lines 4-6
-        noise = DiffusionConfig.S_noise * torch.randn(
-            atom_pos.shape, device=atom_pos.device
-        )
-        sigma_hat = sigma_curr + gamma_curr * sigma_curr
-        atom_pos_noise = (sigma_hat**2 - sigma_curr**2).clamp_min(1e-6).sqrt()
-        atom_pos_hat = atom_pos + noise * atom_pos_noise
-
-        # Lines 7-8
-        denoised_pos = _denoise(
-            atom_pos=atom_pos_hat,
-            sigma=sigma_hat,
-            ds=num_diffn_samples,
-        )
-        d_i = (atom_pos_hat - denoised_pos) / sigma_hat
-        atom_pos = atom_pos_hat + (sigma_next - sigma_hat) * d_i
-
-        # Lines 9-11
-        if sigma_next != 0 and DiffusionConfig.second_order:  # second order update
-            denoised_pos = _denoise(
+    with _component_moved_to("diffusion_module.pt", device=device) as diffusion_module:
+        for sigma_curr, sigma_next, gamma_curr in tqdm(
+            sigmas_and_gammas, desc="Diffusion steps"
+        ):
+            # Center coords
+            atom_pos = center_random_augmentation(
                 atom_pos,
-                sigma=sigma_next,
+                atom_single_mask=repeat(
+                    atom_single_mask,
+                    "b a -> (b ds) a",
+                    ds=num_diffn_samples,
+                ),
+            )
+
+            # Alg 2. lines 4-6
+            noise = DiffusionConfig.S_noise * torch.randn(
+                atom_pos.shape, device=atom_pos.device
+            )
+            sigma_hat = sigma_curr + gamma_curr * sigma_curr
+            atom_pos_noise = (sigma_hat**2 - sigma_curr**2).clamp_min(1e-6).sqrt()
+            atom_pos_hat = atom_pos + noise * atom_pos_noise
+
+            # Lines 7-8
+            denoised_pos = _denoise(
+                diff_mod=diffusion_module,
+                atom_pos=atom_pos_hat,
+                sigma=sigma_hat,
                 ds=num_diffn_samples,
             )
-            d_i_prime = (atom_pos - denoised_pos) / sigma_next
-            atom_pos = atom_pos + (sigma_next - sigma_hat) * ((d_i_prime + d_i) / 2)
+            d_i = (atom_pos_hat - denoised_pos) / sigma_hat
+            atom_pos = atom_pos_hat + (sigma_next - sigma_hat) * d_i
 
-    # We won't be running diffusion anymore
-    del diffusion_module, static_diffusion_inputs
+            # Lines 9-11
+            if sigma_next != 0 and DiffusionConfig.second_order:  # second order update
+                denoised_pos = _denoise(
+                    diff_mod=diffusion_module,
+                    atom_pos=atom_pos,
+                    sigma=sigma_next,
+                    ds=num_diffn_samples,
+                )
+                d_i_prime = (atom_pos - denoised_pos) / sigma_next
+                atom_pos = atom_pos + (sigma_next - sigma_hat) * ((d_i_prime + d_i) / 2)
+
+    del static_diffusion_inputs
     torch.cuda.empty_cache()
 
     ##
     ## Run the confidence model
     ##
 
-    confidence_outputs: list[tuple[Tensor, ...]] = [
-        confidence_head.forward(
-            move_to_device=device,
-            token_single_input_repr=token_single_initial_repr,
-            token_single_trunk_repr=token_single_trunk_repr,
-            token_pair_trunk_repr=token_pair_trunk_repr,
-            token_single_mask=token_single_mask,
-            atom_single_mask=atom_single_mask,
-            atom_coords=atom_pos[ds : ds + 1],
-            token_reference_atom_index=token_reference_atom_index,
-            atom_token_index=atom_token_indices,
-            atom_within_token_index=atom_within_token_index,
-            crop_size=model_size,
-        )
-        for ds in range(num_diffn_samples)
-    ]
+    with _component_moved_to("confidence_head.pt", device=device) as confidence_head:
+        confidence_outputs: list[tuple[Tensor, ...]] = [
+            confidence_head.forward(
+                move_to_device=device,
+                token_single_input_repr=token_single_initial_repr,
+                token_single_trunk_repr=token_single_trunk_repr,
+                token_pair_trunk_repr=token_pair_trunk_repr,
+                token_single_mask=token_single_mask,
+                atom_single_mask=atom_single_mask,
+                atom_coords=atom_pos[ds : ds + 1],
+                token_reference_atom_index=token_reference_atom_index,
+                atom_token_index=atom_token_indices,
+                atom_within_token_index=atom_within_token_index,
+                crop_size=model_size,
+            )
+            for ds in range(num_diffn_samples)
+        ]
 
     pae_logits, pde_logits, plddt_logits = [
         torch.cat(single_sample, dim=0)

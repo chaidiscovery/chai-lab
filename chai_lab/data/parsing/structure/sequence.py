@@ -11,6 +11,29 @@ from chai_lab.data.parsing.structure.entity_type import EntityType
 
 logger = logging.getLogger(__name__)
 
+D_partners = {
+    "DAL": "D-ALANINE",
+    "DAR": "D-ARGININE",
+    "DAS": "D-ASPARTIC ACID",
+    "DCY": "D-CYSTEINE",
+    "DGL": "D-GLUTAMIC ACID",
+    "DGN": "D-GLUTAMINE",
+    "DHI": "D-HISTIDINE",
+    "DIL": "D-ISOLEUCINE",
+    "DLE": "D-LEUCINE",
+    "DLY": "D-LYSINE",
+    "DPN": "D-PHENYLALANINE",
+    "DPR": "D-PROLINE",
+    "DSG": "D-ASPARAGINE",
+    "DSN": "D-SERINE",
+    "DTH": "D-THREONINE",
+    "DTR": "D-TRYPTOPHAN",
+    "DTY": "D-TYROSINE",
+    "DVA": "D-VALINE",
+    "FGA": "GAMMA-D-GLUTAMIC ACID",
+    "MED": "D-METHIONINE",
+}
+
 
 def fasta_one_letter_sequence(residue_codes: list[str]) -> str:
     """
@@ -52,6 +75,8 @@ def _get_protein_only_residue_token(
 ) -> str:
     """Encodes everything that is not a standard amino acid as X if nonstandard_as_X is
     True, otherwise return nonstandard FOO as [FOO]"""
+    if three_letter_code in D_partners:
+        return "X"
     residue_info = gemmi.find_tabulated_residue(three_letter_code)
     # Standard amino acids are always given as single letters
     if residue_info.is_amino_acid() and residue_info.is_standard():

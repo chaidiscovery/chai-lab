@@ -3,6 +3,7 @@
 # See the LICENSE file for details.
 
 import logging
+import os
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Iterator
@@ -27,9 +28,14 @@ from chai_lab.data.parsing.templates.m8 import parse_m8_to_template_hits
 from chai_lab.data.parsing.templates.template_hit import TemplateHit
 from chai_lab.data.sources.rdkit import RefConformerGenerator
 from chai_lab.utils.defaults import default
+from chai_lab.utils.paths import downloads_path
 from chai_lab.utils.typing import Bool, Float, Int, typecheck
 
 logger = logging.getLogger(__name__)
+
+TEMPLATE_CIF_FOLDER = Path(
+    os.environ.get("CHAI_TEMPLATE_CIF_FOLDER", downloads_path / "template_cifs")
+)
 
 
 @typecheck
@@ -329,7 +335,7 @@ def get_template_context(
     chains: list[Chain],
     template_hits_m8: Path,
     use_sequence_hash_for_lookup: bool = False,
-    template_cif_cache_folder: Path | None = None,
+    template_cif_cache_folder: Path = TEMPLATE_CIF_FOLDER,
 ) -> TemplateContext:
     """
     For each example, loads templates for cropped chain, collate the templates.

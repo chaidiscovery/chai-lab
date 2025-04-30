@@ -174,12 +174,7 @@ feature_generators = dict(
     RelativeTokenSeparation=RelativeTokenSeparation(r_max=32),
     RelativeEntity=RelativeEntity(),
     RelativeChain=RelativeChain(),
-    ResidueType=ResidueType(
-        min_corrupt_prob=0.0,
-        max_corrupt_prob=0.0,
-        num_res_ty=32,
-        key="token_residue_type",
-    ),
+    ResidueType=ResidueType(num_res_ty=32, key="token_residue_type"),
     ESMEmbeddings=ESMEmbeddings(),  # TODO: this can probably be the identity
     BlockedAtomPairDistogram=BlockedAtomPairDistogram(),
     InverseSquaredBlockedAtomPairDistances=BlockedAtomPairDistances(

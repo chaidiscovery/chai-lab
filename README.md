@@ -88,7 +88,16 @@ For user convenience, we also support automatic MSA generation via the ColabFold
 <summary>How can I customize the inputs to the model further?</summary>
 <p markdown="1">
 
-For more advanced use cases, we also expose the `chai_lab.chai1.run_folding_on_context`, which allows users to construct an `AllAtomFeatureContext` manually. This allows users to specify their own templates, MSAs, embeddings, and constraints, including support for specifying covalent bonds (for example, for specifying branched ligands). We currently provide examples of how to construct an embeddings context, an MSA context, restraint contexts, and covalent bonds. We will be releasing helper methods to build template contexts soon.
+For more advanced use cases, we also expose the `chai_lab.chai1.run_folding_on_context`, which allows users to construct an `AllAtomFeatureContext` manually. This allows users to specify their own templates, MSAs, embeddings, and constraints, including support for specifying covalent bonds (for example, for specifying branched ligands). We currently provide examples of how to construct an embeddings context, an MSA context, template contexts, restraint contexts, and covalent bonds. 
+
+</p>
+</details>
+
+<details>
+<summary>How can I provide custom templates to Chai-1?</summary>
+<p markdown="1">
+
+Templates are loaded in two steps - (1) a `m8` file is read, providing a table of template hits to load (2) we load each hit by downloading the corresponding identifier from RCSB and parsing the corresponding chain. You can provide your own `m8` file to specify template hits of your choice, and you can also place structure cif files in the directory specified by the environment variable `CHAI_TEMPLATE_CIF_FOLDER` to specify custom (non-RCSB) structures corresponding to each identifier in the `m8` file. Note that the template loading code expects cif files to be named as `$CHAI_TEMPLATE_CIF_FOLDER/identifier.cif.gz` where `identifier` matches that provided in the `m8` file.
 
 </p>
 </details>

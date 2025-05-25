@@ -69,7 +69,7 @@ def kalign_query_to_reference(ref: str, query: str) -> KalignAlignment | None:
     """
     assert (
         shutil.which("kalign") is not None
-    ), "kalign is required for templates, but was not found in PATH. Try 'apt install kalign'?"
+    ), "kalign is required for templates, but was not found in PATH. You need kalign>=3.3. Try 'apt install kalign'?"
 
     query = query.upper().replace("-", "")
     with TemporaryDirectory() as tmp_dir:

@@ -514,6 +514,8 @@ def run_inference(
     seed: int | None = None,
     device: str | None = None,
     low_memory: bool = True,
+    # IO options
+    fasta_names_as_cif_chains: bool = False,
 ) -> StructureCandidates:
     assert num_trunk_samples > 0 and num_diffn_samples > 0
     if output_dir.exists():
@@ -553,6 +555,7 @@ def run_inference(
             seed=seed + trunk_idx if seed is not None else None,
             device=torch_device,
             low_memory=low_memory,
+            entity_names_as_chain_names=fasta_names_as_cif_chains,
         )
         all_candidates.append(cand)
     return StructureCandidates.concat(all_candidates)
@@ -573,6 +576,7 @@ def run_folding_on_context(
     num_diffn_timesteps: int = 200,
     # all diffusion samples come from the same trunk
     num_diffn_samples: int = 5,
+    entity_names_as_chain_names: bool = False,  # entity names as chain names in output cif
     seed: int | None = None,
     device: torch.device | None = None,
     low_memory: bool,
@@ -1006,8 +1010,12 @@ def run_folding_on_context(
             write_path=cif_out_path,
             # Set asym names to be A, B, C, ...
             asym_entity_names={
-                i: get_chain_letter(i)
-                for i in range(1, len(feature_context.chains) + 1)
+                i: (
+                    chain.entity_data.entity_name
+                    if entity_names_as_chain_names
+                    else get_chain_letter(i)
+                )
+                for i, chain in enumerate(feature_context.chains, start=1)
             },
         )
         cif_paths.append(cif_out_path)

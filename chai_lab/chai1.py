@@ -95,7 +95,7 @@ from chai_lab.data.features.generators.token_dist_restraint import (
 from chai_lab.data.features.generators.token_pair_pocket_restraint import (
     TokenPairPocketRestraint,
 )
-from chai_lab.data.io.cif_utils import get_chain_letter, save_to_cif
+from chai_lab.data.io.cif_utils import _CHAIN_VOCAB, get_chain_letter, save_to_cif
 from chai_lab.data.parsing.restraints import parse_pairwise_table
 from chai_lab.data.parsing.structure.entity_type import EntityType
 from chai_lab.model.diffusion_schedules import InferenceNoiseSchedule
@@ -605,6 +605,19 @@ def run_folding_on_context(
     raise_if_msa_too_deep(feature_context.msa_context.depth)
     # NOTE profile MSA used only for statistics; no depth check
     feature_context.structure_context.report_bonds()
+
+    if entity_names_as_chain_names:
+        # Ensure that entity names are unique and are valid chain names
+        entity_names: list[str] = [
+            chain.entity_data.entity_name for chain in feature_context.chains
+        ]
+        assert len(set(entity_names)) == len(
+            entity_names
+        ), f"Using entity names for cif chains, but got duplicates: {entity_names}"
+        assert all(e in _CHAIN_VOCAB for e in entity_names), (
+            "Using entity names for cif chains, but got invalid names "
+            f"{entity_names}; must be in {_CHAIN_VOCAB}"
+        )
 
     ##
     ## Prepare batch

@@ -11,7 +11,7 @@ typing-extensions
 
 # data import/export, application-specific
 gemmi~=0.6.3       # pdb/mmcif parsing
-rdkit~=2024.9.5    # we likely support other versions, 
+rdkit==2024.9.5    # we likely support other versions, 
                    #  but typing is not consistent across rdkit versions, and mypy complain
 biopython>=1.83    # parsing, data access
 antipickle==0.2.0  # save/load heterogeneous python structures

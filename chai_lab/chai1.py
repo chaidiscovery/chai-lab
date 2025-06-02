@@ -555,7 +555,7 @@ def run_inference(
             seed=seed + trunk_idx if seed is not None else None,
             device=torch_device,
             low_memory=low_memory,
-            entity_names_as_chain_names=fasta_names_as_cif_chains,
+            entity_names_as_chain_names_in_output_cif=fasta_names_as_cif_chains,
         )
         all_candidates.append(cand)
     return StructureCandidates.concat(all_candidates)

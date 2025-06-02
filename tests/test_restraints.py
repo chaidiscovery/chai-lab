@@ -13,4 +13,3 @@ def test_loading_restraints():
 
     assert len(parse_pairwise_table(contact_path)) > 0
     assert len(parse_pairwise_table(pocket_path)) > 0
-

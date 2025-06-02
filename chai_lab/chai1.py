@@ -339,6 +339,7 @@ def make_all_atom_feature_context(
     fasta_file: Path,
     *,
     output_dir: Path,
+    entity_name_as_subchain: bool = False,
     use_esm_embeddings: bool = True,
     use_msa_server: bool = False,
     msa_server_url: str = "https://api.colabfold.com",
@@ -368,7 +369,9 @@ def make_all_atom_feature_context(
             )
 
     # Load structure context
-    chains = load_chains_from_raw(fasta_inputs)
+    chains = load_chains_from_raw(
+        fasta_inputs, entity_name_as_subchain=entity_name_as_subchain
+    )
     del fasta_inputs  # Do not reference inputs after creating chains from them
 
     merged_context = AllAtomStructureContext.merge(
@@ -525,9 +528,11 @@ def run_inference(
 
     torch_device = torch.device(device if device is not None else "cuda:0")
 
+    # NOTE if fastas are cif chain names, we use this to parse chains as well
     feature_context = make_all_atom_feature_context(
         fasta_file=fasta_file,
         output_dir=output_dir,
+        entity_name_as_subchain=fasta_names_as_cif_chains,
         use_esm_embeddings=use_esm_embeddings,
         use_msa_server=use_msa_server,
         msa_server_url=msa_server_url,

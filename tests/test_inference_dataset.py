@@ -104,3 +104,20 @@ def test_protein_with_smiles(tokenizer: AllAtomResidueTokenizer):
         example.token_entity_type == EntityType.LIGAND.value
     ]
     assert torch.unique(lig_sym_ids).numel() == 2  # Two copies of each ligand
+
+
+def test_entity_names_as_subchain(tokenizer: AllAtomResidueTokenizer):
+    inputs = [
+        Input(sequence="RKDES", entity_type=EntityType.PROTEIN.value, entity_name="X"),
+        Input(sequence="GHGHGH", entity_type=EntityType.PROTEIN.value, entity_name="Y"),
+    ]
+
+    chains = load_chains_from_raw(
+        inputs=inputs, entity_name_as_subchain=False, tokenizer=tokenizer
+    )
+    assert [chain.entity_data.subchain_id for chain in chains] == ["A", "B"]
+
+    chain_manual_named = load_chains_from_raw(
+        inputs=inputs, entity_name_as_subchain=True, tokenizer=tokenizer
+    )
+    assert [chain.entity_data.subchain_id for chain in chain_manual_named] == ["X", "Y"]

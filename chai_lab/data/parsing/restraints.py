@@ -166,7 +166,7 @@ def _parse_row(row: pd.Series) -> PairwiseInteraction:
         min_dist_angstrom=row["min_distance_angstrom"],
         connection_type=PairwiseInteractionType(row["connection_type"]),
         confidence=row["confidence"],
-        comment=row["comment"],
+        comment="" if pd.isna(row["comment"]) else row["comment"],
     )
 
 

@@ -576,7 +576,7 @@ def run_folding_on_context(
     num_diffn_timesteps: int = 200,
     # all diffusion samples come from the same trunk
     num_diffn_samples: int = 5,
-    entity_names_as_chain_names: bool = False,  # entity names as chain names in output cif
+    entity_names_as_chain_names_in_output_cif: bool = False,
     seed: int | None = None,
     device: torch.device | None = None,
     low_memory: bool,

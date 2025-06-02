@@ -606,7 +606,7 @@ def run_folding_on_context(
     # NOTE profile MSA used only for statistics; no depth check
     feature_context.structure_context.report_bonds()
 
-    if entity_names_as_chain_names:
+    if entity_names_as_chain_names_in_output_cif:
         # Ensure that entity names are unique and are valid chain names
         entity_names: list[str] = [
             chain.entity_data.entity_name for chain in feature_context.chains
@@ -1021,11 +1021,12 @@ def run_folding_on_context(
             bfactors=scaled_plddt_scores_per_atom,
             output_batch=inputs,
             write_path=cif_out_path,
-            # Set asym names to be A, B, C, ...
+            # Set asym names to match entity names from fasta if requested;
+            # otherwise auto-generate A, B, C, ... sequentially
             asym_entity_names={
                 i: (
                     chain.entity_data.entity_name
-                    if entity_names_as_chain_names
+                    if entity_names_as_chain_names_in_output_cif
                     else get_chain_letter(i)
                 )
                 for i, chain in enumerate(feature_context.chains, start=1)

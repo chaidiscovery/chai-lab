@@ -95,7 +95,7 @@ from chai_lab.data.features.generators.token_dist_restraint import (
 from chai_lab.data.features.generators.token_pair_pocket_restraint import (
     TokenPairPocketRestraint,
 )
-from chai_lab.data.io.cif_utils import get_chain_letter, save_to_cif
+from chai_lab.data.io.cif_utils import _CHAIN_VOCAB, get_chain_letter, save_to_cif
 from chai_lab.data.parsing.restraints import parse_pairwise_table
 from chai_lab.data.parsing.structure.entity_type import EntityType
 from chai_lab.model.diffusion_schedules import InferenceNoiseSchedule
@@ -514,6 +514,8 @@ def run_inference(
     seed: int | None = None,
     device: str | None = None,
     low_memory: bool = True,
+    # IO options
+    fasta_names_as_cif_chains: bool = False,
 ) -> StructureCandidates:
     assert num_trunk_samples > 0 and num_diffn_samples > 0
     if output_dir.exists():
@@ -553,6 +555,7 @@ def run_inference(
             seed=seed + trunk_idx if seed is not None else None,
             device=torch_device,
             low_memory=low_memory,
+            entity_names_as_chain_names_in_output_cif=fasta_names_as_cif_chains,
         )
         all_candidates.append(cand)
     return StructureCandidates.concat(all_candidates)
@@ -573,6 +576,7 @@ def run_folding_on_context(
     num_diffn_timesteps: int = 200,
     # all diffusion samples come from the same trunk
     num_diffn_samples: int = 5,
+    entity_names_as_chain_names_in_output_cif: bool = False,
     seed: int | None = None,
     device: torch.device | None = None,
     low_memory: bool,
@@ -601,6 +605,19 @@ def run_folding_on_context(
     raise_if_msa_too_deep(feature_context.msa_context.depth)
     # NOTE profile MSA used only for statistics; no depth check
     feature_context.structure_context.report_bonds()
+
+    if entity_names_as_chain_names_in_output_cif:
+        # Ensure that entity names are unique and are valid chain names
+        entity_names: list[str] = [
+            chain.entity_data.entity_name for chain in feature_context.chains
+        ]
+        assert len(set(entity_names)) == len(
+            entity_names
+        ), f"Using entity names for cif chains, but got duplicates: {entity_names}"
+        assert all(e in _CHAIN_VOCAB for e in entity_names), (
+            "Using entity names for cif chains, but got invalid names "
+            f"{entity_names}; must be in {_CHAIN_VOCAB}"
+        )
 
     ##
     ## Prepare batch
@@ -1004,10 +1021,15 @@ def run_folding_on_context(
             bfactors=scaled_plddt_scores_per_atom,
             output_batch=inputs,
             write_path=cif_out_path,
-            # Set asym names to be A, B, C, ...
+            # Set asym names to match entity names from fasta if requested;
+            # otherwise auto-generate A, B, C, ... sequentially
             asym_entity_names={
-                i: get_chain_letter(i)
-                for i in range(1, len(feature_context.chains) + 1)
+                i: (
+                    chain.entity_data.entity_name
+                    if entity_names_as_chain_names_in_output_cif
+                    else get_chain_letter(i)
+                )
+                for i, chain in enumerate(feature_context.chains, start=1)
             },
         )
         cif_paths.append(cif_out_path)

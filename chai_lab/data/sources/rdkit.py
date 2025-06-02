@@ -148,13 +148,13 @@ class RefConformerGenerator:
         mol_with_hs = Chem.AddHs(mol)
 
         params = rdDistGeom.ETKDGv3()
-        params.useSmallRingTorsions = True
-        params.randomSeed = 123
+        params.useSmallRingTorsions = True  # type: ignore
+        params.randomSeed = 123  # type: ignore
         params.useChirality = True
         # below params were added after facing 'Value Error: Bad Conformer id'
         # https://github.com/rdkit/rdkit/issues/1433#issuecomment-305097888
         params.maxAttempts = 10_000
-        params.useRandomCoords = True
+        params.useRandomCoords = True  # type: ignore
 
         rdDistGeom.EmbedMultipleConfs(mol_with_hs, numConfs=1, params=params)
         rdmolops.RemoveHs(mol_with_hs)

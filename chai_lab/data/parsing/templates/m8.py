@@ -11,7 +11,7 @@ import gemmi
 import pandas as pd
 import torch
 
-from chai_lab.data.io import rcsb
+from chai_lab.data.io.rcsb import download_cif_file
 from chai_lab.data.parsing.msas.a3m import tokenize_sequences_to_arrays
 from chai_lab.data.parsing.templates.template_hit import TemplateHit
 from chai_lab.tools.kalign import kalign_query_to_reference
@@ -79,7 +79,7 @@ def parse_m8_to_template_hits(
         hit_identifier, hit_chain = row.subject_id.split("_")  # type: ignore
         assert isinstance(hit_identifier, str) and isinstance(hit_chain, str)
         with TemporaryDirectory() as tmpdir:
-            cif_file = rcsb.download_cif_file(
+            cif_file = download_cif_file(
                 hit_identifier.upper(),
                 directory=(
                     Path(tmpdir) if template_cif_folder is None else template_cif_folder

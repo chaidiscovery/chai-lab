@@ -98,7 +98,8 @@ def test_restraints_with_manual_chain_names(entity_name_as_subchain: bool):
     contact_ft_all_null = torch.allclose(contact_ft, torch.tensor(-1).float())
 
     if entity_name_as_subchain:
-        # Loaded correctly, there are
+        # Loaded correctly, so some should not be null
         assert not contact_ft_all_null
     else:
+        # Did not load; all null
         assert contact_ft_all_null

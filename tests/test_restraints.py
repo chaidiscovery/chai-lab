@@ -38,11 +38,18 @@ def test_loading_restraints():
 
 
 @pytest.mark.parametrize(
-    "entity_name_as_subchain",
-    [True, False],
+    "entity_name_as_subchain,restraints_wrt_entity_names",
+    [
+        (True, True),  # Both given w.r.t. automatic names; should load correctly
+        (True, False),  # Mismatched; should not load
+        (False, True),  # Mismatched; should not load
+        (False, False),  # Both w.r.t. fasta-derived entity names; should load correctly
+    ],
 )
-def test_restraints_with_manual_chain_names(entity_name_as_subchain: bool):
-    """when entity name is used as chain name, restraints are given w.r.t. entity name."""
+def test_restraints_with_manual_chain_names(
+    entity_name_as_subchain: bool, restraints_wrt_entity_names: bool
+):
+    """subchain ID scheme and restraint scheme compatibility"""
     inputs = [
         Input("GGGGGG", entity_type=EntityType.PROTEIN.value, entity_name="G"),
         Input("HHHHHH", entity_type=EntityType.PROTEIN.value, entity_name="H"),
@@ -50,19 +57,19 @@ def test_restraints_with_manual_chain_names(entity_name_as_subchain: bool):
 
     restraints = [
         PairwiseInteraction(
-            chainA="G",
+            chainA="G" if restraints_wrt_entity_names else "A",
             res_idxA="G1",
             atom_nameA="",
-            chainB="H",
+            chainB="H" if restraints_wrt_entity_names else "B",
             res_idxB="H1",
             atom_nameB="",
             connection_type=PairwiseInteractionType.CONTACT,
         ),
         PairwiseInteraction(
-            chainA="G",
+            chainA="G" if restraints_wrt_entity_names else "A",
             res_idxA="",
             atom_nameA="",
-            chainB="H",
+            chainB="H" if restraints_wrt_entity_names else "B",
             res_idxB="H1",
             atom_nameB="",
             connection_type=PairwiseInteractionType.POCKET,
@@ -108,7 +115,7 @@ def test_restraints_with_manual_chain_names(entity_name_as_subchain: bool):
     pocket_ft = ft["TokenPairPocketRestraint"]
     pocket_ft_all_null = torch.allclose(pocket_ft, torch.tensor(-1).float())
 
-    if entity_name_as_subchain:
+    if entity_name_as_subchain == restraints_wrt_entity_names:
         # Loaded correctly, so some should not be null
         assert not contact_ft_all_null
         assert not pocket_ft_all_null

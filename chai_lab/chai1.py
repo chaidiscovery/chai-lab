@@ -339,6 +339,7 @@ def make_all_atom_feature_context(
     fasta_file: Path,
     *,
     output_dir: Path,
+    entity_name_as_subchain: bool = False,
     use_esm_embeddings: bool = True,
     use_msa_server: bool = False,
     msa_server_url: str = "https://api.colabfold.com",
@@ -368,7 +369,9 @@ def make_all_atom_feature_context(
             )
 
     # Load structure context
-    chains = load_chains_from_raw(fasta_inputs)
+    chains = load_chains_from_raw(
+        fasta_inputs, entity_name_as_subchain=entity_name_as_subchain
+    )
     del fasta_inputs  # Do not reference inputs after creating chains from them
 
     merged_context = AllAtomStructureContext.merge(
@@ -517,6 +520,12 @@ def run_inference(
     # IO options
     fasta_names_as_cif_chains: bool = False,
 ) -> StructureCandidates:
+    """Runs inference on sequences in the provided fasta file.
+
+    Important notes:
+    - If fasta_names_as_cif_chains is True, fasta entity names are used for parsing
+      and writing chains. Restraints must ALSO be named w.r.t. fasta names.
+    """
     assert num_trunk_samples > 0 and num_diffn_samples > 0
     if output_dir.exists():
         assert not any(
@@ -525,9 +534,11 @@ def run_inference(
 
     torch_device = torch.device(device if device is not None else "cuda:0")
 
+    # NOTE if fastas are cif chain names, we also use them to parse chains and restraints
     feature_context = make_all_atom_feature_context(
         fasta_file=fasta_file,
         output_dir=output_dir,
+        entity_name_as_subchain=fasta_names_as_cif_chains,
         use_esm_embeddings=use_esm_embeddings,
         use_msa_server=use_msa_server,
         msa_server_url=msa_server_url,

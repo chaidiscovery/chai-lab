@@ -92,7 +92,9 @@ def _synth_subchain_id(idx: int) -> str:
 
 
 def raw_inputs_to_entitites_data(
-    inputs: list[Input], identifier: str = "test"
+    inputs: list[Input],
+    entity_name_as_subchain: bool = False,
+    identifier: str = "test",
 ) -> list[AllAtomEntityData]:
     """Load an entity for each raw input."""
     entities = []
@@ -153,12 +155,20 @@ def raw_inputs_to_entitites_data(
                 resolution=0.0,
                 release_datetime=datetime.now(),
                 pdb_id=identifier,
-                source_pdb_chain_id=_synth_subchain_id(i),
+                source_pdb_chain_id=(
+                    _synth_subchain_id(i)
+                    if not entity_name_as_subchain
+                    else input.entity_name
+                ),
                 entity_name=input.entity_name,
                 entity_id=entity_id,
                 method="none",
                 entity_type=entity_type,
-                subchain_id=_synth_subchain_id(i),
+                subchain_id=(
+                    _synth_subchain_id(i)
+                    if not entity_name_as_subchain
+                    else input.entity_name
+                ),
                 original_record=input.sequence,
             )
         )
@@ -170,6 +180,7 @@ def raw_inputs_to_entitites_data(
 def load_chains_from_raw(
     inputs: list[Input],
     identifier: str = "test",
+    entity_name_as_subchain: bool = False,
     tokenizer: AllAtomResidueTokenizer | None = None,
 ) -> list[Chain]:
     """
@@ -183,6 +194,7 @@ def load_chains_from_raw(
     # Extract the entity data from the gemmi structure.
     entities: list[AllAtomEntityData] = raw_inputs_to_entitites_data(
         inputs,
+        entity_name_as_subchain=entity_name_as_subchain,
         identifier=identifier,
     )
 

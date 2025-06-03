@@ -57,7 +57,16 @@ def test_restraints_with_manual_chain_names(entity_name_as_subchain: bool):
             res_idxB="H1",
             atom_nameB="",
             connection_type=PairwiseInteractionType.CONTACT,
-        )
+        ),
+        PairwiseInteraction(
+            chainA="G",
+            res_idxA="",
+            atom_nameA="",
+            chainB="H",
+            res_idxB="H1",
+            atom_nameB="",
+            connection_type=PairwiseInteractionType.POCKET,
+        ),
     ]
 
     chains = load_chains_from_raw(
@@ -96,10 +105,14 @@ def test_restraints_with_manual_chain_names(entity_name_as_subchain: bool):
     ft = batch["features"]
     contact_ft = ft["TokenDistanceRestraint"]
     contact_ft_all_null = torch.allclose(contact_ft, torch.tensor(-1).float())
+    pocket_ft = ft["TokenPairPocketRestraint"]
+    pocket_ft_all_null = torch.allclose(pocket_ft, torch.tensor(-1).float())
 
     if entity_name_as_subchain:
         # Loaded correctly, so some should not be null
         assert not contact_ft_all_null
+        assert not pocket_ft_all_null
     else:
         # Did not load; all null
         assert contact_ft_all_null
+        assert pocket_ft_all_null

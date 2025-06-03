@@ -520,6 +520,12 @@ def run_inference(
     # IO options
     fasta_names_as_cif_chains: bool = False,
 ) -> StructureCandidates:
+    """Runs inference on sequences in the provided fasta file.
+
+    Important notes:
+    - If fasta_names_as_cif_chains is True, fasta entity names are used for parsing
+      and writing chains. Restraints must ALSO be named w.r.t. fasta names.
+    """
     assert num_trunk_samples > 0 and num_diffn_samples > 0
     if output_dir.exists():
         assert not any(

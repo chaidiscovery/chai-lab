@@ -42,7 +42,7 @@ def test_loading_restraints():
     [True, False],
 )
 def test_restraints_with_manual_chain_names(entity_name_as_subchain: bool):
-    """when entity name is used as chain name, restraints are also specified by entity name."""
+    """when entity name is used as chain name, restraints are given w.r.t. entity name."""
     inputs = [
         Input("GGGGGG", entity_type=EntityType.PROTEIN.value, entity_name="G"),
         Input("HHHHHH", entity_type=EntityType.PROTEIN.value, entity_name="H"),

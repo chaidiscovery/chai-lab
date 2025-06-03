@@ -528,7 +528,7 @@ def run_inference(
 
     torch_device = torch.device(device if device is not None else "cuda:0")
 
-    # NOTE if fastas are cif chain names, we use this to parse chains as well
+    # NOTE if fastas are cif chain names, we also use them to parse chains and restraints
     feature_context = make_all_atom_feature_context(
         fasta_file=fasta_file,
         output_dir=output_dir,

@@ -20,7 +20,7 @@ def constituents_of_modified_fasta(x: str) -> list[str] | None:
     """
     x = x.strip().upper()
     # it is a bit strange that digits are here, but [NH2] was in one protein
-    allowed_chars = ascii_letters + "()" + string.digits
+    allowed_chars = ascii_letters + "()[]" + string.digits
     if not all(letter in allowed_chars for letter in x):
         return None
 

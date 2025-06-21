@@ -28,11 +28,11 @@ def constituents_of_modified_fasta(x: str) -> list[str] | None:
 
     constituents = []
     for letter in x:
-        if letter == "(":
+        if letter == "(" or letter == "[":
             if current_modified is not None:
                 return None  # double open bracket
             current_modified = ""
-        elif letter == ")":
+        elif letter == ")" or letter == "]":
             if current_modified is None:
                 return None  # closed without opening
             if len(current_modified) <= 1:

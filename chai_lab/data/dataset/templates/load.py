@@ -27,7 +27,7 @@ import gemmi
 import torch
 from aiohttp import ClientResponseError
 from torch import Tensor
-from urllib3.exceptions import MaxRetryError, NameResolutionError
+from urllib3.exceptions import HTTPError, MaxRetryError
 
 from chai_lab.data import residue_constants as rc
 from chai_lab.data.dataset.structure.all_atom_residue_tokenizer import (
@@ -312,7 +312,7 @@ def get_template_data(
                 ),
                 chain_id=template_hit.chain_id,  # Templates are referenced by chain, NOT subchain
             )
-        except (ValueError, ClientResponseError, NameResolutionError, MaxRetryError):
+        except (ValueError, ClientResponseError, HTTPError, MaxRetryError):
             logger.info(f"Failed to load entity data for {template_hit}")
             continue
         except Exception:

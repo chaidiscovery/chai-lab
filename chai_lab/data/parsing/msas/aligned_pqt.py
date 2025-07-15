@@ -9,11 +9,12 @@ import hashlib
 import logging
 from functools import lru_cache
 from pathlib import Path
-from typing import Literal, Mapping, Optional
+from typing import Literal, Optional
 
 import pandas as pd
 import pandera as pa
 import torch
+from beartype.typing import Mapping
 from einops import repeat
 from pandera.typing import Series
 

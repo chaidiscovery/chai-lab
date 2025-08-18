@@ -157,6 +157,21 @@ If you find Chai-1 useful in your research or use any structures produced by the
 
 You can also access this information by running `chai citation`.
 
+You can use the following citation for the Chai-2 technical report:
+```
+@article{Chai-2-Technical-Report,
+	title        = {Zero-shot antibody design in a 24-well plate},
+	author       = {{Chai Discovery}},
+	year         = 2025,
+	journal      = {bioRxiv},
+	publisher    = {Cold Spring Harbor Laboratory},
+	doi          = {10.1101/2025.07.05.663018},
+	url          = {https://www.biorxiv.org/content/early/2025/07/06/2025.07.05.663018},
+	elocation-id = {2025.07.05.663018},
+	eprint       = {https://www.biorxiv.org/content/early/2025/07/06/2025.07.05.663018.full.pdf}
+}
+```
+
 Additionally, if you use the automatic MMseqs2 MSA generation described above, please also cite:
 
 ```

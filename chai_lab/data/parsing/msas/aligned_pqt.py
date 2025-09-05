@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Literal, Mapping, Optional
 
 import pandas as pd
-import pandera as pa
+import pandera.pandas as pa
 import torch
 from einops import repeat
 from pandera.typing import Series

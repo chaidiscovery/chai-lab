@@ -97,7 +97,7 @@ def interface_ptm(
 ) -> Float[Tensor, "..."]:
     """Compute Interface pTM score
 
-    ipTM is the max TM score over chains c \in C, restricting
+    ipTM is the max TM score over chains c \\in C, restricting
     to interactions between c and C - {c}.
     """
     query_res_mask, _ = get_chain_masks_and_asyms(

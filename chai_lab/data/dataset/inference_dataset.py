@@ -115,7 +115,7 @@ def raw_inputs_to_entitites_data(
                 )
                 assert (
                     parsed_sequence is not None
-                ), f"incorrect FASTA: {parsed_sequence=} "
+                ), f"incorrect FASTA: {input.sequence=} "
                 expanded_sequence = [
                     get_residue_name(r, entity_type=entity_type) if len(r) == 1 else r
                     for r in parsed_sequence

@@ -78,17 +78,12 @@ class RefConformerGenerator:
         del block
         logger.info(f"Loaded {len(mols)} cached conformers")
 
-        residues_dict = {
-            m.GetProp("_Name"): self._load_ref_conformer_from_rdkit(m)
-            for m in tqdm(mols)
-        }
+        residues_dict = {m.GetProp("_Name"): self._load_ref_conformer_from_rdkit(m) for m in tqdm(mols)}
 
         # check at least standard residues were loaded
         # otherwise missing protein residues cannot be handled
         for res_name in standard_residue_pdb_codes:
-            assert (
-                res_name in residues_dict
-            ), f"Standard residue {res_name} should have a reference conformer loaded"
+            assert res_name in residues_dict, f"Standard residue {res_name} should have a reference conformer loaded"
 
         return residues_dict
 
@@ -100,24 +95,14 @@ class RefConformerGenerator:
 
         ref_atom_names = [atom.GetProp("name") for atom in mol.GetAtoms()]
 
-        ref_atom_charge = torch.tensor(
-            [atom.GetFormalCharge() for atom in mol.GetAtoms()], dtype=torch.int
-        )
-        ref_atom_element = torch.tensor(
-            [atom.GetAtomicNum() for atom in mol.GetAtoms()], dtype=torch.int
-        )
+        ref_atom_charge = torch.tensor([atom.GetFormalCharge() for atom in mol.GetAtoms()], dtype=torch.int)
+        ref_atom_element = torch.tensor([atom.GetAtomicNum() for atom in mol.GetAtoms()], dtype=torch.int)
 
-        bonds = [
-            (bond.GetBeginAtomIdx(), bond.GetEndAtomIdx()) for bond in mol.GetBonds()
-        ]
+        bonds = [(bond.GetBeginAtomIdx(), bond.GetEndAtomIdx()) for bond in mol.GetBonds()]
 
         symms = get_intra_res_atom_symmetries(mol)
 
-        symmetries = (
-            torch.stack([torch.tensor(x) for x in symms], dim=-1)
-            if len(symms) > 0
-            else torch.arange(len(ref_atom_names)).unsqueeze(-1)
-        )
+        symmetries = torch.stack([torch.tensor(x) for x in symms], dim=-1) if len(symms) > 0 else torch.arange(len(ref_atom_names)).unsqueeze(-1)
 
         return ConformerData(
             position=ref_pos,
@@ -240,17 +225,13 @@ def maybe_add_bonds(mol: Chem.Mol, timeout_after: float = 1.0) -> Chem.Mol:
     return mol
 
 
-def get_intra_res_atom_symmetries(
-    mol: Chem.Mol, max_symmetries: int = 1000, timeout_after: float = 1.0
-) -> tuple[tuple[int, ...]]:
+def get_intra_res_atom_symmetries(mol: Chem.Mol, max_symmetries: int = 1000, timeout_after: float = 1.0) -> tuple[tuple[int, ...]]:
     """Attempts to compute full set of intra-residue atom symmetries. Returns identity
     permutation of atoms if not successful"""
 
     @timeout(timeout_after)
     def _get_symmetries():
-        return mol.GetSubstructMatches(
-            mol, uniquify=False, maxMatches=max_symmetries, useChirality=False
-        )
+        return mol.GetSubstructMatches(mol, uniquify=False, maxMatches=max_symmetries, useChirality=False)
 
     try:
         symms = _get_symmetries()

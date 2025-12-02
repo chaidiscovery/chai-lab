@@ -68,24 +68,12 @@ class TokenSpan:
         token_count[0] = 0
 
         # offsets indices of centre atoms:
-        atoms_per_span = torch.tensor(
-            [span.atom_exists_mask.shape[0] for span in spans]
-        )
+        atoms_per_span = torch.tensor([span.atom_exists_mask.shape[0] for span in spans])
         atom_offsets = torch.cumsum(atoms_per_span, dim=0).roll(1, 0)
         atom_offsets[0] = 0
 
-        centre_atom_index = torch.cat(
-            [
-                span.centre_atom_index + offset
-                for span, offset in zip(spans, atom_offsets)
-            ]
-        )
-        reference_atom_index = torch.cat(
-            [
-                span.reference_atom_index + offset
-                for span, offset in zip(spans, atom_offsets)
-            ]
-        )
+        centre_atom_index = torch.cat([span.centre_atom_index + offset for span, offset in zip(spans, atom_offsets)])
+        reference_atom_index = torch.cat([span.reference_atom_index + offset for span, offset in zip(spans, atom_offsets)])
 
         atom_token_index = (
             torch.cumsum(
@@ -95,12 +83,7 @@ class TokenSpan:
             )
             - 1
         )
-        backbone_frame_index = torch.cat(
-            [
-                span.backbone_frame_index + offset
-                for span, offset in zip(spans, atom_offsets)
-            ]
-        )
+        backbone_frame_index = torch.cat([span.backbone_frame_index + offset for span, offset in zip(spans, atom_offsets)])
 
         # concatenate symmetric permutations at the atom level
         # make sure that trailing shape is the same
@@ -108,10 +91,7 @@ class TokenSpan:
         # i.e. the permutation indices are relative to the residue
         atom_symms = [span.symmetries for span in spans]
         max_symms = max(x.shape[-1] for x in atom_symms)
-        atom_symms = [
-            torch.nn.functional.pad(x, (0, max_symms - x.shape[-1]), value=-1)
-            for x in atom_symms
-        ]
+        atom_symms = [torch.nn.functional.pad(x, (0, max_symms - x.shape[-1]), value=-1) for x in atom_symms]
         return cls(
             restype=torch.cat([x.restype for x in spans]),
             residue_index=torch.cat([x.residue_index for x in spans]),
@@ -127,9 +107,7 @@ class TokenSpan:
             ref_element=torch.cat([x.ref_element for x in spans]),
             ref_charge=torch.cat([x.ref_charge for x in spans]),
             atom_names=list(chain.from_iterable([x.atom_names for x in spans])),
-            atom_within_token_indices=torch.cat(
-                [x.atom_within_token_indices for x in spans]
-            ),
+            atom_within_token_indices=torch.cat([x.atom_within_token_indices for x in spans]),
             residue_names=list(chain.from_iterable([x.residue_names for x in spans])),
             symmetries=torch.cat(atom_symms, dim=0),
             b_factor_or_plddt=torch.cat([x.b_factor_or_plddt for x in spans]),
@@ -153,9 +131,7 @@ class AllAtomResidueTokenizer:
             # this should only happen when residue is sole hydrogen
             # or when residue code is not in CCD dictionary and
             # the residue has 0 coords in the PDB structure
-            logger.warning(
-                f"skipping residue {residue.name} {residue.label_seq} as reference conformer has 0 heavy atoms"
-            )
+            logger.warning(f"skipping residue {residue.name} {residue.label_seq} as reference conformer has 0 heavy atoms")
             return None
 
         # Keep only the atoms from the ground truth conformer that are present in
@@ -167,24 +143,16 @@ class AllAtomResidueTokenizer:
         gt_conformer_data = residue.conformer_data
 
         if gt_conformer_data is not None:
-            atom_gt_coords, atom_exists_mask = gt_conformer_data.gather_atom_positions(
-                ref_conformer_data.atom_names
-            )
+            atom_gt_coords, atom_exists_mask = gt_conformer_data.gather_atom_positions(ref_conformer_data.atom_names)
         else:
             atom_gt_coords = ref_conformer_data.position
-            atom_exists_mask = torch.ones(
-                atom_gt_coords.shape[0], dtype=torch.bool, device=atom_gt_coords.device
-            )
+            atom_exists_mask = torch.ones(atom_gt_coords.shape[0], dtype=torch.bool, device=atom_gt_coords.device)
 
         # Tokenization is by residue if it is a standard amino acid or standard
         # nucleotide; all ligands and all modified residues are tokenized per atom.
         tokenize_fn = (
             self._tokenize_per_residue
-            if (
-                residue.name in standard_residue_pdb_codes
-                and entity_type != EntityType.LIGAND
-                and entity_type != EntityType.MANUAL_GLYCAN
-            )
+            if (residue.name in standard_residue_pdb_codes and entity_type != EntityType.LIGAND and entity_type != EntityType.MANUAL_GLYCAN)
             else self._tokenize_per_atom
         )
 
@@ -324,9 +292,7 @@ class AllAtomResidueTokenizer:
         centre_atom_index = torch.arange(n_atoms, dtype=torch.int)
         reference_atom_index = torch.arange(n_atoms, dtype=torch.int)
         backbone_frame_mask = torch.zeros((n_atoms,), dtype=torch.bool)
-        backbone_indices = (
-            torch.arange(n_atoms, dtype=torch.int).unsqueeze(1).expand(-1, 3)
-        )
+        backbone_indices = torch.arange(n_atoms, dtype=torch.int).unsqueeze(1).expand(-1, 3)
 
         atom_token_index = torch.ones_like(atom_exists_mask, dtype=torch.int)
 
@@ -356,9 +322,7 @@ class AllAtomResidueTokenizer:
             b_factor_or_plddt=b_factor_or_plddt,
         )
 
-    def tokenize_entity(
-        self, entity_data: AllAtomEntityData
-    ) -> AllAtomStructureContext | None:
+    def tokenize_entity(self, entity_data: AllAtomEntityData) -> AllAtomStructureContext | None:
         return self.tokenize_entities([entity_data])[0]
 
     def tokenize_entities(
@@ -382,18 +346,11 @@ class AllAtomResidueTokenizer:
         chain_id: int = 1,
         sym_id: int = 1,
     ) -> AllAtomStructureContext | None:
-        tokenized_residues = [
-            self.tokenize_residue(residue, entity_data.entity_type)
-            for residue in entity_data.residues
-        ]
+        tokenized_residues = [self.tokenize_residue(residue, entity_data.entity_type) for residue in entity_data.residues]
 
-        valid_residues: list[TokenSpan] = [
-            x for x in tokenized_residues if x is not None
-        ]
+        valid_residues: list[TokenSpan] = [x for x in tokenized_residues if x is not None]
         if len(valid_residues) == 0:
-            logger.warning(
-                f"Got no residues for entity {entity_data.entity_id} with residues {entity_data.residues}"
-            )
+            logger.warning(f"Got no residues for entity {entity_data.entity_id} with residues {entity_data.residues}")
             return None
 
         tokens = TokenSpan.concatenate(valid_residues)
@@ -402,21 +359,12 @@ class AllAtomResidueTokenizer:
         token_index = torch.arange(num_tokens, dtype=torch.int)
 
         # mask indicating if a token has >=1 atom with known coordinates
-        token_exists_mask = (tokens.atom_token_index == token_index[..., None]).sum(
-            dim=-1
-        ) > 0
+        token_exists_mask = (tokens.atom_token_index == token_index[..., None]).sum(dim=-1) > 0
 
         # checks on atom mask and positions:
         # max 1 atom per-example has zero coordinates
-        if (
-            torch.sum(
-                torch.all(tokens.atom_gt_coords[tokens.atom_exists_mask] == 0, dim=-1)
-            )
-            > 1
-        ):
-            raise ValueError(
-                f"Zero coordinates found in unmasked atoms for {entity_data.pdb_id}"
-            )
+        if torch.sum(torch.all(tokens.atom_gt_coords[tokens.atom_exists_mask] == 0, dim=-1)) > 1:
+            raise ValueError(f"Zero coordinates found in unmasked atoms for {entity_data.pdb_id}")
 
         # construct asym_id, entity_id, sym_id
         asym_id = chain_id
@@ -437,21 +385,15 @@ class AllAtomResidueTokenizer:
         match entity_data.entity_type:
             case EntityType.PROTEIN:
                 if tokens.residue_index[0].item() != 0:
-                    logger.error(
-                        f"Protein residue index should start at zero, {entity_data}"
-                    )
+                    logger.error(f"Protein residue index should start at zero, {entity_data}")
 
                 if not torch.all(torch.diff(tokens.residue_index) <= 1):
-                    logger.error(
-                        f"Protein residue index should be contiguous (no gaps), {entity_data}"
-                    )
+                    logger.error(f"Protein residue index should be contiguous (no gaps), {entity_data}")
 
                 _, unique_indices = unique_indexes(tokens.residue_index)
                 res_seq = [residue_names[i.item()] for i in unique_indices]
                 if res_seq != entity_data.full_sequence:
-                    logger.error(
-                        f"Protein residue names should match entity data full sequence, {entity_data}"
-                    )
+                    logger.error(f"Protein residue names should match entity data full sequence, {entity_data}")
 
         return AllAtomStructureContext(
             # token-level
@@ -520,11 +462,7 @@ class AllAtomResidueTokenizer:
             ),
             symmetries=tokens.symmetries,
             atom_covalent_bond_indices=get_atom_covalent_bond_pairs_from_glycan_string(
-                glycan_string=(
-                    entity_data.original_record
-                    if entity_data.entity_type == EntityType.MANUAL_GLYCAN
-                    else ""
-                ),
+                glycan_string=(entity_data.original_record if entity_data.entity_type == EntityType.MANUAL_GLYCAN else ""),
                 token_residue_index=tokens.residue_index,
                 atom_ref_name=tokens.atom_names,
             ),
@@ -560,17 +498,12 @@ class AllAtomResidueTokenizer:
         # When we can't find a reference conformer, and a smiles is given,
         # generate a reference conformer using rdkit
         if residue.smiles is not None:
-            logger.info(
-                f"Generating ref conformer for {residue.name}, {residue.smiles}"
-            )
+            logger.info(f"Generating ref conformer for {residue.name}, {residue.smiles}")
             return self.ref_conformer_generator.generate(residue.smiles)
 
         # When we can't find a reference conformer, attempt to use the ground
         # truth conformer data as the reference conformer.
-        logger.warning(
-            f"No reference conformer found for residue {residue.name},"
-            "using training example conformer"
-        )
+        logger.warning(f"No reference conformer found for residue {residue.name},using training example conformer")
         assert residue.conformer_data is not None
 
         try:
@@ -579,9 +512,7 @@ class AllAtomResidueTokenizer:
             # back into a conformer data so that we can extract inter-atom aymmetries
             # bond and info
             rdkit_mol = conformer_data_to_rdkit_mol(residue.conformer_data)
-            gt_conformer = RefConformerGenerator._load_ref_conformer_from_rdkit(
-                rdkit_mol
-            )
+            gt_conformer = RefConformerGenerator._load_ref_conformer_from_rdkit(rdkit_mol)
         except Exception as e:
             # Occasionally _load_ref_conformer_from_rdkit fails on unknown ligands e.g.
             # rdkit.Chem.rdchem.AtomValenceException's can be raised or ValueError:
@@ -626,9 +557,7 @@ def _make_sym_ids(entity_ids_per_chain: list[int]) -> list[int]:
     return sym_ids
 
 
-def atom_names_to_atom37_indices(
-    atom_names: list[str], residue_name: str
-) -> Int[Tensor, "n_atoms"]:
+def atom_names_to_atom37_indices(atom_names: list[str], residue_name: str) -> Int[Tensor, "n_atoms"]:
     """
     Returns a tensor of indices into the token-level atom names.
     """
@@ -646,9 +575,7 @@ def atom_names_to_atom37_indices(
         idx = [precomputed_idces[(residue_name, atom_name)] for atom_name in atom_names]
         retval = torch.tensor(idx, dtype=torch.int)
     else:
-        raise ValueError(
-            f"Unknown residue name {residue_name} (atom names: {atom_names})"
-        )
+        raise ValueError(f"Unknown residue name {residue_name} (atom names: {atom_names})")
 
     assert retval.max() <= 36, f"Out of bounds ordering {atom_names} in {residue_name}"
     return retval

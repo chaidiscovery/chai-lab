@@ -153,8 +153,9 @@ class RefConformerGenerator:
         params.useChirality = True
         # below params were added after facing 'Value Error: Bad Conformer id'
         # https://github.com/rdkit/rdkit/issues/1433#issuecomment-305097888
-        params.maxAttempts = 10_000
+        params.maxAttempts = 100  # 10_000 is ludicrous and causes processes to hang on this step
         params.useRandomCoords = True  # type: ignore
+        params.numThreads = -1  # 0 (or -1) lets RDKit use all available cores
 
         rdDistGeom.EmbedMultipleConfs(mol_with_hs, numConfs=1, params=params)
         rdmolops.RemoveHs(mol_with_hs)

@@ -157,7 +157,7 @@ class RefConformerGenerator:
             100  # 10_000 is ludicrous and causes processes to hang on this step
         )
         params.useRandomCoords = True  # type: ignore
-        params.numThreads = -1  # 0 (or -1) lets RDKit use all available cores
+        params.numThreads = -1  # type: ignore  # 0 (or -1) lets RDKit use all available cores
 
         rdDistGeom.EmbedMultipleConfs(mol_with_hs, numConfs=1, params=params)
         rdmolops.RemoveHs(mol_with_hs)

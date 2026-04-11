@@ -5,6 +5,7 @@
 import logging
 from collections import defaultdict
 from pathlib import Path
+from typing import Any
 
 import antipickle
 import torch
@@ -147,17 +148,18 @@ class RefConformerGenerator:
 
         mol_with_hs = Chem.AddHs(mol)
 
-        params = rdDistGeom.ETKDGv3()
-        params.useSmallRingTorsions = True  # type: ignore
-        params.randomSeed = 123  # type: ignore
-        params.useChirality = True
+        # RDKit exposes these writable fields at runtime, but the shipped stubs mis-type them.
+        params: Any = rdDistGeom.ETKDGv3()
+        params.useSmallRingTorsions = True
+        params.randomSeed = 123
+        params.enforceChirality = True
         # below params were added after facing 'Value Error: Bad Conformer id'
         # https://github.com/rdkit/rdkit/issues/1433#issuecomment-305097888
-        params.maxAttempts = (
+        params.maxIterations = (
             100  # 10_000 is ludicrous and causes processes to hang on this step
         )
-        params.useRandomCoords = True  # type: ignore
-        params.numThreads = -1  # type: ignore  # 0 (or -1) lets RDKit use all available cores
+        params.useRandomCoords = True
+        params.numThreads = -1  # 0 (or -1) lets RDKit use all available cores
 
         rdDistGeom.EmbedMultipleConfs(mol_with_hs, numConfs=1, params=params)
         rdmolops.RemoveHs(mol_with_hs)

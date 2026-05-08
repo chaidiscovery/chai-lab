@@ -4,9 +4,9 @@
 """Helper functions for aligning templates."""
 
 import logging
-from typing import Sequence
 
 import torch
+from beartype.typing import Sequence
 from torch import Tensor
 
 from chai_lab.utils.typing import Shaped, typecheck

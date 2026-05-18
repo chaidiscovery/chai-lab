@@ -120,11 +120,11 @@ class TokenDistanceRestraint(FeatureGenerator):
             )
         ).long()
         self.key_entity_types = torch.tensor(
-            [
+            (
                 [e.value for e in key_entity_types]
                 if key_entity_types is not None
                 else [e.value for e in EntityType]
-            ]
+            )
         ).long()
 
     def get_num_restraints(self, batch_size) -> list[int]:

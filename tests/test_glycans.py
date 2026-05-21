@@ -129,3 +129,11 @@ def test_cyclic_peptide_adds_terminal_bond():
     assert left.numel() == right.numel() == 1
     assert feature_context.structure_context.atom_ref_name[left.item()] == "N"
     assert feature_context.structure_context.atom_ref_name[right.item()] == "C"
+    assert feature_context.restraint_context.contact_restraints is not None
+    assert len(feature_context.restraint_context.contact_restraints) == 1
+    restraint = feature_context.restraint_context.contact_restraints[0]
+    assert restraint.left_residue_subchain_id == "A"
+    assert restraint.right_residue_subchain_id == "A"
+    assert restraint.left_residue_index == 0
+    assert restraint.right_residue_index == 3
+    assert restraint.distance_threshold == 4.0

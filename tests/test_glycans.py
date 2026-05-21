@@ -106,3 +106,26 @@ def test_glycan_tokenization_with_bond():
         ]
     )
     assert bond_elements == {8, 6}
+
+
+def test_cyclic_peptide_adds_terminal_bond():
+    fasta = ">protein|peptide\nGAAL\n"
+    with TemporaryDirectory() as tmpdir:
+        tmp_path = Path(tmpdir)
+
+        fasta_file = tmp_path / "input.fasta"
+        fasta_file.write_text(fasta)
+
+        output_dir = tmp_path / "out"
+
+        feature_context = make_all_atom_feature_context(
+            fasta_file,
+            output_dir=output_dir,
+            cyclic_chains=["peptide"],
+            use_esm_embeddings=False,
+        )
+
+    left, right = feature_context.structure_context.atom_covalent_bond_indices
+    assert left.numel() == right.numel() == 1
+    assert feature_context.structure_context.atom_ref_name[left.item()] == "N"
+    assert feature_context.structure_context.atom_ref_name[right.item()] == "C"

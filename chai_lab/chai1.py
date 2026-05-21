@@ -42,6 +42,7 @@ from chai_lab.data.dataset.structure.all_atom_structure_context import (
     AllAtomStructureContext,
 )
 from chai_lab.data.dataset.structure.bond_utils import (
+    get_atom_covalent_bond_pairs_for_cyclic_chains,
     get_atom_covalent_bond_pairs_from_constraints,
 )
 from chai_lab.data.dataset.templates.context import (
@@ -339,6 +340,7 @@ def make_all_atom_feature_context(
     fasta_file: Path,
     *,
     output_dir: Path,
+    cyclic_chains: Sequence[str] | None = None,
     entity_name_as_subchain: bool = False,
     use_esm_embeddings: bool = True,
     use_msa_server: bool = False,
@@ -373,6 +375,14 @@ def make_all_atom_feature_context(
         fasta_inputs, entity_name_as_subchain=entity_name_as_subchain
     )
     del fasta_inputs  # Do not reference inputs after creating chains from them
+
+    cyclic_chain_names = set(cyclic_chains or [])
+    chain_names = {chain.entity_data.entity_name for chain in chains}
+    unknown_cyclic_chains = cyclic_chain_names - chain_names
+    if unknown_cyclic_chains:
+        raise UnsupportedInputError(
+            f"Unknown cyclic chains requested: {sorted(unknown_cyclic_chains)}"
+        )
 
     merged_context = AllAtomStructureContext.merge(
         [c.structure_context for c in chains]
@@ -479,6 +489,25 @@ def make_all_atom_feature_context(
     else:
         restraint_context = RestraintContext.empty()
 
+    cyc_a, cyc_b = get_atom_covalent_bond_pairs_for_cyclic_chains(
+        chains=chains,
+        cyclic_chain_names=cyclic_chain_names,
+        token_residue_index=merged_context.token_residue_index,
+        token_subchain_id=merged_context.subchain_id,
+        token_asym_id=merged_context.token_asym_id,
+        atom_token_index=merged_context.atom_token_index,
+        atom_ref_name=merged_context.atom_ref_name,
+    )
+    if cyc_a.numel() > 0 and cyc_b.numel() > 0:
+        orig_a, orig_b = merged_context.atom_covalent_bond_indices
+        if orig_a.numel() == orig_b.numel() == 0:
+            merged_context.atom_covalent_bond_indices = (cyc_a, cyc_b)
+        else:
+            merged_context.atom_covalent_bond_indices = (
+                torch.concatenate([orig_a, cyc_a]),
+                torch.concatenate([orig_b, cyc_b]),
+            )
+
     # Handles leaving atoms for glycan bonds in-place
     merged_context.drop_glycan_leaving_atoms_inplace()
 
@@ -500,6 +529,7 @@ def run_inference(
     fasta_file: Path,
     *,
     output_dir: Path,
+    cyclic_chains: Sequence[str] | None = None,
     # Configuration for ESM, MSA, constraints, and templates
     use_esm_embeddings: bool = True,
     use_msa_server: bool = False,
@@ -538,6 +568,7 @@ def run_inference(
     feature_context = make_all_atom_feature_context(
         fasta_file=fasta_file,
         output_dir=output_dir,
+        cyclic_chains=cyclic_chains,
         entity_name_as_subchain=fasta_names_as_cif_chains,
         use_esm_embeddings=use_esm_embeddings,
         use_msa_server=use_msa_server,

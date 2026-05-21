@@ -238,7 +238,6 @@ def parse_structure(
     """
     if structure.input_format == gemmi.CoorFormat.Pdb:
         raise NotImplementedError
-    structure.remove_waters()
 
     if make_assembly:
         # make assembly involves duplicating chains in the case of homomers
@@ -250,6 +249,8 @@ def parse_structure(
             logger.warning(
                 "Make assembly failed, likely no assemblies found in structure"
             )
+
+    structure.remove_waters()
 
     if chain_ids is not None:
         chains = [chain for chain in structure[0] if chain.name in chain_ids]

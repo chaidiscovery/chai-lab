@@ -12,7 +12,6 @@ logging.basicConfig(level=logging.INFO)  # control verbosity
 # - each entity encodes protein, ligand, RNA or DNA
 # - each entity is labeled with unique name;
 # - ligands are encoded with SMILES; modified residues encoded like AAA(SEP)AAA
-# - cyclic peptides/proteins can be specified at inference time via cyclic_chains=[...]
 
 # Example given below, just modify it
 
@@ -41,7 +40,6 @@ output_dir.mkdir(exist_ok=True)
 candidates = run_inference(
     fasta_file=fasta_path,
     output_dir=output_dir,
-    cyclic_chains=["example-peptide"],
     # 'default' setup
     num_trunk_recycles=3,
     num_diffn_timesteps=200,

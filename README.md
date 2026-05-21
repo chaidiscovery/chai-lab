@@ -53,8 +53,6 @@ The main entrypoint into the Chai-1 folding code is through the `chai_lab.chai1.
 python examples/predict_structure.py
 ```
 
-If a peptide or protein chain should be treated as cyclic, pass its FASTA entity name via `cyclic_chains`. For example, if your FASTA contains `>protein|name=example-peptide`, then call `run_inference(..., cyclic_chains=["example-peptide"])`. Chai-1 will add the terminal peptide bond between the chain's N- and C-termini during input construction.
-
 To get the best performance, we recommend running the model with MSAs. The following script demonstrates how to provide MSAs to the model.
 
 ```shell

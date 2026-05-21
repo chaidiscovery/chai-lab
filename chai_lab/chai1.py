@@ -375,6 +375,14 @@ def make_all_atom_feature_context(
     )
     del fasta_inputs  # Do not reference inputs after creating chains from them
 
+    cyclic_chain_names = set(cyclic_chains or [])
+    chain_names = {chain.entity_data.entity_name for chain in chains}
+    unknown_cyclic_chains = cyclic_chain_names - chain_names
+    if unknown_cyclic_chains:
+        raise UnsupportedInputError(
+            f"Unknown cyclic chains requested: {sorted(unknown_cyclic_chains)}"
+        )
+
     merged_context = AllAtomStructureContext.merge(
         [c.structure_context for c in chains]
     )

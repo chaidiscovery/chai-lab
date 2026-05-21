@@ -377,6 +377,16 @@ def make_all_atom_feature_context(
     merged_context = AllAtomStructureContext.merge(
         [c.structure_context for c in chains]
     )
+    for chain in chains:
+        if chain.entity_data.entity_name not in cyclic_chain_names:
+            continue
+        assert (
+            chain.entity_data.entity_type == EntityType.PROTEIN
+        ), "Cyclic chains are currently only supported for proteins"
+        asym_id = chain.structure_context.token_asym_id[0]
+        merged_context.token_cyclic_period[merged_context.token_asym_id == asym_id] = (
+            len(chain.entity_data.full_sequence)
+        )
     n_actual_tokens = merged_context.num_tokens
     raise_if_too_many_tokens(n_actual_tokens)
 

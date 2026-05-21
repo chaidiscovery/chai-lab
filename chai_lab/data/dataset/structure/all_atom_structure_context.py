@@ -39,6 +39,7 @@ class AllAtomStructureContext:
     token_entity_type: Int[Tensor, "n_tokens"]
     token_residue_name: UInt8[Tensor, "n_tokens 8"]
     token_b_factor_or_plddt: Float[Tensor, "n_tokens"]
+    token_cyclic_period: Int[Tensor, "n_tokens"]
     # atom-level
     atom_token_index: Int[Tensor, "n_atoms"]
     atom_within_token_index: Int[Tensor, "n_atoms"]  # consistent atom ordering
@@ -169,6 +170,7 @@ class AllAtomStructureContext:
             token_entity_type=self.token_entity_type[idxs],
             token_residue_name=self.token_residue_name[idxs],
             token_b_factor_or_plddt=self.token_b_factor_or_plddt[idxs],
+            token_cyclic_period=self.token_cyclic_period[idxs],
             # atom-level
             atom_token_index=atom_token_index,
             atom_within_token_index=self.atom_within_token_index[selected_atom_index],
@@ -332,6 +334,7 @@ class AllAtomStructureContext:
             token_entity_type=pad_tokens_func(self.token_entity_type),
             token_residue_name=pad_tokens_func(self.token_residue_name),
             token_b_factor_or_plddt=pad_tokens_func(self.token_b_factor_or_plddt),
+            token_cyclic_period=pad_tokens_func(self.token_cyclic_period),
             # atom-level
             atom_token_index=pad_atoms_func(self.atom_token_index),
             atom_within_token_index=pad_atoms_func(self.atom_within_token_index),
@@ -462,6 +465,7 @@ class AllAtomStructureContext:
             token_b_factor_or_plddt=torch.cat(
                 [x.token_b_factor_or_plddt for x in contexts]
             ),
+            token_cyclic_period=torch.cat([x.token_cyclic_period for x in contexts]),
             # atom-level
             atom_token_index=atom_token_index,
             atom_within_token_index=torch.cat(

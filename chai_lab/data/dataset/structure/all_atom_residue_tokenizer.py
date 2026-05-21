@@ -418,6 +418,7 @@ class AllAtomResidueTokenizer:
                 dim=0,
             ),
             token_b_factor_or_plddt=tokens.b_factor_or_plddt,
+            token_cyclic_period=torch.zeros(num_tokens, dtype=torch.int),
             # atom-level
             atom_token_index=tokens.atom_token_index,
             atom_within_token_index=tokens.atom_within_token_indices,

@@ -339,6 +339,7 @@ def make_all_atom_feature_context(
     fasta_file: Path,
     *,
     output_dir: Path,
+    cyclic_chains: Sequence[str] | None = None,
     entity_name_as_subchain: bool = False,
     use_esm_embeddings: bool = True,
     use_msa_server: bool = False,

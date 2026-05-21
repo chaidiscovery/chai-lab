@@ -27,7 +27,6 @@ from chai_lab.data.dataset.all_atom_feature_context import (
 )
 from chai_lab.data.dataset.constraints.restraint_context import (
     RestraintContext,
-    get_cyclic_contact_restraints,
     load_manual_restraints_for_chai1,
 )
 from chai_lab.data.dataset.embeddings.embedding_context import EmbeddingContext
@@ -489,15 +488,6 @@ def make_all_atom_feature_context(
             )
     else:
         restraint_context = RestraintContext.empty()
-
-    cyclic_contact_restraints = get_cyclic_contact_restraints(
-        chains=chains,
-        cyclic_chain_names=cyclic_chain_names,
-    )
-    if cyclic_contact_restraints:
-        restraint_context.contact_restraints = (
-            (restraint_context.contact_restraints or []) + cyclic_contact_restraints
-        )
 
     cyc_a, cyc_b = get_atom_covalent_bond_pairs_for_cyclic_chains(
         chains=chains,

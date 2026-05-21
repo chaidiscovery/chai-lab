@@ -23,7 +23,6 @@ from chai_lab.data.parsing.restraints import (
     PairwiseInteraction,
     PairwiseInteractionType,
 )
-from chai_lab.data.parsing.structure.entity_type import EntityType
 from chai_lab.utils.typing import typecheck
 
 logger = logging.getLogger(__name__)
@@ -135,33 +134,3 @@ def load_manual_restraints_for_chai1(
         contact_restraints=contact_constraints if contact_constraints else None,
         pocket_restraints=pocket_constraints if pocket_constraints else None,
     )
-
-
-@typecheck
-def get_cyclic_contact_restraints(
-    chains: list[Chain],
-    cyclic_chain_names: set[str],
-    distance_threshold: float = 4.0,
-) -> list[ContactRestraint]:
-    """Create terminal contact restraints to bias cyclic peptide closure."""
-    restraints: list[ContactRestraint] = []
-    for chain in chains:
-        if chain.entity_data.entity_name not in cyclic_chain_names:
-            continue
-        assert (
-            chain.entity_data.entity_type == EntityType.PROTEIN
-        ), "Cyclic chains are currently only supported for proteins"
-        assert chain.num_tokens >= 2, "Cyclic proteins must contain at least two residues"
-
-        restraints.append(
-            ContactRestraint(
-                left_residue_subchain_id=chain.entity_data.subchain_id,
-                right_residue_subchain_id=chain.entity_data.subchain_id,
-                left_residue_index=0,
-                right_residue_index=len(chain.entity_data.full_sequence) - 1,
-                left_residue_name=chain.entity_data.full_sequence[0],
-                right_residue_name=chain.entity_data.full_sequence[-1],
-                distance_threshold=distance_threshold,
-            )
-        )
-    return restraints

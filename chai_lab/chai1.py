@@ -510,6 +510,7 @@ def run_inference(
     fasta_file: Path,
     *,
     output_dir: Path,
+    cyclic_chains: Sequence[str] | None = None,
     # Configuration for ESM, MSA, constraints, and templates
     use_esm_embeddings: bool = True,
     use_msa_server: bool = False,
@@ -548,6 +549,7 @@ def run_inference(
     feature_context = make_all_atom_feature_context(
         fasta_file=fasta_file,
         output_dir=output_dir,
+        cyclic_chains=cyclic_chains,
         entity_name_as_subchain=fasta_names_as_cif_chains,
         use_esm_embeddings=use_esm_embeddings,
         use_msa_server=use_msa_server,

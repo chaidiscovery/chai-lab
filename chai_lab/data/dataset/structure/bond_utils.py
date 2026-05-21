@@ -8,13 +8,11 @@ from einops import rearrange
 from torch import Tensor
 
 from chai_lab.data import residue_constants as rc
-from chai_lab.data.dataset.structure.chain import Chain
 from chai_lab.data.parsing.glycans import _glycan_string_to_sugars_and_bonds
 from chai_lab.data.parsing.restraints import (
     PairwiseInteraction,
     PairwiseInteractionType,
 )
-from chai_lab.data.parsing.structure.entity_type import EntityType
 from chai_lab.model.utils import get_asym_id_from_subchain_id
 from chai_lab.utils.tensor_utils import string_to_tensorcode
 from chai_lab.utils.typing import Int, UInt8, typecheck
@@ -169,68 +167,3 @@ def get_atom_covalent_bond_pairs_from_glycan_string(
         torch.tensor(right_bonds, dtype=torch.int),
     )
     return bonds_to_add
-
-
-@typecheck
-def get_atom_covalent_bond_pairs_for_cyclic_chains(
-    chains: list[Chain],
-    cyclic_chain_names: set[str],
-    token_residue_index: Int[Tensor, "n_tokens"],
-    token_subchain_id: UInt8[Tensor, "n_tokens 4"],
-    token_asym_id: Int[Tensor, "n_tokens"],
-    atom_token_index: Int[Tensor, "n_atoms"],
-    atom_ref_name: list[str],
-) -> tuple[Int[Tensor, "n_bonds"], Int[Tensor, "n_bonds"]]:
-    """Infer terminal N-to-C bonds for named cyclic protein chains."""
-    ret_a: list[int] = []
-    ret_b: list[int] = []
-
-    for chain in chains:
-        if chain.entity_data.entity_name not in cyclic_chain_names:
-            continue
-
-        assert (
-            chain.entity_data.entity_type == EntityType.PROTEIN
-        ), "Cyclic chains are currently only supported for proteins"
-        assert chain.num_tokens >= 2, "Cyclic proteins must contain at least two residues"
-
-        asym_id = get_asym_id_from_subchain_id(
-            subchain_id=chain.entity_data.subchain_id,
-            source_pdb_chain_id=token_subchain_id,
-            token_asym_id=token_asym_id,
-        )
-        token_mask = token_asym_id == asym_id
-        assert torch.any(token_mask), f"Could not resolve asym_id for {chain}"
-
-        chain_residue_indices = token_residue_index[token_mask]
-        first_residue_index = chain_residue_indices.min()
-        last_residue_index = chain_residue_indices.max()
-
-        first_token_mask = token_mask & (token_residue_index == first_residue_index)
-        last_token_mask = token_mask & (token_residue_index == last_residue_index)
-        first_token_indices = torch.where(first_token_mask)[0]
-        last_token_indices = torch.where(last_token_mask)[0]
-        assert first_token_indices.numel() == 1 and last_token_indices.numel() == 1
-
-        first_atoms_mask = torch.isin(
-            atom_token_index, test_elements=first_token_indices
-        )
-        last_atoms_mask = torch.isin(atom_token_index, test_elements=last_token_indices)
-        first_name_mask = torch.tensor(
-            [name == "N" for name in atom_ref_name], dtype=torch.bool
-        )
-        last_name_mask = torch.tensor(
-            [name == "C" for name in atom_ref_name], dtype=torch.bool
-        )
-        left_atom_mask = first_atoms_mask & first_name_mask
-        right_atom_mask = last_atoms_mask & last_name_mask
-        assert left_atom_mask.sum() == 1 and right_atom_mask.sum() == 1, (
-            "Could not resolve N/C atoms required to close cyclic peptide bond"
-        )
-
-        (left_atom_idx,) = torch.where(left_atom_mask)
-        (right_atom_idx,) = torch.where(right_atom_mask)
-        ret_a.append(left_atom_idx.item())  # type: ignore[arg-type]
-        ret_b.append(right_atom_idx.item())  # type: ignore[arg-type]
-
-    return torch.tensor(ret_a, dtype=torch.long), torch.tensor(ret_b, dtype=torch.long)

@@ -339,6 +339,7 @@ def make_all_atom_feature_context(
     fasta_file: Path,
     *,
     output_dir: Path,
+    cyclic_chains: Sequence[str] | None = None,
     entity_name_as_subchain: bool = False,
     use_esm_embeddings: bool = True,
     use_msa_server: bool = False,
@@ -374,9 +375,27 @@ def make_all_atom_feature_context(
     )
     del fasta_inputs  # Do not reference inputs after creating chains from them
 
+    cyclic_chain_names = set(cyclic_chains or [])
+    chain_names = {chain.entity_data.entity_name for chain in chains}
+    unknown_cyclic_chains = cyclic_chain_names - chain_names
+    if unknown_cyclic_chains:
+        raise UnsupportedInputError(
+            f"Unknown cyclic chains requested: {sorted(unknown_cyclic_chains)}"
+        )
+
     merged_context = AllAtomStructureContext.merge(
         [c.structure_context for c in chains]
     )
+    for chain in chains:
+        if chain.entity_data.entity_name not in cyclic_chain_names:
+            continue
+        assert (
+            chain.entity_data.entity_type == EntityType.PROTEIN
+        ), "Cyclic chains are currently only supported for proteins"
+        asym_id = chain.structure_context.token_asym_id[0]
+        merged_context.token_cyclic_period[merged_context.token_asym_id == asym_id] = (
+            len(chain.entity_data.full_sequence)
+        )
     n_actual_tokens = merged_context.num_tokens
     raise_if_too_many_tokens(n_actual_tokens)
 
@@ -500,6 +519,7 @@ def run_inference(
     fasta_file: Path,
     *,
     output_dir: Path,
+    cyclic_chains: Sequence[str] | None = None,
     # Configuration for ESM, MSA, constraints, and templates
     use_esm_embeddings: bool = True,
     use_msa_server: bool = False,
@@ -538,6 +558,7 @@ def run_inference(
     feature_context = make_all_atom_feature_context(
         fasta_file=fasta_file,
         output_dir=output_dir,
+        cyclic_chains=cyclic_chains,
         entity_name_as_subchain=fasta_names_as_cif_chains,
         use_esm_embeddings=use_esm_embeddings,
         use_msa_server=use_msa_server,

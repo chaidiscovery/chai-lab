@@ -40,6 +40,7 @@ class RelativeSequenceSeparation(FeatureGenerator):
         return dict(
             residue_index=batch["inputs"]["token_residue_index"].long(),
             asym_id=batch["inputs"]["token_asym_id"].long(),
+            cyclic_period=batch["inputs"]["token_cyclic_period"].long(),
         )
 
     @typecheck
@@ -47,16 +48,29 @@ class RelativeSequenceSeparation(FeatureGenerator):
         self,
         residue_index: Int[Tensor, "b n"],
         asym_id: Int[Tensor, "b n"],
+        cyclic_period: Int[Tensor, "b n"],
     ) -> Tensor:
         rel_sep, rel_chain = map(
             lambda x: rearrange(x, "b n -> b n 1") - rearrange(x, "b n -> b 1 n"),
             (residue_index, asym_id),
         )
+        same_chain_mask = rel_chain == 0
+        if torch.any(cyclic_period > 0):
+            rel_period = torch.maximum(
+                rearrange(cyclic_period, "b n -> b n 1"),
+                rearrange(cyclic_period, "b n -> b 1 n"),
+            )
+            safe_period = torch.where(rel_period > 0, rel_period, torch.ones_like(rel_period))
+            cyclic_pair_mask = same_chain_mask & (rel_period > 0)
+            wrapped_rel_sep = (
+                rel_sep - rel_period * torch.round(rel_sep.float() / safe_period.float())
+            ).long()
+            rel_sep = torch.where(cyclic_pair_mask, wrapped_rel_sep, rel_sep)
+
         encoded_feat = torch.searchsorted(
             self.sep_bins.to(rel_sep.device),
             rel_sep + 1e-4,  # add small epsilon bc. bins are chosen by leftmost index
         )
-        same_chain_mask = rel_chain == 0
         # mask inter-chain sep
         encoded_feat[~same_chain_mask] = self.num_classes - 1
         return self.make_feature(encoded_feat.unsqueeze(-1))

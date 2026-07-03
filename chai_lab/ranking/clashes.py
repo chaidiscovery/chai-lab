@@ -79,7 +79,8 @@ def has_inter_chain_clashes(
     ).ge(max_clash_ratio)
 
     has_clashes |= (
-        per_chain_pair_clashes / rearrange(atoms_per_chain, "b c -> b 1 c").clamp(min=1)
+        per_chain_pair_clashes
+        / rearrange(atoms_per_chain, "... c -> ... 1 c").clamp(min=1)
     ).ge(max_clash_ratio)
 
     # only consider clashes between pairs of polymer chains

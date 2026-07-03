@@ -240,7 +240,9 @@ class MSADataSourceGenerator(FeatureGenerator):
         query = msa_dataset_source_to_int[MSADataSource.QUERY]
         none = msa_dataset_source_to_int[MSADataSource.NONE]
         # chai-1 specific: replace QUERY with NONE
-        msa_sequence_source[msa_sequence_source.eq(query)] = none
+        msa_sequence_source = msa_sequence_source.masked_fill(
+            msa_sequence_source.eq(query), none
+        )
         # use none for masking.
         msa_sequence_source = msa_sequence_source.masked_fill(~msa_mask, none)
         return self.make_feature(data=msa_sequence_source.unsqueeze(-1))

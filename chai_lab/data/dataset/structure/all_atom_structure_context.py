@@ -382,7 +382,7 @@ class AllAtomStructureContext:
         token_backbone_frame_index = torch.cat(
             [
                 x.token_backbone_frame_index + count
-                for x, count in zip(contexts, token_offsets)
+                for x, count in zip(contexts, atom_offsets)
             ]
         )
 

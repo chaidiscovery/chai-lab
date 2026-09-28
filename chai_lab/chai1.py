@@ -576,6 +576,31 @@ def _bin_centers(min_bin: float, max_bin: float, no_bins: int) -> Tensor:
     return torch.linspace(min_bin, max_bin, 2 * no_bins + 1)[1::2]
 
 
+def write_scores_npz(
+    scores_out_path: Path,
+    ranking_outputs: SampleRanking,
+    pae_scores: Float[Tensor, "1 num_tokens num_tokens"],
+    pde_scores: Float[Tensor, "1 num_tokens num_tokens"],
+    plddt_scores_atom: Float[Tensor, "1 num_atoms"],
+) -> None:
+    """Write the per-model scores file.
+
+    Keeps the scalar metrics and also persists the full per-token PAE/PDE
+    matrices and per-atom pLDDT so Python-mode runs produce the same
+    confidence outputs as the web server. All confidence arrays are in
+    [0, 1]; the CIF writer rescales pLDDT to [0, 100] for the B-factor
+    column.
+    """
+    np.savez(
+        scores_out_path,
+        allow_pickle=False,
+        pae=pae_scores.numpy(),
+        pde=pde_scores.numpy(),
+        plddt=plddt_scores_atom.numpy(),
+        **get_scores(ranking_outputs),
+    )
+
+
 @torch.no_grad()
 def run_folding_on_context(
     feature_context: AllAtomFeatureContext,
@@ -1047,7 +1072,13 @@ def run_folding_on_context(
 
         scores_out_path = output_dir.joinpath(f"scores.model_idx_{idx}.npz")
 
-        np.savez(scores_out_path, allow_pickle=False, **get_scores(ranking_outputs))
+        write_scores_npz(
+            scores_out_path,
+            ranking_outputs,
+            pae_scores=pae_scores[idx : idx + 1],
+            pde_scores=pde_scores[idx : idx + 1],
+            plddt_scores_atom=plddt_scores_atom[idx : idx + 1],
+        )
 
     return StructureCandidates(
         cif_paths=cif_paths,

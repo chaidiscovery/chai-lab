@@ -28,6 +28,24 @@ from chai_lab.data.parsing.structure.entity_type import EntityType
 from chai_lab.utils.paths import repo_root
 
 
+def test_numeric_residue_selector_supports_modified_polymer_atoms():
+    """Modified residues can be selected by position without a one-letter code."""
+    restraint = PairwiseInteraction(
+        chainA="A",
+        res_idxA="10",
+        atom_nameA="N08",
+        chainB="A",
+        res_idxB="11",
+        atom_nameB="N",
+        connection_type=PairwiseInteractionType.COVALENT,
+    )
+
+    assert restraint.res_idxA_name == ""
+    assert restraint.res_idxA_pos == 10
+    assert restraint.res_idxB_name == ""
+    assert restraint.res_idxB_pos == 11
+
+
 def test_loading_restraints():
     """Small test to ensure that restraints can be loaded."""
     contact_path = repo_root / "examples" / "restraints" / "contact.restraints"

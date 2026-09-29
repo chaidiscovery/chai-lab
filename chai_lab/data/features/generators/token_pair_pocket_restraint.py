@@ -35,7 +35,7 @@ class RestraintGroup:
     pocket_token_subchain_id: str
     # residue index of the pocket token
     pocket_token_residue_index: int
-    # residue name of the pocket token
+    # Optional residue name; empty for numeric-only selectors.
     pocket_token_residue_name: str
     # pocket distance threshold
     pocket_distance_threshold: float
@@ -226,22 +226,27 @@ class TokenPairPocketRestraint(FeatureGenerator):
         pocket_token_asym_mask = token_asym_id == pocket_token_asym_id
         pocket_token_residue_mask = token_residue_index == pocket_token_residue_index
         pocket_token_residue_mask &= pocket_token_asym_mask
-        assert torch.sum(pocket_token_residue_mask) == 1, (
-            f"Expected unique residue but found {torch.sum(pocket_token_residue_mask)}\n"
+        assert torch.any(pocket_token_residue_mask), (
+            "No tokens found for pocket residue\n"
             f"{pocket_token_asym_id=}, {pocket_token_residue_index=}, "
             f"{pocket_token_residue_name=}"
         )
+        # Modified residues are represented by one token per atom. All tokens
+        # at the selected chain and residue index belong to the same residue.
         pocket_token_res_name = token_residue_names[pocket_token_residue_mask]
-        pocket_token_res_name = rearrange(pocket_token_res_name, "1 l -> l")
-        expected_res_name = tensorcode_to_string(pocket_token_res_name)
-        assert expected_res_name == pocket_token_residue_name, (
-            f"Expected residue name {expected_res_name} but got "
-            f"{pocket_token_residue_name}"
+        assert torch.all(pocket_token_res_name == pocket_token_res_name[0]), (
+            "Pocket residue tokens have inconsistent residue names"
         )
-        # add constraints between the pocket token and all other tokens in the pocket
-        # chain
+        expected_res_name = tensorcode_to_string(pocket_token_res_name[0])
+        if pocket_token_residue_name:
+            assert expected_res_name == pocket_token_residue_name, (
+                f"Expected residue name {expected_res_name} but got "
+                f"{pocket_token_residue_name}"
+            )
+        # Add constraints from every selected residue token to the pocket chain.
         # NOTE: feature is not symmetric
-        restraint_mat[pocket_token_residue_mask, pocket_chain_asym_mask] = (
-            pocket_distance_threshold
+        pocket_pairs = (
+            pocket_token_residue_mask[:, None] & pocket_chain_asym_mask[None, :]
         )
+        restraint_mat[pocket_pairs] = pocket_distance_threshold
         return restraint_mat

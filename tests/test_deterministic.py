@@ -34,6 +34,7 @@ def test_use_deterministic_kernels_sets_all_knobs():
     try:
         os.environ.pop("CUBLAS_WORKSPACE_CONFIG", None)
         torch.use_deterministic_algorithms(False)
+        torch.backends.cudnn.deterministic = False
         torch.backends.cudnn.benchmark = True
         use_deterministic_kernels()
         assert torch.are_deterministic_algorithms_enabled()

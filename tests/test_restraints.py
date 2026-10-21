@@ -81,6 +81,12 @@ def test_restraints_with_manual_chain_names(
     )
     assert len(chains) == 2
 
+    if entity_name_as_subchain != restraints_wrt_entity_names:
+        # Mismatched; restraints reference chains that do not exist
+        with pytest.raises(ValueError, match="unknown chain"):
+            load_manual_restraints_for_chai1(chains, None, restraints)
+        return
+
     structure_context = AllAtomStructureContext.merge(
         [c.structure_context for c in chains]
     )
@@ -111,15 +117,30 @@ def test_restraints_with_manual_chain_names(
     assert batch
     ft = batch["features"]
     contact_ft = ft["TokenDistanceRestraint"]
-    contact_ft_all_null = torch.allclose(contact_ft, torch.tensor(-1).float())
     pocket_ft = ft["TokenPairPocketRestraint"]
-    pocket_ft_all_null = torch.allclose(pocket_ft, torch.tensor(-1).float())
 
-    if entity_name_as_subchain == restraints_wrt_entity_names:
-        # Loaded correctly, so some should not be null
-        assert not contact_ft_all_null
-        assert not pocket_ft_all_null
-    else:
-        # Did not load; all null
-        assert contact_ft_all_null
-        assert pocket_ft_all_null
+    # Loaded correctly, so some should not be null
+    assert not torch.allclose(contact_ft, torch.tensor(-1).float())
+    assert not torch.allclose(pocket_ft, torch.tensor(-1).float())
+
+
+@pytest.mark.parametrize("bad_chain", ["sequence_1", "Z"])
+def test_restraints_with_unknown_chain_raise(bad_chain: str):
+    """Restraints on a non-existent chain fail loudly instead of being dropped."""
+    inputs = [
+        Input("GGGGGG", entity_type=EntityType.PROTEIN.value, entity_name="seq1"),
+        Input("HHHHHH", entity_type=EntityType.PROTEIN.value, entity_name="seq2"),
+    ]
+    chains = load_chains_from_raw(inputs=inputs)
+    restraint = PairwiseInteraction(
+        chainA=bad_chain,
+        res_idxA="G1",
+        atom_nameA="",
+        chainB="B",
+        res_idxB="H1",
+        atom_nameB="",
+        connection_type=PairwiseInteractionType.CONTACT,
+    )
+
+    with pytest.raises(ValueError, match=rf"'{bad_chain}'.*\['A', 'B'\]"):
+        load_manual_restraints_for_chai1(chains, None, [restraint])

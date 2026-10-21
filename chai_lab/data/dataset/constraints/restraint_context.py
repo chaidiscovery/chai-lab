@@ -93,6 +93,20 @@ def load_manual_restraints_for_chai1(
         return RestraintContext.empty()
     assert crop_idces is None or not _is_cropped(chains, crop_idces)
 
+    # Fail early on unknown chains; otherwise feature generation logs an error and
+    # silently drops every restraint
+    known_chains = [chain.entity_data.subchain_id for chain in chains]
+    for constraint in provided_constraints:
+        if constraint.connection_type == PairwiseInteractionType.COVALENT:
+            continue  # Covalent bonds are handled elsewhere
+        for chain_id in (constraint.chainA, constraint.chainB):
+            if chain_id not in known_chains:
+                raise ValueError(
+                    f"Restraint references unknown chain {chain_id!r}; "
+                    f"available chains are {known_chains}. Chains are named A, B, "
+                    "C, ... in the order they appear in the input."
+                )
+
     # For each of the constraints, add it into the constraint context
     docking_constraints: list[DockingRestraint] = []
     contact_constraints: list[ContactRestraint] = []

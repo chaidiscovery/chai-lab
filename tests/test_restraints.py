@@ -165,9 +165,7 @@ def test_unplaceable_restraints_say_the_run_is_unrestrained(caplog):
     # logger.exception keeps the traceback, so the failing assert is identifiable.
     assert any(r.exc_info is not None for r in failures)
     # And nothing may claim success.
-    assert not any(
-        "Generated pocket feature" in r.getMessage() for r in caplog.records
-    )
+    assert not any("Generated pocket feature" in r.getMessage() for r in caplog.records)
 
 
 def test_placeable_restraints_report_success(caplog):

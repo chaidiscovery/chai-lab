@@ -17,6 +17,7 @@ The second non-header row `restraint1` shows an example of a `pocket` restraint,
 
 A few other notes:
 - In `res_idxA` and `res_idxB` fields, we expect a concatenation of a residue and its 1-based index. For example, if your chain is comprised of the residues `ARNDRA` and you want to specify a contact on the `D` residue, the input should be `D4`. The code internally checks that the given residue at the given index matches the input sequence, and will throw an error if they do not match. This redundancy primarily helps avoid cases where we misspecify positions in constraints.
+- For a `pocket` restraint, `res_idxB` may also contain only the 1-based position. Use this form for modified CCD residues: in `CKKVAVVR(TPO)(TPJ)PKSPSSAK`, selectors `9` and `10` identify `(TPO)` and `(TPJ)`. Each parenthesized component counts as one residue position. The pocket feature includes every atom token in that residue; no parent amino-acid name is required.
 - Chains `chainA` and `chainB` are assigned identifiers in alphabetical A-Z order following the order that chains are specified in the input. For example, if you wish to specify an interaction between the first and four chains in your input, you'd use the letters `A` and `D`. 
 - You may specify a mixture of `contact` and `pocket` restraints.
 - The `restraint_id` column must be unique.

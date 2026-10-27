@@ -192,8 +192,13 @@ class DockingRestraintGenerator(FeatureGenerator):
                     token_subchain_id=token_subchain_id,
                     constraints=constraints,
                 )
-        except Exception as e:
-            logger.error(f"Error {e} generating docking constraints: {constraints}")
+        except Exception:
+            logger.exception(
+                "Failed to build the requested docking restraints, so this run will "
+                "fall back to deriving them from the batch. The requested restraints "
+                "are not applied. Restraints requested: "
+                f"{constraints}"
+            )
 
         return self._generate_from_batch(
             all_atom_positions=all_atom_positions,
@@ -293,7 +298,7 @@ class DockingRestraintGenerator(FeatureGenerator):
         token_subchain_id: UInt8[Tensor, "1 n 4"],
         constraints: list[RestraintGroup],
     ) -> Tensor:
-        logger.info(f"Generating docking feature from constraints: {constraints}")
+        logger.debug(f"Building docking feature from restraints: {constraints}")
         n, device = token_asym_id.shape[1], token_asym_id.device
         constraint_mat = torch.zeros(n, n, device=device, dtype=torch.float32)
         constraint_mask = torch.zeros(n, n, device=device, dtype=torch.bool)
@@ -332,6 +337,7 @@ class DockingRestraintGenerator(FeatureGenerator):
         dropout = constraints[0].dropout_prob if len(constraints) > 0 else 0.0
         feature = self.make_feature(constraint_mat)
         feature = self.apply_structure_dropout(feature, prob=dropout)
+        logger.info(f"Generated docking feature from restraints: {constraints}")
         return feature
 
     @typecheck

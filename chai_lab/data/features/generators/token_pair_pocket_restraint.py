@@ -153,8 +153,13 @@ class TokenPairPocketRestraint(FeatureGenerator):
                     token_subchain_id=token_subchain_id,
                     restraints=constraints,
                 )
-        except Exception as e:
-            logger.error(f"Error {e} generating pocket constraints: {constraints}")
+        except Exception:
+            logger.exception(
+                "Failed to build the requested pocket restraints, so this run will "
+                "proceed with NO pocket restraints at all. The resulting feature is "
+                "identical to an unrestrained run. Restraints requested: "
+                f"{constraints}"
+            )
 
         # Return a null constraint matrix if constraints are not specified
         batch, n = token_asym_id.shape
@@ -177,7 +182,7 @@ class TokenPairPocketRestraint(FeatureGenerator):
         token_residue_names: UInt8[Tensor, "1 n 8"],
         restraints: list[RestraintGroup],
     ) -> Tensor:
-        logger.info(f"Generating pocket feature from constraints: {restraints}")
+        logger.debug(f"Building pocket feature from restraints: {restraints}")
         n, device = token_asym_id.shape[1], token_asym_id.device
         constraint_mat = torch.full(
             (n, n), fill_value=self.ignore_idx, device=device, dtype=torch.float32
@@ -202,6 +207,7 @@ class TokenPairPocketRestraint(FeatureGenerator):
             )
         # encode and apply mask
         constraint_mat = repeat(constraint_mat, "i j -> 1 i j 1")
+        logger.info(f"Generated pocket feature from restraints: {restraints}")
         return self.make_feature(constraint_mat)
 
     @typecheck

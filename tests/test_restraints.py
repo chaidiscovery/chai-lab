@@ -2,6 +2,8 @@
 # Licensed under the Apache License, Version 2.0.
 # See the LICENSE file for details.
 
+import logging
+
 import pytest
 import torch
 
@@ -37,19 +39,14 @@ def test_loading_restraints():
     assert len(parse_pairwise_table(pocket_path)) > 0
 
 
-@pytest.mark.parametrize(
-    "entity_name_as_subchain,restraints_wrt_entity_names",
-    [
-        (True, True),  # Both given w.r.t. automatic names; should load correctly
-        (True, False),  # Mismatched; should not load
-        (False, True),  # Mismatched; should not load
-        (False, False),  # Both w.r.t. fasta-derived entity names; should load correctly
-    ],
-)
-def test_restraints_with_manual_chain_names(
+def _restraint_features(
     entity_name_as_subchain: bool, restraints_wrt_entity_names: bool
 ):
-    """subchain ID scheme and restraint scheme compatibility"""
+    """Build the collated features for a two-chain input with manual restraints.
+
+    When the two flags disagree the restraints refer to chain names that do not
+    exist in the input, so they cannot be placed.
+    """
     inputs = [
         Input("GGGGGG", entity_type=EntityType.PROTEIN.value, entity_name="G"),
         Input("HHHHHH", entity_type=EntityType.PROTEIN.value, entity_name="H"),
@@ -109,7 +106,23 @@ def test_restraints_with_manual_chain_names(
     batch = collator([ft_ctx])
 
     assert batch
-    ft = batch["features"]
+    return batch["features"]
+
+
+@pytest.mark.parametrize(
+    "entity_name_as_subchain,restraints_wrt_entity_names",
+    [
+        (True, True),  # Both given w.r.t. automatic names; should load correctly
+        (True, False),  # Mismatched; should not load
+        (False, True),  # Mismatched; should not load
+        (False, False),  # Both w.r.t. fasta-derived entity names; should load correctly
+    ],
+)
+def test_restraints_with_manual_chain_names(
+    entity_name_as_subchain: bool, restraints_wrt_entity_names: bool
+):
+    """subchain ID scheme and restraint scheme compatibility"""
+    ft = _restraint_features(entity_name_as_subchain, restraints_wrt_entity_names)
     contact_ft = ft["TokenDistanceRestraint"]
     contact_ft_all_null = torch.allclose(contact_ft, torch.tensor(-1).float())
     pocket_ft = ft["TokenPairPocketRestraint"]
@@ -123,3 +136,47 @@ def test_restraints_with_manual_chain_names(
         # Did not load; all null
         assert contact_ft_all_null
         assert pocket_ft_all_null
+
+
+def test_unplaceable_restraints_say_the_run_is_unrestrained(caplog):
+    """Restraints that cannot be placed must say so, and say what it costs.
+
+    The features themselves fall back to the null value, which is what
+    test_restraints_with_manual_chain_names pins and is the intended behavior.
+    The problem this covers is that the null feature is indistinguishable from
+    the one produced when no restraints were requested at all, so the log is the
+    only signal a caller has that the restraints they asked for were dropped.
+    """
+    with caplog.at_level(logging.DEBUG):
+        ft = _restraint_features(
+            entity_name_as_subchain=True, restraints_wrt_entity_names=False
+        )
+
+    # Precondition: these restraints really did fail to land.
+    assert torch.allclose(ft["TokenPairPocketRestraint"], torch.tensor(-1).float())
+    assert torch.allclose(ft["TokenDistanceRestraint"], torch.tensor(-1).float())
+
+    failures = [r for r in caplog.records if r.levelno >= logging.ERROR]
+    assert failures, "dropping the requested restraints was not reported at all"
+    # The consequence has to be in the message, not left for the reader to infer
+    # from a bare exception string.
+    assert any("NO pocket restraints" in r.getMessage() for r in failures)
+    assert any("NO distance restraints" in r.getMessage() for r in failures)
+    # logger.exception keeps the traceback, so the failing assert is identifiable.
+    assert any(r.exc_info is not None for r in failures)
+    # And nothing may claim success.
+    assert not any("Generated pocket feature" in r.getMessage() for r in caplog.records)
+
+
+def test_placeable_restraints_report_success(caplog):
+    """The success line fires only after the restraints are actually applied."""
+    with caplog.at_level(logging.DEBUG):
+        ft = _restraint_features(
+            entity_name_as_subchain=True, restraints_wrt_entity_names=True
+        )
+
+    assert not torch.allclose(ft["TokenPairPocketRestraint"], torch.tensor(-1).float())
+    assert not torch.allclose(ft["TokenDistanceRestraint"], torch.tensor(-1).float())
+    assert any("Generated pocket feature" in r.getMessage() for r in caplog.records)
+    assert any("Generated distance feature" in r.getMessage() for r in caplog.records)
+    assert not [r for r in caplog.records if r.levelno >= logging.ERROR]

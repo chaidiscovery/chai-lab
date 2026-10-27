@@ -171,8 +171,13 @@ class TokenDistanceRestraint(FeatureGenerator):
                     token_subchain_id=token_subchain_id,
                     constraints=constraints,
                 )
-        except Exception as e:
-            logger.error(f"Error {e} generating distance constraints: {constraints}")
+        except Exception:
+            logger.exception(
+                "Failed to build the requested distance restraints, so this run will "
+                "proceed with NO distance restraints at all. The resulting feature is "
+                "identical to an unrestrained run. Restraints requested: "
+                f"{constraints}"
+            )
 
         batch, n = token_asym_id.shape
         device = token_asym_id.device
@@ -193,7 +198,7 @@ class TokenDistanceRestraint(FeatureGenerator):
         token_subchain_id: UInt8[Tensor, "1 n 4"],
         constraints: list[RestraintGroup],
     ) -> Tensor:
-        logger.info(f"Generating distance feature from constraints: {constraints}")
+        logger.debug(f"Building distance feature from restraints: {constraints}")
         n, device = token_asym_id.shape[1], token_asym_id.device
         constraint_mat = torch.full(
             (n, n), fill_value=self.ignore_idx, device=device, dtype=torch.float32
@@ -220,6 +225,7 @@ class TokenDistanceRestraint(FeatureGenerator):
             )
         # encode and apply mask
         constraint_mat = repeat(constraint_mat, "i j -> 1 i j 1")
+        logger.info(f"Generated distance feature from restraints: {constraints}")
         return self.make_feature(constraint_mat)
 
     @typecheck

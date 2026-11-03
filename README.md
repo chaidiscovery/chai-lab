@@ -31,6 +31,8 @@ chai-lab fold input.fasta output_folder
 
 By default, the model generates five sample predictions, and uses embeddings without MSAs or templates. For additional information about how to supply MSAs, templates, and restraints to the model, see the documentation below, or run `chai-lab fold --help`.
 
+By default, `--seed` seeds the random-number generators but does not enable deterministic CUDA kernels; repeated runs can therefore produce different structures even with the same inputs and seed.
+
 For example, to run the model with MSAs (which we recommend for improved performance), pass the `--use-msa-server` and `--use-templates-server` flags:
 
 ```shell

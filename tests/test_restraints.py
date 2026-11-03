@@ -40,19 +40,22 @@ def test_loading_restraints():
 
 
 def _restraint_features(
-    entity_name_as_subchain: bool, restraints_wrt_entity_names: bool
+    entity_name_as_subchain: bool,
+    restraints_wrt_entity_names: bool,
+    inputs: list[Input] | None = None,
+    restraints: list[PairwiseInteraction] | None = None,
 ):
     """Build the collated features for a two-chain input with manual restraints.
 
     When the two flags disagree the restraints refer to chain names that do not
     exist in the input, so they cannot be placed.
     """
-    inputs = [
+    inputs = inputs or [
         Input("GGGGGG", entity_type=EntityType.PROTEIN.value, entity_name="G"),
         Input("HHHHHH", entity_type=EntityType.PROTEIN.value, entity_name="H"),
     ]
 
-    restraints = [
+    restraints = restraints or [
         PairwiseInteraction(
             chainA="G" if restraints_wrt_entity_names else "A",
             res_idxA="G1",
@@ -76,7 +79,7 @@ def _restraint_features(
     chains = load_chains_from_raw(
         inputs=inputs, entity_name_as_subchain=entity_name_as_subchain
     )
-    assert len(chains) == 2
+    assert len(chains) == len(inputs)
 
     structure_context = AllAtomStructureContext.merge(
         [c.structure_context for c in chains]
@@ -180,3 +183,44 @@ def test_placeable_restraints_report_success(caplog):
     assert any("Generated pocket feature" in r.getMessage() for r in caplog.records)
     assert any("Generated distance feature" in r.getMessage() for r in caplog.records)
     assert not [r for r in caplog.records if r.levelno >= logging.ERROR]
+
+
+@pytest.mark.parametrize(
+    "entity_type,sequence,res_idx",
+    [
+        (EntityType.RNA, "GGUCC", "U3"),
+        (EntityType.DNA, "GGTCC", "T3"),
+    ],
+)
+def test_restraints_on_nucleic_acid_residues(
+    entity_type: EntityType, sequence: str, res_idx: str
+):
+    """Residues on RNA/DNA chains are named as nucleotides, not amino acids."""
+    inputs = [
+        Input("GGGGGG", entity_type=EntityType.PROTEIN.value, entity_name="prot"),
+        Input(sequence, entity_type=entity_type.value, entity_name="na"),
+    ]
+    restraints = [
+        PairwiseInteraction(
+            chainA="A",
+            res_idxA="G1",
+            atom_nameA="",
+            chainB="B",
+            res_idxB=res_idx,
+            atom_nameB="",
+            connection_type=PairwiseInteractionType.CONTACT,
+        ),
+        PairwiseInteraction(
+            chainA="A",
+            res_idxA="",
+            atom_nameA="",
+            chainB="B",
+            res_idxB=res_idx,
+            atom_nameB="",
+            connection_type=PairwiseInteractionType.POCKET,
+        ),
+    ]
+    ft = _restraint_features(False, False, inputs=inputs, restraints=restraints)
+
+    assert not torch.allclose(ft["TokenDistanceRestraint"], torch.tensor(-1).float())
+    assert not torch.allclose(ft["TokenPairPocketRestraint"], torch.tensor(-1).float())

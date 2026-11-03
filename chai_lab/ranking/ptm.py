@@ -47,7 +47,15 @@ def _compute_ptm(
     """
     Compute predicted TM score, normalized by the number of "key" tokens
     """
-    num_key_tokens = reduce(key_res_mask, "... n -> ...", "sum").to(logits.dtype)
+    # NOTE never count in the logits dtype. The confidence head emits bfloat16,
+    # which has an 8-bit mantissa, so counting in it would (a) round the count
+    # itself, since many integers above 256 are not representable (275 becomes
+    # 276, 431 becomes 432), and (b) evaluate d0 below in bf16 arithmetic, which
+    # is off by several 1e-3 even for counts that *are* exact. The count sets
+    # both d0 and the 1/|K| normalization, so either effect skews the scores.
+    num_key_tokens = reduce(key_res_mask, "... n -> ...", "sum").to(
+        torch.promote_types(logits.dtype, torch.float32)
+    )
     # compute pairwise-TM normalized by the number of key tokens
     d0 = rearrange(tm_d0(num_key_tokens), "... -> ... 1")
     bin_weights: Float[Tensor, "bins"] = 1 / (1 + (bin_centers / d0) ** 2)

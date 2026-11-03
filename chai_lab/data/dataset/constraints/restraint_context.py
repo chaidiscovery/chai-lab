@@ -19,10 +19,12 @@ from chai_lab.data.features.generators.token_dist_restraint import (
 from chai_lab.data.features.generators.token_pair_pocket_restraint import (
     RestraintGroup as PocketRestraint,
 )
+from chai_lab.data.parsing.fasta import get_residue_name
 from chai_lab.data.parsing.restraints import (
     PairwiseInteraction,
     PairwiseInteractionType,
 )
+from chai_lab.data.parsing.structure.entity_type import EntityType
 from chai_lab.utils.typing import typecheck
 
 logger = logging.getLogger(__name__)
@@ -82,6 +84,22 @@ def _is_cropped(
     )
 
 
+def _residue_name(one_letter: str, subchain_id: str, chains: list[Chain]) -> str:
+    """Residue name for a one-letter restraint residue on the given chain.
+
+    RNA/DNA residues are named the way their tokens are (U, DT, ...), so the name
+    check against the parsed residues can pass; all other chains keep the amino
+    acid mapping.
+    """
+    for chain in chains:
+        if chain.entity_data.subchain_id != subchain_id:
+            continue
+        if chain.entity_data.entity_type in (EntityType.RNA, EntityType.DNA):
+            return get_residue_name(one_letter, chain.entity_data.entity_type)
+        break
+    return rc.restype_1to3_with_x[one_letter]
+
+
 @typecheck
 def load_manual_restraints_for_chai1(
     chains: list[Chain],
@@ -110,8 +128,12 @@ def load_manual_restraints_for_chai1(
                     right_residue_subchain_id=constraint.chainB,
                     left_residue_index=constraint.res_idxA_pos - 1,  # 1 to 0-based
                     right_residue_index=constraint.res_idxB_pos - 1,  # 1 to 0-based
-                    left_residue_name=rc.restype_1to3_with_x[constraint.res_idxA_name],
-                    right_residue_name=rc.restype_1to3_with_x[constraint.res_idxB_name],
+                    left_residue_name=_residue_name(
+                        constraint.res_idxA_name, constraint.chainA, chains
+                    ),
+                    right_residue_name=_residue_name(
+                        constraint.res_idxB_name, constraint.chainB, chains
+                    ),
                     distance_threshold=constraint.max_dist_angstrom,
                 )
                 contact_constraints.append(contact_parsed)
@@ -121,9 +143,9 @@ def load_manual_restraints_for_chai1(
                     pocket_chain_subchain_id=constraint.chainA,
                     pocket_token_subchain_id=constraint.chainB,
                     pocket_token_residue_index=constraint.res_idxB_pos - 1,
-                    pocket_token_residue_name=rc.restype_1to3_with_x[
-                        constraint.res_idxB_name
-                    ],
+                    pocket_token_residue_name=_residue_name(
+                        constraint.res_idxB_name, constraint.chainB, chains
+                    ),
                     pocket_distance_threshold=constraint.max_dist_angstrom,
                 )
                 pocket_constraints.append(pocket_parsed)

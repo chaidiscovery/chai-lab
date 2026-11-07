@@ -61,8 +61,8 @@ def _run_mmseqs2(
             query += f">{n}\n{seq}\n"
             n += 1
 
+        error_count = 0
         while True:
-            error_count = 0
             try:
                 # https://requests.readthedocs.io/en/latest/user/advanced/#advanced
                 # "good practice to set connect timeouts to slightly larger than a multiple of 3"
@@ -95,8 +95,8 @@ def _run_mmseqs2(
         return out
 
     def status(ID):
+        error_count = 0
         while True:
-            error_count = 0
             try:
                 res = requests.get(
                     f"{host_url}/ticket/{ID}", timeout=6.02, headers=headers

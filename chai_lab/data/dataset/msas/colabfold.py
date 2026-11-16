@@ -371,7 +371,7 @@ def generate_colabfold_msas(
             query_map = {}
             for orig_query_id, orig_seq in enumerate(protein_seqs, start=101):
                 h = hash_sequence(orig_seq)
-                query_map[orig_query_id] = h
+                query_map[str(orig_query_id)] = h
             all_templates["query_id"] = all_templates["query_id"].apply(query_map.get)
             assert not pd.isnull(all_templates["query_id"]).any()
 

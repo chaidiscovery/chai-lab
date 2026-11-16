@@ -25,6 +25,8 @@ def parse_m8_file(fname: Path) -> pd.DataFrame:
         fname,
         delimiter="\t",
         header=None,
+        dtype={"query_id": str, "subject_id": str},
+        keep_default_na=False,
         names=[
             "query_id",
             "subject_id",

@@ -175,8 +175,8 @@ def merge_multi_a3m_to_aligned_dataframe(
     insert_keys_for_sources: Literal["all", "none", "uniprot"] = "uniprot",
 ) -> pd.DataFrame:
     """Merge multiple a3ms from the same query sequence into a single aligned parquet."""
-    dfs = {
-        src: a3m_to_aligned_dataframe(
+    dfs = [
+        a3m_to_aligned_dataframe(
             a3m_path,
             src,
             insert_pairing_key=(
@@ -186,13 +186,13 @@ def merge_multi_a3m_to_aligned_dataframe(
             ),
         )
         for a3m_path, src in msa_a3m_files.items()
-    }
+    ]
     # Check that all the dfs share the same query sequence
-    queries = {df.iloc[0]["sequence"] for df in dfs.values()}
+    queries = {df.iloc[0]["sequence"] for df in dfs}
     assert len(queries) == 1
     # As a base, set the query sequence
-    chunks = [next(iter(dfs.values())).iloc[0:1]]
-    for df in dfs.values():
+    chunks = [dfs[0].iloc[0:1]]
+    for df in dfs:
         # Take the non-query sequences for all sources
         chunks.append(df.iloc[1:])
     return pd.concat(chunks, ignore_index=True).reset_index(drop=True)

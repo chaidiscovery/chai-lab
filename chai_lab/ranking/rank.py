@@ -91,17 +91,24 @@ def rank(
         atom_asym_id=atom_asym_id,
     )
 
-    # aggregate score
-    aggregate_score = (
-        0.2 * ptm_scores.complex_ptm
-        + 0.8 * ptm_scores.interface_ptm
-        - 100 * clash_scores.has_inter_chain_clashes.float()
-    )
-
     _, asyms = rank_utils.get_chain_masks_and_asyms(
         asym_id=token_asym_id,
         mask=token_exists_mask,
     )
+
+    # aggregate score; ipTM is undefined for a single chain (no inter-chain
+    # token pairs exist, so interface_ptm is always 0), so aggregate on pTM alone
+    if asyms.numel() > 1:
+        aggregate_score = (
+            0.2 * ptm_scores.complex_ptm
+            + 0.8 * ptm_scores.interface_ptm
+            - 100 * clash_scores.has_inter_chain_clashes.float()
+        )
+    else:
+        aggregate_score = (
+            ptm_scores.complex_ptm
+            - 100 * clash_scores.has_inter_chain_clashes.float()
+        )
 
     return SampleRanking(
         asym_ids=asyms,

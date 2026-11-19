@@ -45,6 +45,14 @@ chai-lab fold --use-msa-server --msa-server-url "https://api.internalcolabserver
 
 We also provide additional utility functions for tasks such as MSA file format conversion; see `chai --help` for details.
 
+### Reproducible runs
+
+`--seed` fixes the sampling noise, but the default CUDA kernels can change the low bits of a result from run to run, and the diffusion steps grow that into small coordinate differences. Add `--deterministic` to get bit identical outputs for the same input, seed, torch version and GPU. It turns on deterministic kernels and is slower.
+
+```shell
+chai-lab fold --seed 42 --deterministic input.fasta output_folder
+```
+
 ### Pythonic inference
 
 The main entrypoint into the Chai-1 folding code is through the `chai_lab.chai1.run_inference` function. The following script demonstrates how to provide inputs to the model, and obtain a list of PDB files for downstream analysis:

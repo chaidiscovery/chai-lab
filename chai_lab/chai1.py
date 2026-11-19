@@ -6,6 +6,7 @@
 import itertools
 import logging
 import math
+import os
 from collections import Counter
 from contextlib import contextmanager
 from dataclasses import dataclass
@@ -495,6 +496,30 @@ def make_all_atom_feature_context(
     return feature_context
 
 
+def use_deterministic_kernels() -> None:
+    """Make repeated runs with the same seed give bit identical outputs.
+
+    The seed fixes the sampling noise but not the CUDA kernels. Some kernels pick
+    a different reduction order on each call, and the diffusion steps amplify the
+    low bit differences into visible coordinate changes. This turns on the
+    deterministic kernels in torch, cuDNN and cuBLAS, at some cost in speed.
+
+    cuBLAS reads CUBLAS_WORKSPACE_CONFIG when the CUDA context is created, so call
+    this before anything touches the GPU, or set the variable in the environment.
+    """
+    if "CUBLAS_WORKSPACE_CONFIG" not in os.environ:
+        if torch.cuda.is_initialized():
+            logging.warning(
+                "CUDA was initialized before deterministic mode was enabled. "
+                "Set CUBLAS_WORKSPACE_CONFIG=:4096:8 before starting for exact "
+                "cuBLAS results."
+            )
+        os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
+    torch.use_deterministic_algorithms(True)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+
+
 @torch.no_grad()
 def run_inference(
     fasta_file: Path,
@@ -515,6 +540,7 @@ def run_inference(
     num_diffn_samples: int = 5,
     num_trunk_samples: int = 1,
     seed: int | None = None,
+    deterministic: bool = False,
     device: str | None = None,
     low_memory: bool = True,
     # IO options
@@ -533,6 +559,9 @@ def run_inference(
         ), f"Output directory {output_dir} is not empty."
 
     torch_device = torch.device(device if device is not None else "cuda:0")
+
+    if deterministic:
+        use_deterministic_kernels()
 
     # NOTE if fastas are cif chain names, we also use them to parse chains and restraints
     feature_context = make_all_atom_feature_context(

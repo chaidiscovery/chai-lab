@@ -6,7 +6,9 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 import pytest
+import torch
 
+from chai_lab import chai1
 from chai_lab.chai1 import make_all_atom_feature_context
 from chai_lab.data.parsing.glycans import _glycan_string_to_sugars_and_bonds
 
@@ -106,3 +108,55 @@ def test_glycan_tokenization_with_bond():
         ]
     )
     assert bond_elements == {8, 6}
+
+
+def test_cyclic_peptide_adds_terminal_bond_and_restraint():
+    fasta = ">protein|peptide\nGAAL\n"
+    with TemporaryDirectory() as tmpdir:
+        tmp_path = Path(tmpdir)
+
+        fasta_file = tmp_path / "input.fasta"
+        fasta_file.write_text(fasta)
+
+        output_dir = tmp_path / "out"
+
+        feature_context = make_all_atom_feature_context(
+            fasta_file,
+            output_dir=output_dir,
+            cyclic_chains=["peptide"],
+            use_esm_embeddings=False,
+        )
+
+    left, right = feature_context.structure_context.atom_covalent_bond_indices
+    assert left.numel() == right.numel() == 1
+    assert feature_context.structure_context.atom_ref_name[left.item()] == "N"
+    assert feature_context.structure_context.atom_ref_name[right.item()] == "C"
+    assert torch.all(feature_context.structure_context.token_cyclic_period == 4)
+    assert feature_context.restraint_context.contact_restraints is not None
+    assert len(feature_context.restraint_context.contact_restraints) == 1
+    restraint = feature_context.restraint_context.contact_restraints[0]
+    assert restraint.left_residue_subchain_id == "A"
+    assert restraint.right_residue_subchain_id == "A"
+    assert restraint.left_residue_index == 0
+    assert restraint.right_residue_index == 3
+    assert restraint.distance_threshold == 4.0
+
+
+def test_cyclic_relative_sequence_separation_wraps_termini():
+    generator = chai1.feature_generators["RelativeSequenceSeparation"]
+    residue_index = torch.tensor([[0, 1, 2, 3]], dtype=torch.long)
+    asym_id = torch.tensor([[1, 1, 1, 1]], dtype=torch.long)
+
+    non_cyclic = generator._generate(
+        residue_index=residue_index,
+        asym_id=asym_id,
+        cyclic_period=torch.zeros_like(residue_index),
+    )
+    cyclic = generator._generate(
+        residue_index=residue_index,
+        asym_id=asym_id,
+        cyclic_period=torch.full_like(residue_index, 4),
+    )
+
+    assert not torch.equal(cyclic[0, 0, 3], non_cyclic[0, 0, 3])
+    assert torch.equal(cyclic[0, 0, 3], cyclic[0, 1, 0])

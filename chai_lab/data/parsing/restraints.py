@@ -87,28 +87,34 @@ class PairwiseInteraction:
         if self.res_idxB:
             assert self.res_idxB_pos > 0
 
+    @staticmethod
+    def _residue_name_and_position(selector: str) -> tuple[str, int]:
+        """Split an optional one-letter residue name from its 1-based position."""
+        if not selector:
+            return "", 1
+        if selector[0].isdigit():
+            return "", int(selector)
+        return selector[0], int(selector[1:]) if selector[1:] else 1
+
     @property
     def res_idxA_name(self) -> str:
-        """Single-char name of residue A."""
-        return self.res_idxA[0] if self.res_idxA else ""
+        """Optional single-character name of residue A."""
+        return self._residue_name_and_position(self.res_idxA)[0]
 
     @property
     def res_idxA_pos(self) -> int:
         """1-indexed position of residue A; defaults to 1 if not given."""
-        # NOTE 1 default is because 1 is the minimum index under 1-indexing
-        s = self.res_idxA[1:]
-        return int(s) if s else 1
+        return self._residue_name_and_position(self.res_idxA)[1]
 
     @property
     def res_idxB_name(self) -> str:
-        """Single-char name of residue B."""
-        return self.res_idxB[0] if self.res_idxB else ""
+        """Optional single-character name of residue B."""
+        return self._residue_name_and_position(self.res_idxB)[0]
 
     @property
     def res_idxB_pos(self) -> int:
         """1-indexed position of residue B; defaults to 1 if not given."""
-        s = self.res_idxB[1:]
-        return int(s) if s else 1
+        return self._residue_name_and_position(self.res_idxB)[1]
 
     def to_table_entry(self) -> dict[str, str | float]:
         """Format as table entry, sans leading restraint_id column."""

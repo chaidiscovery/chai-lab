@@ -121,9 +121,11 @@ def load_manual_restraints_for_chai1(
                     pocket_chain_subchain_id=constraint.chainA,
                     pocket_token_subchain_id=constraint.chainB,
                     pocket_token_residue_index=constraint.res_idxB_pos - 1,
-                    pocket_token_residue_name=rc.restype_1to3_with_x[
-                        constraint.res_idxB_name
-                    ],
+                    pocket_token_residue_name=(
+                        rc.restype_1to3_with_x[constraint.res_idxB_name]
+                        if constraint.res_idxB_name
+                        else ""
+                    ),
                     pocket_distance_threshold=constraint.max_dist_angstrom,
                 )
                 pocket_constraints.append(pocket_parsed)

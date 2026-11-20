@@ -21,11 +21,12 @@ from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import Iterator
+
 
 import gemmi
 import torch
 from aiohttp import ClientResponseError
+from beartype.typing import Iterator
 from torch import Tensor
 from urllib3.exceptions import HTTPError, MaxRetryError
 

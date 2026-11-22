@@ -25,20 +25,23 @@ def constituents_of_modified_fasta(x: str) -> list[str] | None:
         return None
 
     current_modified: str | None = None
+    expected_close: str | None = None
 
     constituents = []
     for letter in x:
-        if letter == "(" or letter == "[":
+        if letter in ("(", "["):
             if current_modified is not None:
                 return None  # double open bracket
             current_modified = ""
-        elif letter == ")" or letter == "]":
-            if current_modified is None:
-                return None  # closed without opening
+            expected_close = ")" if letter == "(" else "]"
+        elif letter in (")", "]"):
+            if current_modified is None or letter != expected_close:
+                return None  # closed without matching opening
             if len(current_modified) <= 1:
                 return None  # empty modification: () or single (K)
             constituents.append(current_modified)
             current_modified = None
+            expected_close = None
         else:
             if current_modified is not None:
                 current_modified += letter

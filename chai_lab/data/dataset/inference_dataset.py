@@ -113,9 +113,9 @@ def raw_inputs_to_entitites_data(
                 parsed_sequence: list | None = constituents_of_modified_fasta(
                     input.sequence
                 )
-                assert (
-                    parsed_sequence is not None
-                ), f"incorrect FASTA: {input.sequence=} "
+                assert parsed_sequence is not None, (
+                    f"incorrect FASTA: {input.sequence=} "
+                )
                 expanded_sequence = [
                     get_residue_name(r, entity_type=entity_type) if len(r) == 1 else r
                     for r in parsed_sequence
@@ -274,10 +274,13 @@ def read_inputs(fasta_file: str | Path, length_limit: int | None = None) -> list
             case [label_part]:
                 label_part = label_part.strip()
                 if "=" in label_part:
-                    field_name, entity_name = label_part.split("=")
+                    field_name, entity_name = label_part.split("=", 1)
                     assert field_name == "name"
+                    entity_name = entity_name.strip()
                 else:
                     entity_name = label_part
+                if not entity_name:
+                    raise ValueError(f"label is empty in {desc=}")
             case _:
                 raise ValueError(f"Unsupported inputs: {desc=}")
 

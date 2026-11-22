@@ -28,6 +28,22 @@ def test_modified_protein_fasta():
     assert all(x == y for x, y in zip(parts, expected))
 
 
+def test_modified_fasta_mismatched_brackets_rejected():
+    assert constituents_of_modified_fasta("AGTC(SEP]TG") is None
+    assert constituents_of_modified_fasta("AGTC[SEP)TG") is None
+    assert constituents_of_modified_fasta("AGTC(SEP)(BAL]TG") is None
+    assert constituents_of_modified_fasta("AGTC(SEP)[BAL]TG") == [
+        "A",
+        "G",
+        "T",
+        "C",
+        "SEP",
+        "BAL",
+        "T",
+        "G",
+    ]
+
+
 def test_rna_fasta():
     seq = "ACUGACG"
     parts = constituents_of_modified_fasta(seq)

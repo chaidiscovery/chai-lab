@@ -195,7 +195,8 @@ def process_entity(
                 release_datetime=None,
                 pdb_id=structure_metadata.pdb_id,
                 method=structure_metadata.method,
-                is_d_polypeptide=gemmi_entity == gemmi.PolymerType.PeptideD,
+                is_d_polypeptide=gemmi_entity.polymer_type
+                == gemmi.PolymerType.PeptideD,
             )
 
         case EntityType.MANUAL_GLYCAN:
